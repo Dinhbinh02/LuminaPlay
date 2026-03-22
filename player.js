@@ -14,6 +14,172 @@ document.addEventListener('DOMContentLoaded', () => {
     const epIndex = params.get('ep');
     const startTime = params.get('t');
 
+    const filters = [
+        { id: 'selectList', type: 'danh-sach', label: 'Danh sách' },
+        { id: 'selectCategory', type: 'the-loai', label: 'Thể loại' },
+        { id: 'selectCountry', type: 'quoc-gia', label: 'Quốc gia' },
+        { id: 'selectYear', type: 'nam-phat-hanh', label: 'Năm' }
+    ];
+
+    async function initFilters() {
+        try {
+            const [cats, counts, years] = await Promise.all([
+                fetch(`${API_BASE}/v1/api/the-loai`).then(r => r.json()),
+                fetch(`${API_BASE}/v1/api/quoc-gia`).then(r => r.json()),
+                fetch(`${API_BASE}/v1/api/nam-phat-hanh`).then(r => r.json())
+            ]);
+            const getItems = (obj) => obj?.data?.items || (Array.isArray(obj?.data) ? obj.data : []);
+
+            // 1. Danh sách
+            const collectionItems = [
+                { name: "Phim Mới", slug: "phim-moi" }, { name: "Phim Bộ", slug: "phim-bo" },
+                { name: "Phim Lẻ", slug: "phim-le" }, { name: "TV Shows", slug: "tv-shows" },
+                { name: "Hoạt Hình", slug: "hoat-hinh" }, { name: "Vietsub", slug: "phim-vietsub" },
+                { name: "Thuyết Minh", slug: "phim-thuyet-minh" }, { name: "Lồng Tiếng", slug: "phim-long-tien" },
+                { name: "Bộ Đang Chiếu", slug: "phim-bo-dang-chieu" }, { name: "Bộ Hoàn Thành", slug: "phim-bo-hoan-thanh" },
+                { name: "Sắp Chiếu", slug: "phim-sap-chieu" }, { name: "Subteam", slug: "subteam" },
+                { name: "Chiếu Rạp", slug: "phim-chieu-rap" }
+            ];
+            buildCustomDropdown('selectList', collectionItems, 'danh-sach', 'Danh sách');
+
+            // 2. Thể loại
+            const rawCats = getItems(cats).filter(c => c.name !== "Phim 18+");
+            buildCustomDropdown('selectCategory', rawCats, 'the-loai', 'Thể loại');
+
+            // 3. Quốc gia
+            buildCustomDropdown('selectCountry', getItems(counts), 'quoc-gia', 'Quốc gia');
+
+            // 4. Năm
+            const yearsList = getItems(years).map(y => y.year || y.name || y.slug).filter(Boolean);
+            const mappedYears = Array.from(new Set(yearsList)).sort((a, b) => b - a).map(y => ({ name: y, slug: y }));
+            buildCustomDropdown('selectYear', mappedYears, 'nam-phat-hanh', 'Năm');
+        } catch (e) { }
+    }
+
+    function buildCustomDropdown(containerId, items, type, defaultLabel) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const trigger = container.querySelector('.select-trigger');
+        const optionsBox = container.querySelector('.options-container');
+        const triggerText = trigger.querySelector('span');
+        container.selectedItems = [];
+
+        trigger.onclick = (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.custom-select.active').forEach(s => {
+                if (s !== container) s.classList.remove('active');
+            });
+            container.classList.toggle('active');
+        };
+
+        const defaultOpt = document.createElement('div');
+        defaultOpt.className = 'option';
+        defaultOpt.innerText = "Tất cả";
+        defaultOpt.onclick = (e) => {
+            e.stopPropagation();
+            container.selectedItems = [];
+            container.classList.remove('has-selection', 'active');
+            triggerText.innerText = defaultLabel;
+        };
+        optionsBox.appendChild(defaultOpt);
+
+        items.forEach(item => {
+            const opt = document.createElement('div');
+            opt.className = 'option';
+            opt.innerText = item.name;
+            opt.onclick = (e) => {
+                e.stopPropagation();
+                const idx = container.selectedItems.findIndex(i => i.slug === item.slug);
+                if (idx > -1) {
+                    container.selectedItems.splice(idx, 1);
+                    opt.classList.remove('selected');
+                } else {
+                    container.selectedItems.push(item);
+                    opt.classList.add('selected');
+                }
+                if (container.selectedItems.length > 0) {
+                    const names = container.selectedItems.map(i => i.name).join(', ');
+                    triggerText.innerText = container.selectedItems.length > 2 ? `${container.selectedItems.length} mục` : names;
+                    container.classList.add('has-selection');
+                } else {
+                    triggerText.innerText = defaultLabel;
+                    container.classList.remove('has-selection');
+                }
+            };
+            optionsBox.appendChild(opt);
+        });
+    }
+
+    function applyMultiFilter() {
+        const params = new URLSearchParams();
+        let hasFilter = false;
+        filters.forEach(f => {
+            const container = document.getElementById(f.id);
+            if (container?.selectedItems?.length > 0) {
+                hasFilter = true;
+                const key = f.type === 'the-loai' ? 'category' : (f.type === 'quoc-gia' ? 'country' : (f.type === 'nam-phat-hanh' ? 'year' : 'list'));
+                const nameKey = key + 'Name';
+                params.set(key, container.selectedItems.map(i => i.slug).join(','));
+                params.set(nameKey, container.selectedItems.map(i => i.name).join(', '));
+            }
+        });
+        if (hasFilter) {
+            params.set('type', 'filter');
+            window.location.assign(`index.html?${params.toString()}`);
+        } else {
+            window.location.assign('index.html');
+        }
+    }
+
+    window.addEventListener('click', (e) => {
+        document.querySelectorAll('.custom-select.active').forEach(c => {
+            if (!c.contains(e.target)) c.classList.remove('active');
+        });
+    });
+
+    // Popup Filter Logic
+    const filterPopup = document.getElementById('filterPopup');
+    const filterBackdrop = document.getElementById('filterPopupBackdrop');
+    const filterBtn = document.getElementById('filterToggle');
+    const btnReset = document.getElementById('btnReset');
+    const btnApply = document.getElementById('btnApply');
+
+    const openPopup = () => {
+        filterPopup?.classList.add('active');
+        filterBackdrop?.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    };
+    const closePopup = () => {
+        filterPopup?.classList.remove('active');
+        filterBackdrop?.classList.remove('active');
+        document.body.style.overflow = '';
+    };
+
+    filterBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const userDropdown = document.getElementById('userDropdown');
+        userDropdown?.classList.remove('active');
+        openPopup();
+    });
+    filterBackdrop?.addEventListener('click', closePopup);
+
+    btnReset?.addEventListener('click', () => {
+        filters.forEach(f => {
+            const container = document.getElementById(f.id);
+            if (container) {
+                container.selectedItems = [];
+                container.classList.remove('has-selection');
+                container.querySelector('.select-trigger span').innerText = f.label;
+                container.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+            }
+        });
+    });
+
+    btnApply?.addEventListener('click', () => {
+        applyMultiFilter();
+        closePopup();
+    });
+
     // Xử lý tìm kiếm (Redirect về home)
     const searchInput = document.getElementById("searchInput");
     if (searchInput) {
@@ -28,7 +194,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let finalEp = epIndex;
         let finalTime = startTime;
 
-        // Nếu không có tham số trên URL, thử lấy từ kho tiến độ (videoProgress)
         if (epIndex === null && startTime === null) {
             const progress = JSON.parse(localStorage.getItem('videoProgress') || "{}");
             if (progress[slug]) {
@@ -37,10 +202,123 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        const GH_CLIENT_ID = "Ov23liDh2aDjxMY5xJ99";
+
+        window.updateGist = async function () {
+            const token = localStorage.getItem('gh_token');
+            const gistId = localStorage.getItem('gh_gist_id');
+            if (!token || !gistId) return;
+            try {
+                await fetch(`https://api.github.com/gists/${gistId}`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        files: { "lumina_watch_history.json": { content: localStorage.getItem('watchHistory') || "[]" } }
+                    })
+                });
+            } catch (e) { }
+        }
+
+        function updateUserUI(user) {
+            const loginSection = document.getElementById('loginSection');
+            const accountSection = document.getElementById('accountSection');
+            const headerAvatar = document.getElementById('headerAvatar');
+            const userIcon = document.getElementById('userIcon');
+            const dropdownAvatar = document.getElementById('dropdownAvatar');
+            const dropdownName = document.getElementById('dropdownName');
+            const dropdownLogin = document.getElementById('dropdownLogin');
+
+            if (user) {
+                if (loginSection) loginSection.style.display = 'none';
+                if (accountSection) accountSection.style.display = 'block';
+                if (headerAvatar) {
+                    headerAvatar.src = user.avatar_url;
+                    headerAvatar.style.display = 'block';
+                }
+                if (userIcon) userIcon.style.display = 'none';
+                if (dropdownAvatar) dropdownAvatar.src = user.avatar_url;
+                if (dropdownName) dropdownName.innerText = user.name || user.login;
+                if (dropdownLogin) dropdownLogin.innerText = `@${user.login}`;
+            } else {
+                if (loginSection) loginSection.style.display = 'block';
+                if (accountSection) accountSection.style.display = 'none';
+                if (headerAvatar) headerAvatar.style.display = 'none';
+                if (userIcon) userIcon.style.display = 'block';
+            }
+        }
+
+        function checkAuthState() {
+            const token = localStorage.getItem('gh_token');
+            const userStr = localStorage.getItem('gh_user');
+            if (token && userStr) {
+                updateUserUI(JSON.parse(userStr));
+                syncHistoryWithGist(token);
+            } else {
+                updateUserUI(null);
+            }
+        }
+
+        async function syncHistoryWithGist(token) {
+            try {
+                let gistId = localStorage.getItem('gh_gist_id');
+                if (!gistId) return;
+                const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const gistData = await res.json();
+                const content = gistData.files['lumina_watch_history.json'].content;
+                const remoteHistory = JSON.parse(content || "[]");
+                const local = JSON.parse(localStorage.getItem('watchHistory') || "[]");
+                const mergedMap = new Map();
+                [...remoteHistory, ...local].forEach(item => {
+                    const existing = mergedMap.get(item.slug);
+                    if (!existing || item.updatedAt > existing.updatedAt) mergedMap.set(item.slug, item);
+                });
+                const finalHistory = Array.from(mergedMap.values()).sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 20);
+                localStorage.setItem('watchHistory', JSON.stringify(finalHistory));
+            } catch (e) { }
+        }
+
+        function initAuth() {
+            const userBtn = document.getElementById('userBtn');
+            const userDropdown = document.getElementById('userDropdown');
+            const githubLoginBtn = document.getElementById('githubLogin');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            userBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closePopup();
+                userDropdown?.classList.toggle('active');
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.user-container')) {
+                    userDropdown?.classList.remove('active');
+                }
+            });
+
+            githubLoginBtn?.addEventListener('click', () => {
+                const redirectUri = window.location.origin + window.location.pathname.replace('player.html', 'callback.html');
+                const url = `https://github.com/login/oauth/authorize?client_id=${GH_CLIENT_ID}&scope=gist&redirect_uri=${encodeURIComponent(redirectUri)}`;
+                window.location.href = url;
+            });
+
+            logoutBtn?.addEventListener('click', () => {
+                localStorage.removeItem('gh_token');
+                localStorage.removeItem('gh_user');
+                localStorage.removeItem('gh_gist_id');
+                window.location.reload();
+            });
+            checkAuthState();
+        }
+
         playMovie(slug, parseInt(finalEp || 0), parseFloat(finalTime || 0));
+        initAuth();
     } else {
         window.location.href = "index.html";
     }
+
+    initFilters();
 });
 
 
@@ -59,7 +337,6 @@ async function playMovie(slug, epIndex = 0, startTime = 0) {
         if (metaRow) {
             metaRow.style.display = "flex";
             document.getElementById("meta-year").innerText = currentMovie.year || "";
-            document.getElementById("meta-quality").innerText = (currentMovie.quality || "HD").toUpperCase();
             document.getElementById("meta-lang").innerText = currentMovie.lang || "Vietsub";
         }
 
@@ -188,12 +465,13 @@ video.addEventListener('pause', saveHistory);
 
 function saveHistory() {
     if (!currentMovie || video.currentTime < 5) return;
-    
+
     // 1. Lưu vào Danh sách hiển thị (Watch History)
     let history = JSON.parse(localStorage.getItem('watchHistory') || "[]");
     const entry = {
         slug: currentMovie.slug,
         name: currentMovie.name,
+        origin_name: currentMovie.origin_name,
         poster: currentMovie.poster_url,
         epName: currentEpName,
         epIndex: currentEpIndex,
@@ -205,6 +483,7 @@ function saveHistory() {
     history.unshift(entry);
     if (history.length > 20) history.pop();
     localStorage.setItem('watchHistory', JSON.stringify(history));
+    updateGist(); // Sync lên mây
 
     // 2. Lưu vào Kho lưu trữ Tiến độ thực tế (Video Progress - Không bị xóa khi xóa hiển thị)
     let progress = JSON.parse(localStorage.getItem('videoProgress') || "{}");
@@ -286,12 +565,11 @@ function renderRelatedMovies(items) {
         card.className = "movie-card";
         card.innerHTML = `
             <div class="poster-wrapper">
-                <div class="badge-quality">${quality}</div>
-                <div class="badge-ep">${epStatus}</div>
                 <div class="movie-rating">
                     <i class="fa-solid fa-star"></i>
                     <span>${rating}</span>
                 </div>
+                <div class="badge-ep">${epStatus}</div>
                 <img class="poster" src="${poster}" alt="${movie.name}" ${priorityAttr} decoding="async">
             </div>
             <div class="details">
@@ -323,18 +601,18 @@ async function fetchCast(slug) {
     try {
         const res = await fetch(`${API_BASE}/v1/api/phim/${slug}/peoples`);
         const data = await res.json();
-        
+
         if (data.success && data.data.peoples && data.data.peoples.length > 0) {
             section.style.display = 'block';
             list.innerHTML = '';
-            
+
             const TMDB_IMG = "https://image.tmdb.org/t/p/w185";
             data.data.peoples.forEach(person => {
                 const item = document.createElement('div');
                 item.className = 'cast-item';
                 item.style.cursor = 'pointer';
                 const avatar = person.profile_path ? `${TMDB_IMG}${person.profile_path}` : DEFAULT_POSTER;
-                
+
                 item.innerHTML = `
                     <img class="cast-avatar" src="${avatar}" alt="${person.name}" loading="lazy">
                     <div class="cast-name">${person.name}</div>
@@ -361,18 +639,65 @@ async function fetchKeywords(slug) {
     const container = document.getElementById('keywords-container');
     if (!container) return;
 
-    // Chỉ hiển thị các thể loại chính của phim (do tag TMDB không hiệu quả trong tìm kiếm)
     container.innerHTML = '';
-    if (currentMovie && currentMovie.category) {
-        currentMovie.category.forEach(cat => {
-            const tag = document.createElement('span');
-            tag.className = 'tag';
-            tag.innerText = cat.name;
-            tag.onclick = () => {
-                window.location.assign(`index.html?type=filter&category=${cat.slug}&catName=${encodeURIComponent(cat.name)}`);
-            };
-            container.appendChild(tag);
-        });
+    const addedSlugs = new Set();
+
+    const addTag = (name, slug, type) => {
+        if (addedSlugs.has(slug)) return;
+        addedSlugs.add(slug);
+
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.innerText = name;
+        tag.onclick = () => {
+            const key = type === 'the-loai' ? 'category' : (type === 'quoc-gia' ? 'country' : (type === 'nam-phat-hanh' ? 'year' : 'list'));
+            window.location.assign(`index.html?type=filter&${key}=${slug}&${key}Name=${encodeURIComponent(name)}`);
+        };
+        container.appendChild(tag);
+    };
+
+    if (currentMovie) {
+        // 1. Phân loại theo Type (Danh sách chính)
+        const typeMapping = {
+            'series': { name: 'Phim Bộ', slug: 'phim-bo' },
+            'single': { name: 'Phim Lẻ', slug: 'phim-le' },
+            'hoathinh': { name: 'Hoạt Hình', slug: 'hoat-hinh' },
+            'tvshows': { name: 'TV Shows', slug: 'tv-shows' }
+        };
+        const mainType = typeMapping[currentMovie.type];
+        if (mainType) addTag(mainType.name, mainType.slug, 'list');
+
+        // 2. Phân loại theo Ngôn ngữ (Dựa trên list dropdown của user)
+        if (currentMovie.lang) {
+            const l = currentMovie.lang.toLowerCase();
+            if (l.includes('vietsub')) addTag('Vietsub', 'phim-vietsub', 'list');
+            if (l.includes('thuyết minh')) addTag('Thuyết Minh', 'phim-thuyet-minh', 'list');
+            if (l.includes('lồng tiếng')) addTag('Lồng Tiếng', 'phim-long-tien', 'list');
+        }
+
+        // 3. Phân loại theo Trạng thái (Ongoing/Completed/Trailer)
+        if (currentMovie.status === 'ongoing') {
+            addTag('Đang Chiếu', 'phim-bo-dang-chieu', 'list');
+        } else if (currentMovie.status === 'completed') {
+            addTag('Hoàn Thành', 'phim-bo-hoan-thanh', 'list');
+        } else if (currentMovie.status === 'trailer') {
+            addTag('Sắp Chiếu', 'phim-sap-chieu', 'list');
+        }
+
+        // 4. Các danh sách đặc biệt
+        if (currentMovie.year === new Date().getFullYear().toString()) {
+            addTag('Phim Mới', 'phim-moi', 'list');
+        }
+        if (currentMovie.chieu_rap === true || currentMovie.chieu_rap === "1") {
+            addTag('Chiêu Rạp', 'phim-chieu-rap', 'list');
+        }
+
+        // 5. Hiện Thể loại (Genre)
+        if (currentMovie.category) {
+            currentMovie.category.forEach(cat => {
+                addTag(cat.name, cat.slug, 'the-loai');
+            });
+        }
     }
 }
 

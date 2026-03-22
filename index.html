@@ -9,75 +9,143 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="player.css">
+    <style>
+        html.back-nav-hiding body { opacity: 0; pointer-events: none; }
     </style>
+    <script>
+        // Chạy càng sớm càng tốt để ẩn body khi nhấn Back (tránh bị flash top page)
+        if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward') {
+            document.documentElement.classList.add('back-nav-hiding');
+        }
+    </script>
 </head>
 
 <body>
     <header id="filterBar">
         <div class="header-main">
-            <a href="index.html" class="logo">LUMINA <span style="color:white; font-weight:300">PLAY</span></a>
+            <a href="index.html" class="logo">
+                LUMINA
+                <div class="logo-play-btn">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M19.467 11.315L7.867 4.228a1.2 1.2 0 00-1.867 1.012v13.518a1.2 1.2 0 001.867 1.012l11.6-7.087a1.206 1.206 0 000-2.368z" />
+                    </svg>
+                </div>
+            </a>
 
-            <button class="filter-main-btn" id="filterToggle" title="Bộ lọc phim">
-                <i class="fa-solid fa-sliders"></i>
-            </button>
 
             <div class="search-box">
-                <i class="fa-solid fa-magnifying-glass"></i>
+                <button class="filter-toggle-btn" id="filterToggle" title="Bộ lọc phim">
+                    <i class="fa-solid fa-sliders"></i>
+                </button>
                 <input type="text" id="searchInput" placeholder="Tìm kiếm phim...">
+
+                <div class="filter-popup-backdrop" id="filterPopupBackdrop"></div>
+                <div class="filter-popup" id="filterPopup">
+                    <div class="filter-grid">
+                        <div class="custom-select" id="selectList">
+                            <div class="select-trigger"><span>Danh sách</span><i class="fa-solid fa-chevron-down"></i>
+                            </div>
+                            <div class="options-container"></div>
+                        </div>
+                        <div class="custom-select" id="selectCategory">
+                            <div class="select-trigger"><span>Thể loại</span><i class="fa-solid fa-chevron-down"></i>
+                            </div>
+                            <div class="options-container"></div>
+                        </div>
+                        <div class="custom-select" id="selectCountry">
+                            <div class="select-trigger"><span>Quốc gia</span><i class="fa-solid fa-chevron-down"></i>
+                            </div>
+                            <div class="options-container"></div>
+                        </div>
+                        <div class="custom-select" id="selectYear">
+                            <div class="select-trigger"><span>Năm</span><i class="fa-solid fa-chevron-down"></i></div>
+                            <div class="options-container"></div>
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-reset" id="btnReset">Đặt lại</button>
+                        <button class="btn-apply" id="btnApply">Áp dụng</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="user-container" id="userContainer">
+                <button class="user-btn" id="userBtn" title="Tài khoản">
+                    <img id="headerAvatar"
+                        style="display:none; width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                    <i class="fa-solid fa-circle-user" id="userIcon"></i>
+                </button>
+                <div class="user-dropdown" id="userDropdown">
+                    <div id="loginSection">
+                        <button class="login-btn-github" id="githubLogin">
+                            <i class="fa-brands fa-github"></i> Đăng nhập với GitHub
+                        </button>
+                    </div>
+                    <div id="accountSection" style="display: none;">
+                        <div class="user-info-brief">
+                            <img id="dropdownAvatar" src="" alt="Avatar">
+                            <div class="user-details">
+                                <div id="dropdownName">Tên người dùng</div>
+                                <div id="dropdownLogin">@username</div>
+                            </div>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <button class="logout-btn" id="logoutBtn">
+                            <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Dải filter sẽ luôn rớt xuống hàng 2 khi Header Wrap -->
-        <div class="filters-wrapper" id="filtersWrapper">
-            <div class="custom-select" id="selectCategory">
-                <div class="select-trigger"><span>Thể loại</span><i class="fa-solid fa-chevron-down"></i></div>
-                <div class="options-container"></div>
-            </div>
-            <div class="custom-select" id="selectCountry">
-                <div class="select-trigger"><span>Quốc gia</span><i class="fa-solid fa-chevron-down"></i></div>
-                <div class="options-container"></div>
-            </div>
-            <div class="custom-select" id="selectYear">
-                <div class="select-trigger"><span>Năm</span><i class="fa-solid fa-chevron-down"></i></div>
-                <div class="options-container"></div>
-            </div>
-        </div>
     </header>
 
     <main>
-        <div id="recentSection" class="recent-section" style="display: none;">
-            <div class="section-header">
-                <h2 id="recent-title">Xem Gần Đây</h2>
+        <div class="main-container">
+            <div id="recentSection" class="recent-section" style="display: none;">
+                <div class="section-header">
+                    <h2 id="recent-title">Tiếp Tục Xem</h2>
+                    <a href="#" class="see-more-link" id="recentSeeMore" style="display: none;">Xem Thêm <i
+                            class="fa-solid fa-chevron-right"></i></a>
+                </div>
+                <div class="recent-grid" id="recentGrid">
+                </div>
             </div>
-            <div class="recent-grid" id="recentGrid">
+            <div id="movieContent" class="main-content-section">
+                <div class="section-header">
+                    <h2 id="list-title"></h2>
+                    <a href="#" class="see-more-link" id="listSeeMore" style="display: none;">Xem Thêm <i
+                            class="fa-solid fa-chevron-right"></i></a>
+                </div>
+
+                <div class="movie-slider-wrapper">
+                    <button class="slider-btn prev" id="sliderPrev" title="Trượt sang trái">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <div class="movie-grid" id="movieGrid">
+                        <div id="scrollSentinel" style="width: 50px; flex-shrink: 0;"></div>
+                    </div>
+                    <button class="slider-btn next" id="sliderNext" title="Trượt sang phải">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+
             </div>
-        </div>
-        <div id="mainContentSection" class="main-content-section">
-            <div class="section-header">
-                <h2 id="list-title">Phim Mới Cập Nhật</h2>
+            <div id="loader" class="loader">
+                Đang tải dữ liệu...
             </div>
 
-            <div class="search-results-info" id="searchInfo">
-                Tìm thấy <span>0</span> kết quả cho: "<span id="searchKey"></span>"
+            <div class="pagination" id="pagination" style="display: none;"></div>
+            <div id="ctxBackdrop" class="context-menu-backdrop"></div>
+            <div id="ctxMenu" class="context-menu">
+                <div id="ctxDeleteOne" class="context-menu-item delete">
+                    Xóa khỏi danh sách
+                </div>
+                <div id="ctxDeleteAll" class="context-menu-item delete">
+                    Xóa tất cả
+                </div>
             </div>
-            <div class="movie-grid" id="movieGrid">
-            </div>
-
-            <!-- Cảm biến cho Infinite Scroll -->
-            <div id="scrollSentinel" style="height: 50px; margin-top: 2rem;"></div>
-        </div>
-        <div class="pagination" id="pagination" style="display: none;"></div>
-
-        <!-- Context Menu cho Lịch sử -->
-        <div id="ctxBackdrop" class="context-menu-backdrop"></div>
-        <div id="ctxMenu" class="context-menu">
-            <div id="ctxDeleteOne" class="context-menu-item delete">
-                Xóa khỏi danh sách
-            </div>
-            <div id="ctxDeleteAll" class="context-menu-item delete">
-                Xóa tất cả
-            </div>
-        </div>
     </main>
 
     <script src="index.js"></script>
