@@ -460,20 +460,24 @@ function initPlayer(url, startTime = 0) {
     // --- Chế độ Auto-PiP khi chuyển Tab (Desktop & Mobile) ---
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
-            // Khi tab bị ẩn (người dùng chuyển sang tab khác), thử tự động nổ PiP
             if (video && !video.paused && video.readyState >= 2) {
                 try {
-                    video.requestPictureInPicture().catch(() => {
-                        // Trình duyệt chặn nổ PiP tự động vì lý do bảo mật (cần gesture người dùng trước đó)
-                        console.log("Auto-PiP blocked or not supported on this browser.");
-                    });
+                    if (video.requestPictureInPicture) {
+                        video.requestPictureInPicture().catch(() => { });
+                    } else if (video.webkitSetPresentationMode) {
+                        // Fallback cho Safari iOS
+                        video.webkitSetPresentationMode('picture-in-picture');
+                    }
                 } catch (e) { }
             }
         } else {
-            // Khi quay lại tab, tự động thoát PiP để xem trên trình phát lớn
             if (document.pictureInPictureElement === video) {
                 try {
                     document.exitPictureInPicture().catch(() => { });
+                } catch (e) { }
+            } else if (video.webkitPresentationMode === 'picture-in-picture') {
+                try {
+                    video.webkitSetPresentationMode('inline');
                 } catch (e) { }
             }
         }
