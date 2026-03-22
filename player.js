@@ -114,7 +114,7 @@ function buildCustomDropdown(containerId, items, type, defaultLabel) {
     trigger.onclick = (e) => {
         e.stopPropagation();
         const isActive = container.classList.contains('active');
-        
+
         // Đóng các dropdown khác trước
         document.querySelectorAll('.custom-select').forEach(s => {
             if (s !== container && s.classList.contains('active')) s.classList.remove('active');
@@ -124,10 +124,10 @@ function buildCustomDropdown(containerId, items, type, defaultLabel) {
 
         // Nếu vừa ĐÓNG dropdown xong, tiến hành Redirect về trang chủ
         if (isActive && container.selectedItems.length > 0) {
-             const slugs = container.selectedItems.map(i => i.slug).join(',');
-             const names = container.selectedItems.map(i => i.name).join(', ');
-             const queryType = container.selectedItems[0].customType || type;
-             window.location.assign(`index.html?type=filter&subtype=${queryType}&slug=${slugs}&name=${encodeURIComponent(names)}`);
+            const slugs = container.selectedItems.map(i => i.slug).join(',');
+            const names = container.selectedItems.map(i => i.name).join(', ');
+            const queryType = container.selectedItems[0].customType || type;
+            window.location.assign(`index.html?type=filter&subtype=${queryType}&slug=${slugs}&name=${encodeURIComponent(names)}`);
         }
     };
 
@@ -176,9 +176,41 @@ async function playMovie(slug, epIndex = 0, startTime = 0) {
         document.getElementById("current-title").innerText = currentMovie.name;
 
         // Giải mã mô tả
+        const descEl = document.getElementById("current-desc");
         const tempDiv = document.createElement("div");
         tempDiv.innerHTML = (currentMovie.content || "").replace(/<[^>]*>?/gm, '');
-        document.getElementById("current-desc").innerText = tempDiv.textContent || "";
+        descEl.innerText = tempDiv.textContent || "";
+        descEl.classList.add('collapsed');
+
+        // Cleanup cũ nếu load lại phim
+        const oldBtn = document.querySelector('.see-more-btn');
+        if (oldBtn) oldBtn.remove();
+
+        const seeMoreBtn = document.createElement('div');
+        seeMoreBtn.className = 'see-more-btn';
+        seeMoreBtn.innerText = 'Xem thêm';
+        descEl.parentNode.insertBefore(seeMoreBtn, descEl.nextSibling);
+
+        // Kiểm tra xem có bị tràn (cắt bớt) không
+        setTimeout(() => {
+            if (descEl.scrollHeight > descEl.clientHeight) {
+                seeMoreBtn.style.display = 'block';
+                seeMoreBtn.onclick = () => {
+                    const isCollapsed = descEl.classList.contains('collapsed');
+                    if (isCollapsed) {
+                        descEl.classList.remove('collapsed');
+                        seeMoreBtn.innerText = 'Thu gọn';
+                    } else {
+                        descEl.classList.add('collapsed');
+                        seeMoreBtn.innerText = 'Xem thêm';
+                        // Cuộn nhẹ lên đầu mô tả nếu đang ở xa
+                        descEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                };
+            } else {
+                seeMoreBtn.style.display = 'none';
+            }
+        }, 200);
 
         episodesGrid.innerHTML = "";
         let targetLink = "";
