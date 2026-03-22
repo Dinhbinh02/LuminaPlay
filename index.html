@@ -13,30 +13,34 @@
 </head>
 
 <body>
-    <header>
-        <a href="index.html" class="logo">LUMINA <span style="color:white; font-weight:300">PLAY</span></a>
-        <div class="filter-bar" id="filterBar">
-            <div class="filters-wrapper" id="filtersWrapper">
-                <div class="custom-select" id="selectCategory">
-                    <div class="select-trigger"><span>Thể loại</span><i class="fa-solid fa-chevron-down"></i></div>
-                    <div class="options-container"></div>
-                </div>
-                <div class="custom-select" id="selectCountry">
-                    <div class="select-trigger"><span>Quốc gia</span><i class="fa-solid fa-chevron-down"></i></div>
-                    <div class="options-container"></div>
-                </div>
-                <div class="custom-select" id="selectYear">
-                    <div class="select-trigger"><span>Năm</span><i class="fa-solid fa-chevron-down"></i></div>
-                    <div class="options-container"></div>
-                </div>
-            </div>
+    <header id="filterBar">
+        <div class="header-main">
+            <a href="index.html" class="logo">LUMINA <span style="color:white; font-weight:300">PLAY</span></a>
+
             <button class="filter-main-btn" id="filterToggle" title="Bộ lọc phim">
                 <i class="fa-solid fa-sliders"></i>
             </button>
+
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="searchInput" placeholder="Tìm kiếm phim...">
+            </div>
         </div>
-        <div class="search-box">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="searchInput" placeholder="Tìm kiếm phim bạn yêu thích...">
+
+        <!-- Dải filter sẽ luôn rớt xuống hàng 2 khi Header Wrap -->
+        <div class="filters-wrapper" id="filtersWrapper">
+            <div class="custom-select" id="selectCategory">
+                <div class="select-trigger"><span>Thể loại</span><i class="fa-solid fa-chevron-down"></i></div>
+                <div class="options-container"></div>
+            </div>
+            <div class="custom-select" id="selectCountry">
+                <div class="select-trigger"><span>Quốc gia</span><i class="fa-solid fa-chevron-down"></i></div>
+                <div class="options-container"></div>
+            </div>
+            <div class="custom-select" id="selectYear">
+                <div class="select-trigger"><span>Năm</span><i class="fa-solid fa-chevron-down"></i></div>
+                <div class="options-container"></div>
+            </div>
         </div>
     </header>
 
@@ -61,7 +65,7 @@
             </div>
             <div class="movie-grid" id="movieGrid">
             </div>
-            
+
             <!-- Cảm biến cho Infinite Scroll -->
             <div id="scrollSentinel" style="height: 50px; margin-top: 2rem;"></div>
         </div>

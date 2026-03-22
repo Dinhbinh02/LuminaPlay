@@ -267,6 +267,7 @@ function renderRelatedMovies(items) {
     });
 }
 
+\n
 // --- Anti-DevTools ---
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('keydown', (e) => {
@@ -274,4 +275,3 @@ document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && (e.shiftKey || e.altKey) && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j')) e.preventDefault();
     if ((e.ctrlKey || e.metaKey) && (e.key === 'U' || e.key === 'u')) e.preventDefault();
 });
-

@@ -25,16 +25,23 @@ header {
     position: sticky;
     top: 0;
     z-index: 1000;
-    background: rgba(15, 16, 20, 0.95); /* Tăng độ đục để giảm gánh nặng blur */
-    backdrop-filter: blur(5px); /* Giảm độ mờ xuống mức tối thiểu */
+    background: rgba(15, 16, 20, 0.95);
+    backdrop-filter: blur(5px);
     will-change: transform;
-    transform: translateZ(0); 
+    transform: translateZ(0);
     padding: 0.8rem 5%;
     display: flex;
-    justify-content: space-between;
+    flex-direction: row;
+    flex-wrap: wrap;
+    /* Cho phép filter rớt hàng */
     align-items: center;
     border-bottom: 1px solid var(--glass);
-    gap: 1rem;
+    gap: 8px;
+}
+
+.header-main {
+    display: contents;
+    /* Giải phóng để các con nằm chung hàng với Header */
 }
 
 .logo {
@@ -43,29 +50,31 @@ header {
     color: var(--primary);
     text-decoration: none;
     letter-spacing: -1px;
+    margin-right: auto;
+    /* Lò xo đẩy văng toàn bộ cụm điều khiển sang mép phải */
 }
 
 .search-box {
+    order: 2;
     position: relative;
-    width: 260px;
-    /* Thu nhỏ ô search */
+    width: 200px; /* Cố định theo độ dài placeholder */
+    height: 44px;
+    background: var(--surface);
+    border: 1px solid var(--glass);
+    border-radius: 50px;
     flex-shrink: 0;
 }
 
 .search-box input {
     width: 100%;
-    background: var(--surface);
-    border: 1px solid var(--glass);
-    padding: 0.7rem 1rem 0.7rem 2.5rem;
-    border-radius: 50px;
+    height: 100%;
+    background: transparent;
+    border: none;
+    padding: 0 1rem 0 2.5rem;
     color: white;
     outline: none;
-    transition: all 0.3s;
-}
-
-.search-box input:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 15px rgba(229, 9, 20, 0.2);
+    opacity: 1;
+    /* Luôn hiện input */
 }
 
 .search-box i {
@@ -73,7 +82,8 @@ header {
     left: 1rem;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--text-dim);
+    color: white;
+    pointer-events: none;
 }
 
 /* Player Section */
@@ -88,7 +98,8 @@ header {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     will-change: transform;
     transform: translateZ(0);
-    contain: layout paint; /* Tăng tốc render bằng cách cô lập video */
+    contain: layout paint;
+    /* Tăng tốc render bằng cách cô lập video */
 }
 
 video {
@@ -161,6 +172,7 @@ video {
 
 /* Nút Filter chính hình tròn */
 .filter-main-btn {
+    order: 4;
     width: 44px;
     height: 44px;
     border-radius: 50%;
@@ -186,11 +198,16 @@ video {
 
 /* Wrapper chứa 3 bộ lọc */
 .filters-wrapper {
-    display: flex;
+    order: 3;
+    /* Nằm bên phải Search Bar trên bản Desktop */
+    display: none;
+    /* Mặc định ẩn hoàn toàn để không gây double gap */
     gap: 0;
 }
 
-.filter-bar.expanded .filters-wrapper {
+#filterBar.expanded .filters-wrapper {
+    display: flex;
+    /* Chỉ hiện ra khi người dùng chủ động nhấn Filter */
     gap: 0.5rem;
 }
 
@@ -205,9 +222,8 @@ video {
     /* Cắt phần chữ khi đang co lại */
 }
 
-.filter-bar.expanded .custom-select,
-.custom-select.has-selection {
-    max-width: 200px;
+#filterBar.expanded .custom-select {
+    max-width: 160px;
     opacity: 1;
     visibility: visible;
     overflow: visible;
@@ -233,7 +249,7 @@ video {
     background: var(--surface);
     border: 1px solid var(--glass);
     color: white;
-    padding: 0.6rem 1.4rem;
+    padding: 0.5rem 1.1rem;
     border-radius: 50px;
     /* Làm cong giống hệt ô search */
     cursor: pointer;
@@ -488,12 +504,14 @@ main {
     border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
-    transition: transform 0.2s ease-out; /* Chỉ transform cho nhẹ */
+    transition: transform 0.2s ease-out;
+    /* Chỉ transform cho nhẹ */
     position: relative;
-    content-visibility: auto; 
+    content-visibility: auto;
     contain-intrinsic-size: 180px 300px;
-    will-change: transform; /* Kích hoạt tăng tốc phần cứng */
-    transform: translateZ(0); 
+    will-change: transform;
+    /* Kích hoạt tăng tốc phần cứng */
+    transform: translateZ(0);
 }
 
 .movie-card:hover {
@@ -532,12 +550,14 @@ main {
     margin-top: 5px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
-    line-clamp: 2; /* Hỗ trợ trình duyệt tiêu chuẩn */
+    line-clamp: 2;
+    /* Hỗ trợ trình duyệt tiêu chuẩn */
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.4;
-    height: 2.24rem; /* Cố định chiều cao (0.8rem * 1.4 line-height * 2 lines) để lưới thẳng tắp */
+    height: 2.24rem;
+    /* Cố định chiều cao (0.8rem * 1.4 line-height * 2 lines) để lưới thẳng tắp */
 }
 
 .movie-card .poster-wrapper {
@@ -552,7 +572,8 @@ main {
     position: absolute;
     top: 10px;
     left: 10px;
-    background: rgba(15, 18, 24, 0.9); /* Màu tối đặc hơn thay cho blur */
+    background: rgba(15, 18, 24, 0.9);
+    /* Màu tối đặc hơn thay cho blur */
     color: #00d2ff;
     padding: 3px 8px;
     border-radius: 6px;
@@ -579,11 +600,12 @@ main {
 
 .movie-card .movie-rating {
     position: absolute;
-    bottom: 10px; 
+    bottom: 10px;
     left: 10px;
-    background: rgba(15, 18, 24, 0.95); /* Màu tối đặc hơn thay cho blur */
+    background: rgba(15, 18, 24, 0.95);
+    /* Màu tối đặc hơn thay cho blur */
     padding: 4px 10px;
-    border-radius: 50px; 
+    border-radius: 50px;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -679,17 +701,88 @@ main {
     left: -150%;
     width: 200%;
     height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.05),
-        transparent
-    );
+    background: linear-gradient(90deg,
+            transparent,
+            rgba(255, 255, 255, 0.05),
+            transparent);
     animation: shimmer 1.5s infinite;
 }
 
 @keyframes shimmer {
     100% {
         left: 150%;
+    }
+}
+
+/* --- Mobile Responsive (Thiết kế thông minh) --- */
+@media (max-width: 950px) {
+    header {
+        padding: 0.6rem 4%;
+        gap: 0;
+        /* Giảm gap để dành chỗ cho bộ điều khiển */
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .header-main {
+        display: flex;
+        flex-wrap: nowrap;
+        /* Tuyên ngôn: Hàng chính không bao giờ rớt dòng */
+        align-items: center;
+        width: 100%;
+        gap: 0.5rem;
+    }
+
+    .logo {
+        font-size: 1.1rem;
+        order: 1;
+    }
+
+    .search-box {
+        width: 200px; /* Giữ nguyên kích thước như bản Desktop */
+        height: 38px;
+        order: 2;
+    }
+
+    .filter-main-btn {
+        width: 38px;
+        height: 38px;
+        order: 10 !important;
+    }
+
+    .filters-wrapper {
+        order: 20;
+        width: 100%;
+        margin-top: 0.5rem;
+        display: none;
+    }
+
+    #filterBar.expanded .filters-wrapper {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    #filterBar.expanded .custom-select {
+        flex: 1;
+        max-width: none;
+        opacity: 1;
+        visibility: visible;
+        overflow: visible;
+    }
+
+    #filterBar.expanded .select-trigger {
+        width: 100%;
+        padding: 0.5rem 0.9rem;
+        font-size: 0.8rem;
+        justify-content: center;
+        gap: 5px;
+    }
+
+    .select-trigger span {
+        max-width: 90px;
+    }
+
+    #current-title {
+        font-size: 1.3rem;
     }
 }

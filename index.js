@@ -14,7 +14,6 @@ const filters = [
     { id: 'selectYear', type: 'nam-phat-hanh', label: 'Năm' }
 ];
 
-let filterTimer = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
@@ -26,20 +25,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     filterBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const isOpening = !filterBar.classList.contains('expanded');
+        const isClosing = filterBar.classList.contains('expanded');
         filterBar.classList.toggle('expanded');
-
-        if (isOpening) {
-            resetFilterTimer(); // Bắt đầu đếm ngược ngay khi mở
+        
+        if (isClosing) {
+            // Khi đóng bảng lọc chính, dọn sạch mọi dropdown con đang mở
+            document.querySelectorAll('.custom-select').forEach(s => s.classList.remove('active'));
         }
     });
 
     // Nếu đang mở mà có di chuyển chuột, cũng coi như đang "làm gì đó"
-    filterBar.addEventListener('mousemove', () => {
-        if (filterBar.classList.contains('expanded')) {
-            resetFilterTimer();
-        }
-    });
 
     initFilters();
     renderWatchHistory();
@@ -57,6 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
         state.slug = '';
         state.name = '';
         searchInput.value = '';
+        if (searchInput.parentElement) {
+            searchInput.parentElement.classList.toggle('active', !!q);
+        }
 
         // Reset giao diện bộ lọc về mặc định
         filters.forEach(f => {
@@ -115,9 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('click', (e) => {
         if (!e.target.closest('.custom-select')) {
             document.querySelectorAll('.custom-select').forEach(s => s.classList.remove('active'));
-            if (filterBar.classList.contains('expanded')) {
-                resetFilterTimer();
-            }
         }
     });
 });
@@ -162,18 +157,6 @@ async function initFilters() {
     }
 }
 
-// Reset bộ đếm tự động đóng filter (10 giây)
-function resetFilterTimer() {
-    clearTimeout(filterTimer);
-    filterTimer = setTimeout(() => {
-        const filterBar = document.getElementById('filterBar');
-        if (filterBar) {
-            filterBar.classList.remove('expanded');
-            // Đóng tất cả menu con để gọn gàng
-            document.querySelectorAll('.custom-select').forEach(s => s.classList.remove('active'));
-        }
-    }, 10000);
-}
 
 function buildCustomDropdown(containerId, items, type, defaultLabel) {
     const container = document.getElementById(containerId);
@@ -200,8 +183,6 @@ function buildCustomDropdown(containerId, items, type, defaultLabel) {
                 state.name = '';
                 history.pushState({}, '', 'index.html');
                 loadContent(1);
-
-                resetFilterTimer();
                 return; // Kết thúc sớm, không mở menu
             }
         }
@@ -211,7 +192,6 @@ function buildCustomDropdown(containerId, items, type, defaultLabel) {
         document.querySelectorAll('.custom-select').forEach(s => s.classList.remove('active'));
         if (!isActive) {
             container.classList.add('active');
-            resetFilterTimer();
         }
     };
 
@@ -232,7 +212,6 @@ function buildCustomDropdown(containerId, items, type, defaultLabel) {
 
         history.pushState({}, '', 'index.html');
         loadContent(1);
-        resetFilterTimer();
     };
     optionsBox.appendChild(defaultOpt);
 
@@ -562,6 +541,7 @@ function renderWatchHistory() {
     });
 }
 
+\n
 // --- Anti-DevTools ---
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('keydown', (e) => {
