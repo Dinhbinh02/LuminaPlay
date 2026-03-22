@@ -8,35 +8,13 @@ let currentMovie = null;
 let currentEpName = "";
 let currentEpIndex = 0;
 
-// Cấu hình lọc (Đồng bộ với index.js)
-const filters = [
-    { id: 'selectCategory', type: 'the-loai', label: 'Thể loại' },
-    { id: 'selectCountry', type: 'quoc-gia', label: 'Quốc gia' },
-    { id: 'selectYear', type: 'nam-phat-hanh', label: 'Năm' }
-];
-
 document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
     const slug = params.get('slug');
-    const epIndex = params.get('ep') || 0;
-    const startTime = params.get('t') || 0;
+    const epIndex = params.get('ep');
+    const startTime = params.get('t');
 
-    // --- Logic Header đồng bộ ---
-    const filterBar = document.getElementById('filterBar');
-    const filterBtn = document.getElementById('filterToggle');
-
-    if (filterBtn && filterBar) {
-        filterBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isClosing = filterBar.classList.contains('expanded');
-            filterBar.classList.toggle('expanded');
-            if (isClosing) {
-                document.querySelectorAll('.custom-select').forEach(s => s.classList.remove('active'));
-            }
-        });
-    }
-
-    // Xử lý tìm kiếm
+    // Xử lý tìm kiếm (Redirect về home)
     const searchInput = document.getElementById("searchInput");
     if (searchInput) {
         searchInput.addEventListener('keypress', (e) => {
@@ -46,124 +24,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    initFilters();
-
-    // Đóng dropdown khi click ra ngoài
-    window.addEventListener('click', (e) => {
-        if (!e.target.closest('.custom-select')) {
-            document.querySelectorAll('.custom-select').forEach(s => s.classList.remove('active'));
-        }
-    });
-
     if (slug) {
-        playMovie(slug, parseInt(epIndex), parseFloat(startTime));
+        let finalEp = epIndex;
+        let finalTime = startTime;
+
+        // Nếu không có tham số trên URL, thử lấy từ kho tiến độ (videoProgress)
+        if (epIndex === null && startTime === null) {
+            const progress = JSON.parse(localStorage.getItem('videoProgress') || "{}");
+            if (progress[slug]) {
+                finalEp = progress[slug].epIndex;
+                finalTime = progress[slug].time;
+            }
+        }
+
+        playMovie(slug, parseInt(finalEp || 0), parseFloat(finalTime || 0));
     } else {
         window.location.href = "index.html";
     }
 });
 
-async function initFilters() {
-    try {
-        const [cats, counts, years] = await Promise.all([
-            fetch(`${API_BASE}/v1/api/the-loai`).then(r => r.json()),
-            fetch(`${API_BASE}/v1/api/quoc-gia`).then(r => r.json()),
-            fetch(`${API_BASE}/v1/api/nam-phat-hanh`).then(r => r.json())
-        ]);
-
-        const getItems = (obj) => {
-            if (!obj || !obj.data) return [];
-            return Array.isArray(obj.data) ? obj.data : (obj.data.items || []);
-        };
-
-        // --- ĐỒNG BỘ: Chèn Phim Bộ / Phim Lẻ ---
-        const rawCats = getItems(cats);
-        const specialTypes = [
-            { name: "Phim Bộ", slug: "phim-le", customType: "danh-sach" },
-            { name: "Phim Lẻ", slug: "phim-bo", customType: "danh-sach" }
-        ];
-        const combinedCats = [...specialTypes, ...rawCats];
-
-        buildCustomDropdown('selectCategory', combinedCats, 'the-loai', 'Thể loại');
-        buildCustomDropdown('selectCountry', getItems(counts), 'quoc-gia', 'Quốc gia');
-
-        const yearsList = getItems(years);
-        const mappedYears = yearsList.map(y => {
-            let val = "";
-            if (typeof y === 'object' && y !== null) {
-                val = y.name || y.slug;
-            } else { val = y; }
-            return { name: val || "2024", slug: val || "2024" };
-        });
-
-        buildCustomDropdown('selectYear', mappedYears, 'nam-phat-hanh', 'Năm');
-
-    } catch (e) {
-        console.error("Filter Init Error:", e);
-    }
-}
-
-function buildCustomDropdown(containerId, items, type, defaultLabel) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    const trigger = container.querySelector('.select-trigger');
-    const optionsBox = container.querySelector('.options-container');
-    const triggerText = trigger.querySelector('span');
-
-    container.selectedItems = [];
-
-    trigger.onclick = (e) => {
-        e.stopPropagation();
-        const isActive = container.classList.contains('active');
-
-        // Đóng các dropdown khác trước
-        document.querySelectorAll('.custom-select').forEach(s => {
-            if (s !== container && s.classList.contains('active')) s.classList.remove('active');
-        });
-
-        container.classList.toggle('active');
-
-        // Nếu vừa ĐÓNG dropdown xong, tiến hành Redirect về trang chủ
-        if (isActive && container.selectedItems.length > 0) {
-            const slugs = container.selectedItems.map(i => i.slug).join(',');
-            const names = container.selectedItems.map(i => i.name).join(', ');
-            const queryType = container.selectedItems[0].customType || type;
-            window.location.assign(`index.html?type=filter&subtype=${queryType}&slug=${slugs}&name=${encodeURIComponent(names)}`);
-        }
-    };
-
-    const defaultOpt = document.createElement('div');
-    defaultOpt.className = 'option';
-    defaultOpt.innerText = "Tất cả";
-    defaultOpt.onclick = () => window.location.assign('index.html');
-    optionsBox.appendChild(defaultOpt);
-
-    items.forEach(item => {
-        const opt = document.createElement('div');
-        opt.className = 'option';
-        opt.innerText = item.name;
-        opt.onclick = (e) => {
-            e.stopPropagation();
-            const idx = container.selectedItems.findIndex(i => i.slug === item.slug);
-            if (idx > -1) {
-                container.selectedItems.splice(idx, 1);
-                opt.classList.remove('selected');
-            } else {
-                container.selectedItems.push(item);
-                opt.classList.add('selected');
-            }
-
-            if (container.selectedItems.length > 0) {
-                const names = container.selectedItems.map(i => i.name).join(', ');
-                triggerText.innerText = container.selectedItems.length > 2 ? `${container.selectedItems.length} mục đã chọn` : names;
-                container.classList.add('has-selection');
-            } else {
-                triggerText.innerText = defaultLabel;
-                container.classList.remove('has-selection');
-            }
-        };
-        optionsBox.appendChild(opt);
-    });
-}
 
 async function playMovie(slug, epIndex = 0, startTime = 0) {
     showLoader(true);
@@ -174,6 +53,19 @@ async function playMovie(slug, epIndex = 0, startTime = 0) {
 
         document.title = `Đang xem: ${currentMovie.name} - Lumina Play`;
         document.getElementById("current-title").innerText = currentMovie.name;
+
+        // Metadata badges
+        const metaRow = document.getElementById("current-meta");
+        if (metaRow) {
+            metaRow.style.display = "flex";
+            document.getElementById("meta-year").innerText = currentMovie.year || "";
+            document.getElementById("meta-quality").innerText = (currentMovie.quality || "HD").toUpperCase();
+            document.getElementById("meta-lang").innerText = currentMovie.lang || "Vietsub";
+        }
+
+        // Fetch extra info
+        fetchCast(slug);
+        fetchKeywords(slug);
 
         // Giải mã mô tả
         const descEl = document.getElementById("current-desc");
@@ -212,7 +104,9 @@ async function playMovie(slug, epIndex = 0, startTime = 0) {
             }
         }, 200);
 
+        const epSection = document.getElementById("episodes-section");
         episodesGrid.innerHTML = "";
+        if (epSection) epSection.style.display = "none";
         let targetLink = "";
 
         if (data.data.item.episodes && data.data.item.episodes.length > 0) {
@@ -245,6 +139,7 @@ async function playMovie(slug, epIndex = 0, startTime = 0) {
                     fragment.appendChild(btn);
                 });
                 episodesGrid.appendChild(fragment);
+                if (epSection) epSection.style.display = "block";
             }
         }
 
@@ -293,6 +188,8 @@ video.addEventListener('pause', saveHistory);
 
 function saveHistory() {
     if (!currentMovie || video.currentTime < 5) return;
+    
+    // 1. Lưu vào Danh sách hiển thị (Watch History)
     let history = JSON.parse(localStorage.getItem('watchHistory') || "[]");
     const entry = {
         slug: currentMovie.slug,
@@ -306,8 +203,17 @@ function saveHistory() {
     };
     history = history.filter(h => h.slug !== entry.slug);
     history.unshift(entry);
-    if (history.length > 10) history.pop();
+    if (history.length > 20) history.pop();
     localStorage.setItem('watchHistory', JSON.stringify(history));
+
+    // 2. Lưu vào Kho lưu trữ Tiến độ thực tế (Video Progress - Không bị xóa khi xóa hiển thị)
+    let progress = JSON.parse(localStorage.getItem('videoProgress') || "{}");
+    progress[currentMovie.slug] = {
+        epIndex: currentEpIndex,
+        time: video.currentTime,
+        updatedAt: Date.now()
+    };
+    localStorage.setItem('videoProgress', JSON.stringify(progress));
 }
 
 function showLoader(show) {
@@ -404,6 +310,70 @@ function renderRelatedMovies(items) {
         };
         grid.appendChild(card);
     });
+}
+
+/** 
+ * NEW: Fetch cast & people from API
+ */
+async function fetchCast(slug) {
+    const section = document.getElementById('castSection');
+    const list = document.getElementById('castList');
+    if (!section || !list) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/v1/api/phim/${slug}/peoples`);
+        const data = await res.json();
+        
+        if (data.success && data.data.peoples && data.data.peoples.length > 0) {
+            section.style.display = 'block';
+            list.innerHTML = '';
+            
+            const TMDB_IMG = "https://image.tmdb.org/t/p/w185";
+            data.data.peoples.forEach(person => {
+                const item = document.createElement('div');
+                item.className = 'cast-item';
+                item.style.cursor = 'pointer';
+                const avatar = person.profile_path ? `${TMDB_IMG}${person.profile_path}` : DEFAULT_POSTER;
+                
+                item.innerHTML = `
+                    <img class="cast-avatar" src="${avatar}" alt="${person.name}" loading="lazy">
+                    <div class="cast-name">${person.name}</div>
+                    <div class="cast-role">${person.character || 'Director'}</div>
+                `;
+                item.onclick = () => {
+                    const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(person.name)}`;
+                    window.open(googleUrl, '_blank');
+                };
+                list.appendChild(item);
+            });
+        } else {
+            section.style.display = 'none';
+        }
+    } catch (e) {
+        section.style.display = 'none';
+    }
+}
+
+/** 
+ * NEW: Fetch keywords from API
+ */
+async function fetchKeywords(slug) {
+    const container = document.getElementById('keywords-container');
+    if (!container) return;
+
+    // Chỉ hiển thị các thể loại chính của phim (do tag TMDB không hiệu quả trong tìm kiếm)
+    container.innerHTML = '';
+    if (currentMovie && currentMovie.category) {
+        currentMovie.category.forEach(cat => {
+            const tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.innerText = cat.name;
+            tag.onclick = () => {
+                window.location.assign(`index.html?type=filter&category=${cat.slug}&catName=${encodeURIComponent(cat.name)}`);
+            };
+            container.appendChild(tag);
+        });
+    }
 }
 
 // --- Anti-DevTools (Security Shield) ---

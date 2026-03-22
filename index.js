@@ -14,14 +14,128 @@ const filters = [
     { id: 'selectYear', type: 'nam-phat-hanh', label: 'Năm' }
 ];
 
+function handleUrlParams() {
+    const p = new URLSearchParams(window.location.search);
+    const q = p.get('q');
+    const t = p.get('type');
+
+    // Reset trạng thái trước khi nạp mới
+    state.type = 'home';
+    state.query = '';
+    state.category = { slugs: '', names: '' };
+    state.country = { slugs: '', names: '' };
+    state.year = { slugs: '', names: '' };
+    // searchInput might not be available yet if called before DOMContentLoaded, but usually it's called after
+    if (searchInput) {
+        searchInput.value = q || '';
+        if (searchInput.parentElement) {
+            searchInput.parentElement.classList.toggle('active', !!q);
+        }
+    }
+
+    // Reset giao diện bộ lọc về mặc định
+    filters.forEach(f => {
+        const container = document.getElementById(f.id);
+        if (container) {
+            const triggerText = container.querySelector('.select-trigger span');
+            if (triggerText) triggerText.innerText = f.label;
+            container.classList.remove('has-selection');
+        }
+    });
+
+    if (q) {
+        state.type = 'search';
+        state.query = q;
+        listTitle.innerText = `Tìm kiếm: ${q}`;
+        loadContent(1);
+    } else if (t === 'filter') {
+        state.type = 'filter';
+        state.category.slugs = p.get('category') || '';
+        state.category.names = p.get('catName') || '';
+        state.country.slugs = p.get('country') || '';
+        state.country.names = p.get('countryName') || '';
+        state.year.slugs = p.get('year') || '';
+        state.year.names = p.get('yearName') || '';
+        
+        // Cập nhật Tiêu đề ngay lập tức để tránh bị nháy chữ cũ
+        let titleParts = [];
+        if (state.category.names) titleParts.push(state.category.names);
+        if (state.country.names) titleParts.push(state.country.names);
+        if (state.year.names) titleParts.push(`Năm ${state.year.names}`);
+        listTitle.innerText = titleParts.length > 0 ? titleParts.join(' | ') : "Bộ lọc phim";
+
+        loadContent(1);
+
+        // Khôi phục UI và state cho từng dropdown
+        filters.forEach(f => {
+            const container = document.getElementById(f.id);
+            if (!container) return;
+            const triggerText = container.querySelector('.select-trigger span');
+            
+            // Reset trước khi nạp
+            container.selectedItems = [];
+            container.classList.remove('has-selection');
+            container.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+
+            let val = null;
+            if (f.type === 'the-loai') val = state.category;
+            else if (f.type === 'quoc-gia') val = state.country;
+            else if (f.type === 'nam-phat-hanh') val = state.year;
+
+            if (val && val.slugs) {
+                const slugs = val.slugs.split(',');
+                const names = val.names.split(', ');
+                
+                slugs.forEach((slug, i) => {
+                    container.selectedItems.push({ slug, name: names[i] || slug });
+                });
+
+                container.classList.add('has-selection');
+                triggerText.innerText = slugs.length > 2 ? `${slugs.length} mục đã chọn` : val.names;
+
+                container.querySelectorAll('.option').forEach(opt => {
+                    if (slugs.includes(opt.dataset.slug)) opt.classList.add('selected');
+                });
+            } else {
+                triggerText.innerText = f.label;
+            }
+        });
+    } else {
+        state.type = 'home';
+        listTitle.innerText = "Phim Mới Cập Nhật";
+        loadContent(1);
+    }
+    renderWatchHistory();
+
+    // Auto scroll tới section thứ 2 khi tìm kiếm hoặc lọc
+    if (state.type !== 'home') {
+        const titleEl = document.getElementById('list-title');
+        if (titleEl) {
+            setTimeout(() => {
+                const header = document.getElementById('filterBar');
+                const hHeight = header ? header.offsetHeight : 80;
+                const gap = 10;
+                const y = (titleEl.getBoundingClientRect().top + window.pageYOffset) - hHeight - gap;
+                window.scrollTo({ top: y, behavior: 'auto' }); // Cuộn ngay lập tức (không smooth)
+            }, 0); 
+        }
+    }
+}
+
 
 document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
     const query = params.get('q');
+    const type = params.get('type');
 
     // Nút điều khiển filter tổng
     const filterBar = document.getElementById('filterBar');
     const filterBtn = document.getElementById('filterToggle');
+
+    // Tự động mở filterBar nếu đang ở chế độ filter (nhấn từ thẻ tag sang chẳng hạn)
+    if (type === 'filter') {
+        filterBar.classList.add('expanded');
+    }
 
     filterBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -29,8 +143,18 @@ document.addEventListener('DOMContentLoaded', () => {
         filterBar.classList.toggle('expanded');
         
         if (isClosing) {
-            // Khi đóng bảng lọc chính, dọn sạch mọi dropdown con đang mở
-            document.querySelectorAll('.custom-select').forEach(s => s.classList.remove('active'));
+            // Khi đóng bảng lọc chính, dọn sạch mọi dropdown con đang mở & Xóa hết lựa chọn
+            filters.forEach(f => {
+                const container = document.getElementById(f.id);
+                if (container) {
+                    container.selectedItems = [];
+                    container.classList.remove('has-selection', 'active');
+                    container.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+                    const triggerText = container.querySelector('.select-trigger span');
+                    if (triggerText) triggerText.innerText = f.label;
+                }
+            });
+            applyMultiFilter();
         }
     });
 
@@ -38,62 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initFilters();
     renderWatchHistory();
-
-    const type = params.get('type');
-
-    function handleUrlParams() {
-        const p = new URLSearchParams(window.location.search);
-        const q = p.get('q');
-        const t = p.get('type');
-
-        // Reset trạng thái trước khi nạp mới
-        state.type = 'home';
-        state.query = '';
-        state.slug = '';
-        state.name = '';
-        searchInput.value = '';
-        if (searchInput.parentElement) {
-            searchInput.parentElement.classList.toggle('active', !!q);
-        }
-
-        // Reset giao diện bộ lọc về mặc định
-        filters.forEach(f => {
-            const container = document.getElementById(f.id);
-            if (container) {
-                const triggerText = container.querySelector('.select-trigger span');
-                if (triggerText) triggerText.innerText = f.label;
-                container.classList.remove('has-selection');
-            }
-        });
-
-
-        if (q) {
-            state.type = 'search';
-            state.query = q;
-            searchInput.value = q;
-            loadContent(1);
-        } else if (t === 'filter') {
-            state.type = 'filter';
-            state.query = p.get('subtype');
-            state.slug = p.get('slug');
-            state.name = p.get('name');
-            loadContent(1);
-
-            // Cập nhật UI cho filter đang chọn
-            const filterConfig = filters.find(f => f.type === state.query);
-            if (filterConfig) {
-                const container = document.getElementById(filterConfig.id);
-                if (container) {
-                    const triggerText = container.querySelector('.select-trigger span');
-                    if (triggerText) triggerText.innerText = state.name;
-                    container.classList.add('has-selection');
-                }
-            }
-        } else {
-            state.type = 'home';
-            loadContent(1);
-        }
-    }
 
     // Xử lý nạp lần đầu & Back/Forward
     handleUrlParams();
@@ -103,19 +171,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter' && searchInput.value.trim() !== "") {
             const q = searchInput.value.trim();
             const queryUrl = `index.html?q=${encodeURIComponent(q)}`;
-            // Cập nhật URL và nạp kết quả ngay không reload
             history.pushState({}, '', queryUrl);
             handleUrlParams();
         }
     });
-
-    // Đóng dropdown khi click ra ngoài
-    window.addEventListener('click', (e) => {
-        if (!e.target.closest('.custom-select')) {
-            document.querySelectorAll('.custom-select').forEach(s => s.classList.remove('active'));
-        }
-    });
 });
+
 
 async function initFilters() {
     try {
@@ -132,7 +193,7 @@ async function initFilters() {
         };
 
         // --- THEO Ý TÔI: Thêm Phim Bộ (Phim lẻ API) và Phim Lẻ (Phim bộ API) vào đầu danh sách ---
-        const rawCats = getItems(cats);
+        const rawCats = getItems(cats).filter(c => c.name !== "Phim 18+");
         const specialTypes = [
             { name: "Phim Bộ", slug: "phim-le", customType: "danh-sach" }, // User: Bộ = 1 tập
             { name: "Phim Lẻ", slug: "phim-bo", customType: "danh-sach" }  // User: Lẻ = >1 tập
@@ -142,16 +203,22 @@ async function initFilters() {
         buildCustomDropdown('selectCategory', combinedCats, 'the-loai', 'Thể loại');
         buildCustomDropdown('selectCountry', getItems(counts), 'quoc-gia', 'Quốc gia');
 
-        // Năm phát hành: Xử lý tương tự để đảm bảo luôn là mảng
+        // Năm phát hành: Xử lý deduplicate và sắp xếp giảm dần
         const yearsList = getItems(years);
-        const mappedYears = yearsList.map(y => {
-            // Lấy giá trị năm: ưu tiên name, slug, hoặc chính nó nếu là string/number
+        const uniqueYears = new Set();
+        yearsList.forEach(y => {
             let val = "";
             if (typeof y === 'object' && y !== null) {
-                val = y.name || y.slug;
+                // API trả về { year: 2026 } hoặc có thể trả { name: "2026" } tùy phiên bản
+                val = y.year || y.name || y.slug;
             } else { val = y; }
-            return { name: val || "2024", slug: val || "2024" };
+            if (val) uniqueYears.add(String(val).trim());
         });
+
+        const mappedYears = Array.from(uniqueYears)
+            .filter(y => y.length > 0)
+            .sort((a, b) => parseInt(b) - parseInt(a)) // Ép kiểu số để so sánh chính xác
+            .map(y => ({ name: y, slug: y }));
 
         buildCustomDropdown('selectYear', mappedYears, 'nam-phat-hanh', 'Năm');
 
@@ -167,42 +234,29 @@ function buildCustomDropdown(containerId, items, type, defaultLabel) {
     const optionsBox = container.querySelector('.options-container');
     const triggerText = trigger.querySelector('span');
 
-    // Lưu danh sách item đang được chọn trong dropdown này
-    container.selectedItems = [];
+    // BẢO TỒN DỮ LIỆU: Nếu handleUrlParams đã load trước và có giá trị, thì giữ lại
+    container.selectedItems = container.selectedItems || [];
 
     trigger.onclick = (e) => {
         e.stopPropagation();
-        
-        // Nhấn vào chữ (vùng Span) khi đã có lựa chọn: Reset bộ lọc này
-        if (e.target.tagName === 'SPAN' && container.classList.contains('has-selection')) {
-            container.selectedItems = [];
-            triggerText.innerText = defaultLabel;
-            container.classList.remove('has-selection');
-            container.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
-            
-            state.type = 'home';
-            state.query = '';
-            state.slug = '';
-            state.name = '';
-            history.pushState({}, '', 'index.html');
-            loadContent(1);
-            return;
-        }
 
         // Đóng các dropdown khác, chỉ mở mình tôi
         const isActive = container.classList.contains('active');
-        document.querySelectorAll('.custom-select').forEach(s => {
-            if (s !== container && s.classList.contains('active')) {
+        let otherChanged = false;
+        document.querySelectorAll('.custom-select.active').forEach(s => {
+            if (s !== container) {
                 s.classList.remove('active');
-                // Khi đóng dropdown khác, có thể cần apply filter của chính nó (nhưng ở đây ta reset chéo)
+                otherChanged = true;
             }
         });
         
+        if (otherChanged) applyMultiFilter();
+
         container.classList.toggle('active');
         
         // Nếu vừa ĐÓNG dropdown xong, tiến hành apply bộ lọc nếu có thay đổi
         if (isActive) {
-             applyMultiFilter(container, type, defaultLabel);
+             applyMultiFilter();
         }
     };
 
@@ -216,13 +270,7 @@ function buildCustomDropdown(containerId, items, type, defaultLabel) {
         container.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
         triggerText.innerText = defaultLabel;
         container.classList.remove('has-selection', 'active');
-        
-        state.type = 'home';
-        state.query = '';
-        state.slug = '';
-        state.name = '';
-        history.pushState({}, '', 'index.html');
-        loadContent(1);
+        applyMultiFilter();
     };
     optionsBox.appendChild(defaultOpt);
 
@@ -230,6 +278,14 @@ function buildCustomDropdown(containerId, items, type, defaultLabel) {
         const opt = document.createElement('div');
         opt.className = 'option';
         opt.innerText = item.name;
+        opt.dataset.slug = item.slug;
+        opt.dataset.name = item.name;
+
+        // Nếu handleUrlParams đã chọn mục này từ trước (Race condition fix)
+        if (container.selectedItems.some(i => i.slug === item.slug)) {
+            opt.classList.add('selected');
+        }
+
         opt.onclick = (e) => {
             e.stopPropagation();
             
@@ -257,58 +313,68 @@ function buildCustomDropdown(containerId, items, type, defaultLabel) {
     });
 }
 
-function applyMultiFilter(container, type, defaultLabel) {
-    if (container.selectedItems.length > 0) {
-        // Reset các dropdown khác để tránh hỗn loạn dữ liệu API
-        filters.forEach(f => {
-            const other = document.getElementById(f.id);
-            if (other && other !== container) {
-                other.querySelector('.select-trigger span').innerText = f.label;
-                other.classList.remove('has-selection');
-                other.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
-                other.selectedItems = [];
-            }
-        });
+function applyMultiFilter(excludeId = null) {
+    const selections = {};
+    filters.forEach(f => {
+        const container = document.getElementById(f.id);
+        if (container && container.selectedItems && container.selectedItems.length > 0) {
+            selections[f.type] = {
+                slugs: container.selectedItems.map(i => i.slug).join(','),
+                names: container.selectedItems.map(i => i.name).join(', ')
+            };
+        }
+    });
 
-        const slugs = container.selectedItems.map(i => i.slug).join(',');
-        const names = container.selectedItems.map(i => i.name).join(', ');
-
-        state.type = 'filter';
-        state.query = container.selectedItems[0].customType || type;
-        state.slug = slugs;
-        state.name = names;
-
-        const filterUrl = `index.html?type=filter&subtype=${state.query}&slug=${slugs}&name=${encodeURIComponent(names)}`;
-        history.pushState({}, '', filterUrl);
-        loadContent(1);
+    const p = new URLSearchParams();
+    p.set('type', 'filter');
+    if (selections['the-loai']) {
+        p.set('category', selections['the-loai'].slugs);
+        p.set('catName', selections['the-loai'].names);
     }
+    if (selections['quoc-gia']) {
+        p.set('country', selections['quoc-gia'].slugs);
+        p.set('countryName', selections['quoc-gia'].names);
+    }
+    if (selections['nam-phat-hanh']) {
+        p.set('year', selections['nam-phat-hanh'].slugs);
+        p.set('yearName', selections['nam-phat-hanh'].names);
+    }
+
+    if (p.toString() === "type=filter") {
+        history.pushState({}, '', 'index.html');
+    } else {
+        history.pushState({}, '', `index.html?${p.toString()}`);
+    }
+    handleUrlParams();
 }
 
-// Bổ sung sự kiện đóng dropdown khi click ra ngoài và apply filter
-window.addEventListener('click', (e) => {
+// Bổ sung sự kiện đóng dropdown khi click/chạm ra ngoài và apply filter
+const closeAndApply = (e) => {
+    let changed = false;
     document.querySelectorAll('.custom-select.active').forEach(container => {
         if (!container.contains(e.target)) {
             container.classList.remove('active');
-            // Tìm type của dropdown này để apply
-            const filterConfig = filters.find(f => f.id === container.id);
-            if (filterConfig) {
-                applyMultiFilter(container, filterConfig.type, filterConfig.label);
-            }
+            changed = true;
         }
     });
-});
+    if (changed) applyMultiFilter();
+};
+window.addEventListener('click', closeAndApply);
+window.addEventListener('touchstart', closeAndApply, { passive: true });
 
 // --- Hệ thống Cache & Pre-fetching (Chuẩn OPhim Core) ---
 const apiCache = new Map();
 let isFetching = false;
 let hasMore = true;
+let contentAbortController = null;
 
 const state = {
     type: 'home',
+    page: 1,
     query: '',
-    slug: '',
-    name: '',
-    page: 1
+    category: { slugs: '', names: '' },
+    country: { slugs: '', names: '' },
+    year: { slugs: '', names: '' }
 };
 
 // Khởi tạo Intersection Observer cho Infinite Scroll
@@ -322,7 +388,16 @@ const observer = new IntersectionObserver((entries) => {
 if (sentinel) observer.observe(sentinel);
 
 async function loadContent(page = 1) {
-    if (isFetching || (!hasMore && page > 1)) return;
+    // Cho phép nạp trang mới (page 1) ngay cả khi đang bận, để hủy yêu cầu cũ và nạp cái mới nhất
+    if (page > 1 && (isFetching || !hasMore)) return;
+    
+    // Nếu nạp lại từ đầu (page 1) mà đang có yêu cầu cũ chạy dở, hãy hủy nó
+    if (page === 1 && contentAbortController) {
+        contentAbortController.abort();
+    }
+    contentAbortController = new AbortController();
+    const signal = contentAbortController.signal;
+
     state.page = page;
 
     // Reset kết quả nếu là trang 1
@@ -331,15 +406,42 @@ async function loadContent(page = 1) {
         hasMore = true;
     }
 
-    // Xác định bộ URL cần nạp (Có thể nạp nhiều nếu là chuỗi slugs)
+    // Xác định bộ URL cần nạp
     let urls = [];
     if (state.type === 'home') {
         urls = [`${API_BASE}/v1/api/danh-sach/phim-moi-cap-nhat?page=${page}`];
     } else if (state.type === 'search') {
         urls = [`${API_BASE}/v1/api/tim-kiem?keyword=${encodeURIComponent(state.query)}&page=${page}`];
     } else if (state.type === 'filter') {
-        const slugs = state.slug.split(',');
-        urls = slugs.map(s => `${API_BASE}/v1/api/${state.query}/${s}?page=${page}`);
+        const catSlug = state.category.slugs;
+        const countrySlug = state.country.slugs;
+        const yearSlug = state.year.slugs;
+
+        // Ưu tiên nạp theo thể loại hoặc danh sách mới nhất nếu không có thể loại
+        if (catSlug) {
+            const slugs = catSlug.split(',');
+            urls = slugs.map(s => {
+                const isSpecial = ['phim-le', 'phim-bo', 'phim-moi', 'hoan-thanh', 'sap-chieu'].includes(s);
+                const baseUrl = isSpecial ? `${API_BASE}/v1/api/danh-sach` : `${API_BASE}/v1/api/the-loai`;
+                let url = `${baseUrl}/${s}?page=${page}`;
+                if (countrySlug) url += `&country=${encodeURIComponent(countrySlug)}`;
+                if (yearSlug) url += `&year=${encodeURIComponent(yearSlug)}`;
+                return url;
+            });
+        } else if (countrySlug) {
+            const slugs = countrySlug.split(',');
+            urls = slugs.map(s => {
+                let url = `${API_BASE}/v1/api/quoc-gia/${s}?page=${page}`;
+                if (yearSlug) url += `&year=${encodeURIComponent(yearSlug)}`;
+                // Mặc dù nếu có catSlug thì đã rơi vào if bên trên, nhưng viết đầy đủ cho an toàn
+                return url;
+            });
+        } else if (yearSlug) {
+            const slugs = yearSlug.split(',');
+            urls = slugs.map(s => `${API_BASE}/v1/api/nam-phat-hanh/${s}?page=${page}`);
+        } else {
+            urls = [`${API_BASE}/v1/api/danh-sach/phim-moi-cap-nhat?page=${page}`];
+        }
     }
 
     isFetching = true;
@@ -350,7 +452,7 @@ async function loadContent(page = 1) {
         // TẢI SONG SONG (Promise.all)
         const responses = await Promise.all(urls.map(url => {
              if (apiCache.has(url)) return Promise.resolve(apiCache.get(url));
-             return fetch(url).then(r => r.json()).then(data => {
+             return fetch(url, { signal }).then(r => r.json()).then(data => {
                  apiCache.set(url, data);
                  return data;
              });
@@ -378,19 +480,37 @@ async function loadContent(page = 1) {
             hasMore = false;
         }
 
-        if (state.type === 'search' && page === 1) {
-            const totalItems = responses[0].data.params.pagination.totalItems;
-            searchInfo.classList.add('active');
-            searchInfo.innerHTML = `Tìm thấy <strong>${totalItems}</strong> kết quả cho: "<strong>${state.query}</strong>"`;
+        if (page === 1) {
+            if (state.type === 'home') {
+                listTitle.innerText = "Phim Mới Cập Nhật";
+            } else if (state.type === 'search') {
+                const totalItems = responses[0].data.params.pagination.totalItems;
+                listTitle.innerText = `Tìm kiếm: ${state.query}`;
+                searchInfo.classList.add('active');
+                searchInfo.innerHTML = `Tìm thấy <strong>${totalItems}</strong> kết quả cho: "<strong>${state.query}</strong>"`;
+            } else if (state.type === 'filter') {
+                let titleParts = [];
+                if (state.category.names) titleParts.push(state.category.names);
+                if (state.country.names) titleParts.push(state.country.names);
+                if (state.year.names) titleParts.push(`Năm ${state.year.names}`);
+                listTitle.innerText = titleParts.length > 0 ? titleParts.join(' | ') : "Bộ lọc phim";
+                searchInfo.classList.remove('active');
+            }
         }
 
         renderMovies(finalItems, page === 1);
 
     } catch (e) {
+        if (e.name === 'AbortError') {
+            console.log("Request aborted");
+            return; // Không làm gì cả vì đã có yêu cầu mới thay thế
+        }
         console.error("Load Content Error:", e);
     } finally {
-        isFetching = false;
-        showLoader(false);
+        if (!signal.aborted) {
+            isFetching = false;
+            showLoader(false);
+        }
     }
 }
 
@@ -550,6 +670,7 @@ function renderWatchHistory() {
     const recentGrid = document.getElementById('recentGrid');
     const history = JSON.parse(localStorage.getItem('watchHistory') || "[]");
 
+    // Luôn hiện Lịch sử xem nếu có dữ liệu, không quan tâm đang search/filter hay không
     if (history.length === 0) {
         recentSection.style.display = 'none';
         return;
@@ -589,9 +710,93 @@ function renderWatchHistory() {
             window.location.assign(`player.html?slug=${item.slug}&ep=${item.epIndex}&t=${item.time}`);
         };
 
+        // --- Logic Context Menu cho Lịch sử ---
+        let touchTimer = null;
+        const handleLongPress = (x, y) => {
+            showContextMenu(x, y, item.slug);
+        };
+
+        card.oncontextmenu = (e) => {
+            e.preventDefault();
+            showContextMenu(e.pageX, e.pageY, item.slug);
+        };
+
+        // Hỗ trợ Touch cho Mobile
+        card.addEventListener('touchstart', (e) => {
+            touchTimer = setTimeout(() => {
+                const touch = e.touches[0];
+                handleLongPress(touch.pageX, touch.pageY);
+                touchTimer = null;
+            }, 600);
+        }, { passive: true });
+
+        card.addEventListener('touchend', () => {
+            if (touchTimer) {
+                clearTimeout(touchTimer);
+                touchTimer = null;
+            }
+        });
+
+        card.addEventListener('touchmove', () => {
+            if (touchTimer) {
+                clearTimeout(touchTimer);
+                touchTimer = null;
+            }
+        });
+
         recentGrid.appendChild(card);
     });
 }
+
+// Xử lý Context Menu Lịch sử
+let currentSlugForCtx = null;
+const ctxMenu = document.getElementById('ctxMenu');
+const ctxBackdrop = document.getElementById('ctxBackdrop');
+
+function showContextMenu(x, y, slug) {
+    if (!ctxMenu || !ctxBackdrop) return;
+    currentSlugForCtx = slug;
+    ctxMenu.style.display = 'block';
+    ctxBackdrop.style.display = 'block';
+
+    // Đảm bảo menu không bị tràn khỏi màn hình
+    const menuWidth = ctxMenu.offsetWidth || 180;
+    const menuHeight = ctxMenu.offsetHeight || 100;
+    const winWidth = window.innerWidth;
+    const winHeight = window.innerHeight;
+
+    let posX = x;
+    let posY = y;
+
+    if (x + menuWidth > winWidth) posX = winWidth - menuWidth - 10;
+    if (y + menuHeight > winHeight) posY = winHeight - menuHeight - 10;
+
+    ctxMenu.style.left = `${posX}px`;
+    ctxMenu.style.top = `${posY}px`;
+}
+
+function hideContextMenu() {
+    if (ctxMenu) ctxMenu.style.display = 'none';
+    if (ctxBackdrop) ctxBackdrop.style.display = 'none';
+    currentSlugForCtx = null;
+}
+
+if (ctxBackdrop) ctxBackdrop.onclick = hideContextMenu;
+
+document.getElementById('ctxDeleteOne')?.addEventListener('click', () => {
+    if (!currentSlugForCtx) return;
+    let history = JSON.parse(localStorage.getItem('watchHistory') || "[]");
+    history = history.filter(h => h.slug !== currentSlugForCtx);
+    localStorage.setItem('watchHistory', JSON.stringify(history));
+    hideContextMenu();
+    renderWatchHistory();
+});
+
+document.getElementById('ctxDeleteAll')?.addEventListener('click', () => {
+    localStorage.removeItem('watchHistory');
+    hideContextMenu();
+    renderWatchHistory();
+});
 
 
 // --- Anti-DevTools (Security Shield) ---

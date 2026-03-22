@@ -17,29 +17,9 @@
         <div class="header-main">
             <a href="index.html" class="logo">LUMINA <span style="color:white; font-weight:300">PLAY</span></a>
 
-            <button class="filter-main-btn" id="filterToggle" title="Bộ lọc phim">
-                <i class="fa-solid fa-sliders"></i>
-            </button>
-
             <div class="search-box">
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="text" id="searchInput" placeholder="Tìm kiếm phim...">
-            </div>
-        </div>
-
-        <!-- Dải filter sẽ luôn rớt xuống hàng 2 khi Header Wrap -->
-        <div class="filters-wrapper" id="filtersWrapper">
-            <div class="custom-select" id="selectCategory">
-                <div class="select-trigger"><span>Thể loại</span><i class="fa-solid fa-chevron-down"></i></div>
-                <div class="options-container"></div>
-            </div>
-            <div class="custom-select" id="selectCountry">
-                <div class="select-trigger"><span>Quốc gia</span><i class="fa-solid fa-chevron-down"></i></div>
-                <div class="options-container"></div>
-            </div>
-            <div class="custom-select" id="selectYear">
-                <div class="select-trigger"><span>Năm</span><i class="fa-solid fa-chevron-down"></i></div>
-                <div class="options-container"></div>
             </div>
         </div>
     </header>
@@ -53,8 +33,30 @@
 
     <div class="movie-info-hero">
         <h1 id="current-title">Đang tải...</h1>
+        
+        <div class="movie-meta-row" id="current-meta" style="display: none;">
+            <span class="meta-item year" id="meta-year"></span>
+            <span class="meta-item quality" id="meta-quality"></span>
+            <span class="meta-item lang" id="meta-lang"></span>
+        </div>
+
         <p id="current-desc"></p>
-        <div id="episodes" class="episodes-container"></div>
+        
+        <div id="keywords-container" class="tags-container"></div>
+
+        <div id="episodes-section" style="margin-top: 1.5rem; display: none;">
+            <div class="section-header">
+                <h2>Danh sách tập phim</h2>
+            </div>
+            <div id="episodes" class="episodes-container"></div>
+        </div>
+
+        <div id="castSection" class="related-section" style="margin-top: 1.5rem; display: none;">
+            <div class="section-header">
+                <h2>Diễn viên & Đạo diễn</h2>
+            </div>
+            <div id="castList" class="cast-grid"></div>
+        </div>
 
         <div class="related-section" id="relatedSection" style="margin-top: 3rem; display: none;">
             <div class="section-header">
