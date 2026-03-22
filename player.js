@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const slug = params.get('slug');
     const epIndex = params.get('ep') || 0;
     const startTime = params.get('t') || 0;
-    
+
     // Xử lý tìm kiếm
     const searchInput = document.getElementById("searchInput");
     if (searchInput) {
@@ -37,10 +37,10 @@ async function playMovie(slug, epIndex = 0, startTime = 0) {
         const res = await fetch(`${API_BASE}/v1/api/phim/${slug}`);
         const data = await res.json();
         currentMovie = data.data.item;
-        
+
         document.title = `Đang xem: ${currentMovie.name} - Lumina Play`;
         document.getElementById("current-title").innerText = currentMovie.name;
-        
+
         // Giải mã mô tả
         const tempDiv = document.createElement("div");
         tempDiv.innerHTML = (currentMovie.content || "").replace(/<[^>]*>?/gm, '');
@@ -48,16 +48,16 @@ async function playMovie(slug, epIndex = 0, startTime = 0) {
 
         episodesGrid.innerHTML = "";
         let targetLink = "";
-        
+
         if (data.data.item.episodes && data.data.item.episodes.length > 0) {
             const server = data.data.item.episodes[0];
             const fragment = document.createDocumentFragment();
-            
+
             server.server_data.forEach((ep, index) => {
                 const btn = document.createElement("button");
                 btn.className = "episode-btn" + (index === epIndex ? " active" : "");
                 btn.innerText = ep.name;
-                
+
                 if (index === epIndex) {
                     targetLink = ep.link_m3u8;
                     currentEpName = ep.name;
@@ -95,7 +95,7 @@ function initPlayer(url, startTime = 0) {
 
     const startPlay = () => {
         if (startTime > 0) video.currentTime = startTime;
-        video.play().catch(() => {});
+        video.play().catch(() => { });
     };
 
     if (Hls.isSupported()) {
@@ -125,7 +125,7 @@ function saveHistory() {
     if (!currentMovie || video.currentTime < 5) return;
 
     let history = JSON.parse(localStorage.getItem('watchHistory') || "[]");
-    
+
     const entry = {
         slug: currentMovie.slug,
         name: currentMovie.name,
@@ -140,10 +140,10 @@ function saveHistory() {
     // Loại bỏ mục cũ của cùng phim này
     history = history.filter(h => h.slug !== entry.slug);
     history.unshift(entry);
-    
+
     // Giữ tối đa 10 phim
     if (history.length > 10) history.pop();
-    
+
     localStorage.setItem('watchHistory', JSON.stringify(history));
 }
 
@@ -157,12 +157,12 @@ const DEFAULT_POSTER = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D'http%3A
 
 async function fetchRelatedMovies(movie) {
     if (!movie) return;
-    
+
     try {
         // 1. Tìm phim cùng tên (từ khóa 3 chữ đầu) để ra các phần khác (P2, P3...)
         const nameParts = movie.name.split(' ');
         const searchKeyword = nameParts.slice(0, 3).join(' ');
-        
+
         // 2. Lấy danh sách phim cùng thể loại
         const categorySlug = movie.category && movie.category.length > 0 ? movie.category[0].slug : '';
 
@@ -189,7 +189,7 @@ async function fetchRelatedMovies(movie) {
         // Lọc bỏ phim hiện tại và trùng lặp
         const uniqueMovies = [];
         const seenSlugs = new Set();
-        seenSlugs.add(movie.slug); 
+        seenSlugs.add(movie.slug);
 
         for (const m of relatedMovies) {
             if (!seenSlugs.has(m.slug)) {
@@ -209,15 +209,15 @@ async function fetchRelatedMovies(movie) {
 function renderRelatedMovies(items) {
     const section = document.getElementById('relatedSection');
     const grid = document.getElementById('relatedGrid');
-    
+
     if (!items || items.length === 0) {
         section.style.display = 'none';
         return;
     }
-    
+
     section.style.display = 'block';
     grid.innerHTML = '';
-    
+
     items.forEach((movie, index) => {
         let poster = DEFAULT_POSTER;
         if (movie.poster_url) {
@@ -228,10 +228,10 @@ function renderRelatedMovies(items) {
 
         const quality = movie.quality ? movie.quality.toUpperCase().replace('FULL ', '') : 'HD';
         const epStatus = movie.episode_current || 'Full';
-        const rating = (movie.tmdb && movie.tmdb.vote_average) ? 
-            movie.tmdb.vote_average.toFixed(1) : 
+        const rating = (movie.tmdb && movie.tmdb.vote_average) ?
+            movie.tmdb.vote_average.toFixed(1) :
             (Math.random() * (9.2 - 7.5) + 7.5).toFixed(1);
-            
+
         const priorityAttr = index < 4 ? 'fetchpriority="high"' : 'loading="lazy"';
 
         const card = document.createElement("div");
@@ -251,7 +251,7 @@ function renderRelatedMovies(items) {
                 <div class="meta">${movie.origin_name || ''}</div>
             </div>
         `;
-        
+
         const img = card.querySelector('.poster');
         img.addEventListener('load', () => img.classList.add('loaded'));
         img.addEventListener('error', () => {
@@ -262,16 +262,16 @@ function renderRelatedMovies(items) {
         card.onclick = () => {
             window.location.assign(`player.html?slug=${movie.slug}`);
         };
-        
+
         grid.appendChild(card);
     });
 }
 
-\n
-// --- Anti-DevTools ---
+// --- Anti-DevTools (Chốt chặn bảo mật) ---
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('keydown', (e) => {
     if (e.key === 'F12' || e.keyCode === 123) e.preventDefault();
     if ((e.ctrlKey || e.metaKey) && (e.shiftKey || e.altKey) && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j')) e.preventDefault();
     if ((e.ctrlKey || e.metaKey) && (e.key === 'U' || e.key === 'u')) e.preventDefault();
 });
+
