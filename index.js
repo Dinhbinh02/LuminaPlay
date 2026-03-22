@@ -331,7 +331,8 @@ async function loadContent(page = 1) {
         else if (state.type === 'filter') listTitle.innerText = state.name || 'Kết quả lọc';
     }
     if (recentSection) {
-        recentSection.style.display = isHome ? 'block' : 'none';
+        const hasHistory = JSON.parse(localStorage.getItem('watchHistory') || "[]").length > 0;
+        recentSection.style.display = (isHome && hasHistory) ? 'block' : 'none';
     }
 
     if (searchInfo && page === 1) {
