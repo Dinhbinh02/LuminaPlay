@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lumina Play</title>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="player.css">
+    </style>
+</head>
+
+<body>
+    <header>
+        <a href="index.html" class="logo">LUMINA <span style="color:white; font-weight:300">PLAY</span></a>
+        <div class="filter-bar" id="filterBar">
+            <div class="filters-wrapper" id="filtersWrapper">
+                <div class="custom-select" id="selectCategory">
+                    <div class="select-trigger"><span>Thể loại</span><i class="fa-solid fa-chevron-down"></i></div>
+                    <div class="options-container"></div>
+                </div>
+                <div class="custom-select" id="selectCountry">
+                    <div class="select-trigger"><span>Quốc gia</span><i class="fa-solid fa-chevron-down"></i></div>
+                    <div class="options-container"></div>
+                </div>
+                <div class="custom-select" id="selectYear">
+                    <div class="select-trigger"><span>Năm</span><i class="fa-solid fa-chevron-down"></i></div>
+                    <div class="options-container"></div>
+                </div>
+            </div>
+            <button class="filter-main-btn" id="filterToggle" title="Bộ lọc phim">
+                <i class="fa-solid fa-sliders"></i>
+            </button>
+        </div>
+        <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="searchInput" placeholder="Tìm kiếm phim bạn yêu thích...">
+        </div>
+    </header>
+
+    <main>
+        <div id="recentSection" class="recent-section" style="display: none;">
+            <div class="section-header">
+                <h2 id="recent-title">Xem Gần Đây</h2>
+            </div>
+            <div class="recent-grid" id="recentGrid">
+            </div>
+        </div>
+        <div id="mainContentSection" class="main-content-section">
+            <div class="section-header">
+                <h2 id="list-title">Phim Mới Cập Nhật</h2>
+            </div>
+
+            <div class="search-results-info" id="searchInfo">
+                Tìm thấy <span>0</span> kết quả cho: "<span id="searchKey"></span>"
+            </div>
+            <div id="loader" class="loader">
+                <div class="spinner"></div>
+            </div>
+            <div class="movie-grid" id="movieGrid">
+            </div>
+            
+            <!-- Cảm biến cho Infinite Scroll -->
+            <div id="scrollSentinel" style="height: 50px; margin-top: 2rem;"></div>
+        </div>
+        <div class="pagination" id="pagination" style="display: none;"></div>
+    </main>
+
+    <script src="index.js"></script>
+</body>
+
+</html>
