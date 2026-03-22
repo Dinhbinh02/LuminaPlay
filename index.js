@@ -445,7 +445,7 @@ async function loadContent(page = 1) {
     }
 
     isFetching = true;
-    showLoader(true);
+    // showLoader(true); // Gây giật lag layout do loader nằm trên grid
     showSkeletons(true);
 
     try {
