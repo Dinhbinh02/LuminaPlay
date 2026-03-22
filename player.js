@@ -75,7 +75,15 @@ async function initFilters() {
             return Array.isArray(obj.data) ? obj.data : (obj.data.items || []);
         };
 
-        buildCustomDropdown('selectCategory', getItems(cats), 'the-loai', 'Thể loại');
+        // --- ĐỒNG BỘ: Chèn Phim Bộ / Phim Lẻ ---
+        const rawCats = getItems(cats);
+        const specialTypes = [
+            { name: "Phim Bộ", slug: "phim-le", customType: "danh-sach" },
+            { name: "Phim Lẻ", slug: "phim-bo", customType: "danh-sach" }
+        ];
+        const combinedCats = [...specialTypes, ...rawCats];
+
+        buildCustomDropdown('selectCategory', combinedCats, 'the-loai', 'Thể loại');
         buildCustomDropdown('selectCountry', getItems(counts), 'quoc-gia', 'Quốc gia');
 
         const yearsList = getItems(years);
@@ -101,11 +109,26 @@ function buildCustomDropdown(containerId, items, type, defaultLabel) {
     const optionsBox = container.querySelector('.options-container');
     const triggerText = trigger.querySelector('span');
 
+    container.selectedItems = [];
+
     trigger.onclick = (e) => {
         e.stopPropagation();
         const isActive = container.classList.contains('active');
-        document.querySelectorAll('.custom-select').forEach(s => s.classList.remove('active'));
-        if (!isActive) container.classList.add('active');
+        
+        // Đóng các dropdown khác trước
+        document.querySelectorAll('.custom-select').forEach(s => {
+            if (s !== container && s.classList.contains('active')) s.classList.remove('active');
+        });
+
+        container.classList.toggle('active');
+
+        // Nếu vừa ĐÓNG dropdown xong, tiến hành Redirect về trang chủ
+        if (isActive && container.selectedItems.length > 0) {
+             const slugs = container.selectedItems.map(i => i.slug).join(',');
+             const names = container.selectedItems.map(i => i.name).join(', ');
+             const queryType = container.selectedItems[0].customType || type;
+             window.location.assign(`index.html?type=filter&subtype=${queryType}&slug=${slugs}&name=${encodeURIComponent(names)}`);
+        }
     };
 
     const defaultOpt = document.createElement('div');
@@ -118,9 +141,25 @@ function buildCustomDropdown(containerId, items, type, defaultLabel) {
         const opt = document.createElement('div');
         opt.className = 'option';
         opt.innerText = item.name;
-        opt.onclick = () => {
-            const filterUrl = `index.html?type=filter&subtype=${type}&slug=${item.slug}&name=${encodeURIComponent(item.name)}`;
-            window.location.assign(filterUrl);
+        opt.onclick = (e) => {
+            e.stopPropagation();
+            const idx = container.selectedItems.findIndex(i => i.slug === item.slug);
+            if (idx > -1) {
+                container.selectedItems.splice(idx, 1);
+                opt.classList.remove('selected');
+            } else {
+                container.selectedItems.push(item);
+                opt.classList.add('selected');
+            }
+
+            if (container.selectedItems.length > 0) {
+                const names = container.selectedItems.map(i => i.name).join(', ');
+                triggerText.innerText = container.selectedItems.length > 2 ? `${container.selectedItems.length} mục đã chọn` : names;
+                container.classList.add('has-selection');
+            } else {
+                triggerText.innerText = defaultLabel;
+                container.classList.remove('has-selection');
+            }
         };
         optionsBox.appendChild(opt);
     });
@@ -146,29 +185,35 @@ async function playMovie(slug, epIndex = 0, startTime = 0) {
 
         if (data.data.item.episodes && data.data.item.episodes.length > 0) {
             const server = data.data.item.episodes[0];
-            const fragment = document.createDocumentFragment();
+            const serverData = server.server_data || [];
 
-            server.server_data.forEach((ep, index) => {
-                const btn = document.createElement("button");
-                btn.className = "episode-btn" + (index === epIndex ? " active" : "");
-                btn.innerText = ep.name;
+            // Luôn xác định link của tập hiện tại để nạp Player
+            const currentEpEntry = serverData[epIndex] || serverData[0];
+            if (currentEpEntry) {
+                targetLink = currentEpEntry.link_m3u8;
+                currentEpName = currentEpEntry.name;
+                currentEpIndex = epIndex;
+            }
 
-                if (index === epIndex) {
-                    targetLink = ep.link_m3u8;
-                    currentEpName = ep.name;
-                    currentEpIndex = epIndex;
-                }
+            // CHỈ HIỆN DANH SÁCH NÚT BẤM NẾU CÓ TỪ 2 TẬP TRỞ LÊN
+            if (serverData.length > 1) {
+                const fragment = document.createDocumentFragment();
+                serverData.forEach((ep, index) => {
+                    const btn = document.createElement("button");
+                    btn.className = "episode-btn" + (index === epIndex ? " active" : "");
+                    btn.innerText = ep.name;
 
-                btn.onclick = () => {
-                    document.querySelectorAll('.episode-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    currentEpName = ep.name;
-                    currentEpIndex = index;
-                    initPlayer(ep.link_m3u8, 0);
-                };
-                fragment.appendChild(btn);
-            });
-            episodesGrid.appendChild(fragment);
+                    btn.onclick = () => {
+                        document.querySelectorAll('.episode-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        currentEpName = ep.name;
+                        currentEpIndex = index;
+                        initPlayer(ep.link_m3u8, 0);
+                    };
+                    fragment.appendChild(btn);
+                });
+                episodesGrid.appendChild(fragment);
+            }
         }
 
         if (targetLink) {
