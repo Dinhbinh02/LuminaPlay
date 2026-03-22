@@ -321,22 +321,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = "index.html";
     }
 
-    // --- Tính năng Picture-in-Picture (PiP) ---
-    const pipBtn = document.getElementById('pipBtn');
-    if (document.pictureInPictureEnabled && pipBtn) {
-        pipBtn.style.display = 'flex';
-        pipBtn.addEventListener('click', async () => {
-            try {
-                if (video !== document.pictureInPictureElement) {
-                    await video.requestPictureInPicture();
-                } else {
-                    await document.exitPictureInPicture();
-                }
-            } catch (error) {
-                console.error("PiP Error:", error);
-            }
-        });
-    }
 
     initFilters();
 });
@@ -469,6 +453,47 @@ function initPlayer(url, startTime = 0) {
     } else {
         video.src = url;
         video.addEventListener('loadedmetadata', startPlay, { once: true });
+    }
+
+    video.autoPictureInPicture = true;
+
+    // --- Chế độ Auto-PiP khi chuyển Tab (Desktop & Mobile) ---
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            // Khi tab bị ẩn (người dùng chuyển sang tab khác), thử tự động nổ PiP
+            if (video && !video.paused && video.readyState >= 2) {
+                try {
+                    video.requestPictureInPicture().catch(() => {
+                        // Trình duyệt chặn nổ PiP tự động vì lý do bảo mật (cần gesture người dùng trước đó)
+                        console.log("Auto-PiP blocked or not supported on this browser.");
+                    });
+                } catch (e) { }
+            }
+        } else {
+            // Khi quay lại tab, tự động thoát PiP để xem trên trình phát lớn
+            if (document.pictureInPictureElement === video) {
+                try {
+                    document.exitPictureInPicture().catch(() => { });
+                } catch (e) { }
+            }
+        }
+    });
+
+    // --- Media Session & Auto PiP Awareness (Thay thế URL bằng tên phim) ---
+    if ('mediaSession' in navigator && currentMovie) {
+        const fullPoster = currentMovie.poster_url && !currentMovie.poster_url.startsWith('http') 
+            ? `${IMG_BASE}${currentMovie.poster_url}` 
+            : (currentMovie.poster_url || DEFAULT_POSTER);
+
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: currentMovie.name,
+            artist: 'Lumina Play',
+            album: currentEpName ? `Tập ${currentEpName}` : currentMovie.name,
+            artwork: [
+                { src: fullPoster, sizes: '512x512', type: 'image/jpeg' },
+                { src: fullPoster, sizes: '256x256', type: 'image/jpeg' }
+            ]
+        });
     }
 }
 
