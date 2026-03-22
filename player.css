@@ -603,6 +603,10 @@ video {
     cursor: pointer;
     position: relative;
     transition: transform 0.3s;
+    /* Chặn menu hệ thống trên Mobile khi nhấn giữ */
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
 }
 
 .recent-card:hover {
@@ -619,12 +623,6 @@ video {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: 0;
-    transition: opacity 0.4s ease-in-out;
-}
-
-.recent-poster-wrapper img.loaded {
-    opacity: 1;
 }
 
 .recent-label {
@@ -715,12 +713,7 @@ main {
     aspect-ratio: 2/3;
     object-fit: cover;
     background: #252830;
-    opacity: 0;
-    transition: opacity 0.4s ease-in-out;
-}
-
-.movie-card .poster.loaded {
-    opacity: 1;
+    display: block;
 }
 
 .movie-card .details {

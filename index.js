@@ -727,7 +727,7 @@ function renderWatchHistory() {
                 const touch = e.touches[0];
                 handleLongPress(touch.pageX, touch.pageY);
                 touchTimer = null;
-            }, 600);
+            }, 400);
         }, { passive: true });
 
         card.addEventListener('touchend', () => {
