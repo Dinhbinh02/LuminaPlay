@@ -465,25 +465,22 @@ function initPlayer(url, startTime = 0) {
                     if (video.requestPictureInPicture) {
                         video.requestPictureInPicture().catch(() => { });
                     } else if (video.webkitSetPresentationMode) {
-                        // Fallback cho Safari iOS
+                        // Fallback cho Safari
                         video.webkitSetPresentationMode('picture-in-picture');
                     }
                 } catch (e) { }
             }
         } else {
+            // Khi quay lại tab, tự động thoát PiP
             if (document.pictureInPictureElement === video) {
-                try {
-                    document.exitPictureInPicture().catch(() => { });
-                } catch (e) { }
+                try { document.exitPictureInPicture().catch(() => { }); } catch (e) { }
             } else if (video.webkitPresentationMode === 'picture-in-picture') {
-                try {
-                    video.webkitSetPresentationMode('inline');
-                } catch (e) { }
+                try { video.webkitSetPresentationMode('inline'); } catch (e) { }
             }
         }
     });
 
-    // --- Media Session & Auto PiP Awareness (Thay thế URL bằng tên phim) ---
+    // --- Media Session Metadata (Hiện tên phim thay vì URL trong cửa sổ PiP) ---
     if ('mediaSession' in navigator && currentMovie) {
         const fullPoster = currentMovie.poster_url && !currentMovie.poster_url.startsWith('http') 
             ? `${IMG_BASE}${currentMovie.poster_url}` 
@@ -492,7 +489,7 @@ function initPlayer(url, startTime = 0) {
         navigator.mediaSession.metadata = new MediaMetadata({
             title: currentMovie.name,
             artist: 'Lumina Play',
-            album: currentEpName ? `Tập ${currentEpName}` : currentMovie.name,
+            album: currentEpName ? `Phim ${currentMovie.name} - Tập ${currentEpName}` : currentMovie.name,
             artwork: [
                 { src: fullPoster, sizes: '512x512', type: 'image/jpeg' },
                 { src: fullPoster, sizes: '256x256', type: 'image/jpeg' }
