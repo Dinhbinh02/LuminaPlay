@@ -298,7 +298,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             githubLoginBtn?.addEventListener('click', () => {
-                const redirectUri = window.location.origin + window.location.pathname.replace('player.html', 'callback.html');
+                const currentDir = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) || '';
+                const baseDir = currentDir.endsWith('/') ? currentDir : currentDir + '/';
+                const redirectUri = window.location.origin + baseDir + 'callback.html';
+
                 const url = `https://github.com/login/oauth/authorize?client_id=${GH_CLIENT_ID}&scope=gist&redirect_uri=${encodeURIComponent(redirectUri)}`;
                 window.location.href = url;
             });

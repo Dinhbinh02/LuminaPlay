@@ -10,10 +10,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="player.css">
     <style>
-        html.back-nav-hiding body { opacity: 0; pointer-events: none; }
+        html.back-nav-hiding body {
+            opacity: 0;
+            pointer-events: none;
+        }
     </style>
     <script>
-        // Chạy càng sớm càng tốt để ẩn body khi nhấn Back (tránh bị flash top page)
         if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward') {
             document.documentElement.classList.add('back-nav-hiding');
         }
