@@ -16,16 +16,20 @@
     <header id="filterBar">
         <div class="header-main">
             <a href="index.html" class="logo">
-                LUMINA 
+                LUMINA
                 <div class="logo-play-btn">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.467 11.315L7.867 4.228a1.2 1.2 0 00-1.867 1.012v13.518a1.2 1.2 0 001.867 1.012l11.6-7.087a1.206 1.206 0 000-2.368z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M19.467 11.315L7.867 4.228a1.2 1.2 0 00-1.867 1.012v13.518a1.2 1.2 0 001.867 1.012l11.6-7.087a1.206 1.206 0 000-2.368z" />
+                    </svg>
                 </div>
             </a>
 
-            
+
             <div class="user-container" id="userContainer">
                 <button class="user-btn" id="userBtn" title="Tài khoản">
-                    <img id="headerAvatar" style="display:none; width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                    <img id="headerAvatar"
+                        style="display:none; width:100%; height:100%; border-radius:50%; object-fit:cover;">
                     <i class="fa-solid fa-circle-user" id="userIcon"></i>
                 </button>
                 <div class="user-dropdown" id="userDropdown">
@@ -61,15 +65,18 @@
                 <div class="filter-popup" id="filterPopup">
                     <div class="filter-grid">
                         <div class="custom-select" id="selectList">
-                            <div class="select-trigger"><span>Danh sách</span><i class="fa-solid fa-chevron-down"></i></div>
+                            <div class="select-trigger"><span>Danh sách</span><i class="fa-solid fa-chevron-down"></i>
+                            </div>
                             <div class="options-container"></div>
                         </div>
                         <div class="custom-select" id="selectCategory">
-                            <div class="select-trigger"><span>Thể loại</span><i class="fa-solid fa-chevron-down"></i></div>
+                            <div class="select-trigger"><span>Thể loại</span><i class="fa-solid fa-chevron-down"></i>
+                            </div>
                             <div class="options-container"></div>
                         </div>
                         <div class="custom-select" id="selectCountry">
-                            <div class="select-trigger"><span>Quốc gia</span><i class="fa-solid fa-chevron-down"></i></div>
+                            <div class="select-trigger"><span>Quốc gia</span><i class="fa-solid fa-chevron-down"></i>
+                            </div>
                             <div class="options-container"></div>
                         </div>
                         <div class="custom-select" id="selectYear">
@@ -91,19 +98,22 @@
         <div id="loader" class="loader active" style="position: absolute; z-index: 10;">
             <div class="spinner"></div>
         </div>
-        <video id="video" controls playsinline autoplay></video>
+        <video id="video" controls playsinline webkit-playsinline autoplay></video>
+        <button id="pipBtn" class="pip-btn">
+            <i class="fa-solid fa-up-right-from-square"></i>
+        </button>
     </div>
 
     <div class="movie-info-hero">
         <h1 id="current-title">Đang tải...</h1>
-        
+
         <div class="movie-meta-row" id="current-meta" style="display: none;">
             <span class="meta-item year" id="meta-year"></span>
             <span class="meta-item lang" id="meta-lang"></span>
         </div>
 
         <p id="current-desc"></p>
-        
+
         <div id="keywords-container" class="tags-container"></div>
 
         <div id="episodes-section" style="margin-top: 1.5rem; display: none;">

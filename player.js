@@ -321,6 +321,23 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = "index.html";
     }
 
+    // --- Tính năng Picture-in-Picture (PiP) ---
+    const pipBtn = document.getElementById('pipBtn');
+    if (document.pictureInPictureEnabled && pipBtn) {
+        pipBtn.style.display = 'flex';
+        pipBtn.addEventListener('click', async () => {
+            try {
+                if (video !== document.pictureInPictureElement) {
+                    await video.requestPictureInPicture();
+                } else {
+                    await document.exitPictureInPicture();
+                }
+            } catch (error) {
+                console.error("PiP Error:", error);
+            }
+        });
+    }
+
     initFilters();
 });
 
