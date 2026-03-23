@@ -1,10 +1,19 @@
 const fetch = require('node-fetch');
 
 module.exports = async (req, res) => {
-    const { url } = req.query;
+    let { url, q } = req.query;
+
+    // Nếu dùng tham số 'q', giải mã Base64 (Hỗ trợ vượt tường lửa quét từ khóa)
+    if (q) {
+        try {
+            url = Buffer.from(q, 'base64').toString('ascii');
+        } catch (e) {
+            return res.status(400).json({ error: 'Invalid base64 in q' });
+        }
+    }
 
     if (!url) {
-        return res.status(400).json({ error: 'URL is required' });
+        return res.status(400).json({ error: 'URL or q is required' });
     }
 
     try {

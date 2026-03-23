@@ -1,4 +1,82 @@
-const API_BASE = "https://ophim1.com";
+// --- Cấu hình API và Chống Chặn (Resilience) ---
+const API_DOMAINS = [
+    "https://ophim1.com",
+    "https://ophim8.cc",
+    "https://ophim10.cc",
+    "https://kkphimapi.com"
+];
+
+const IMG_DOMAINS = [
+    "https://img.ophim1.com/uploads/movies/",
+    "https://img.kkphim.com/uploads/movies/"
+];
+
+let currentApiBase = API_DOMAINS[0];
+const API_BASE = API_DOMAINS[0];
+const IMG_BASE = IMG_DOMAINS[0];
+const DEFAULT_POSTER = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' width%3D'200' height%3D'300' viewBox%3D'0 0 200 300'%3E%3Crect width%3D'200' height%3D'300' fill%3D'%23252830'%2F%3E%3Ctext x%3D'50%25' y%3D'50%25' dominant-baseline%3D'middle' text-anchor%3D'middle' font-family%3D'sans-serif' font-size%3D'14' fill%3D'%23555'%3EImage Error%3C%2Ftext%3E%3C%2Fsvg%3E";
+
+// NẾU CHẠY EXTENSION: Bạn cần thay bằng domain Vercel thật của bạn ở đây
+const PRODUCTION_DOMAIN = "https://lumina-play.vercel.app"; 
+
+// Hàm Fetch thông minh: Tự động thử các Domain khác hoặc qua Proxy nếu bị chặn
+async function fetchAPI(pathOrUrl, options = {}) {
+    let path = pathOrUrl;
+    if (pathOrUrl.startsWith('http')) {
+        try {
+            const urlObj = new URL(pathOrUrl);
+            path = urlObj.pathname + urlObj.search;
+        } catch (e) {
+            path = pathOrUrl;
+        }
+    }
+
+    const isExtension = window.location.protocol === 'chrome-extension:';
+    const proxyBase = isExtension ? PRODUCTION_DOMAIN : "";
+
+    for (const domain of API_DOMAINS) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6000); 
+
+            let combinedSignal = controller.signal;
+            if (options.signal) {
+                if (typeof AbortSignal.any === 'function') {
+                    combinedSignal = AbortSignal.any([controller.signal, options.signal]);
+                }
+            }
+
+            const fullUrl = `${domain}${path.startsWith('/') ? '' : '/'}${path}`;
+            const res = await fetch(fullUrl, { ...options, signal: combinedSignal });
+            clearTimeout(timeoutId);
+            if (res.ok) {
+                currentApiBase = domain;
+                return await res.json();
+            }
+        } catch (e) {
+            console.warn(`Domain ${domain} lỗi: ${e.message}`);
+            if (options.signal?.aborted) throw e;
+        }
+    }
+
+    // Proxy fallback (Stealth Mode)
+    console.log("Dùng Proxy (Stealth Mode)...");
+    try {
+        const targetUrl = `${API_DOMAINS[0]}${path.startsWith('/') ? '' : '/'}${path}`;
+        const proxyUrl = `${proxyBase}/api/proxy?q=${btoa(targetUrl)}`;
+        const res = await fetch(proxyUrl, options);
+        if (!res.ok) throw new Error("Proxy error");
+        return await res.json();
+    } catch (err) {
+        throw new Error("Không kết nối được server.");
+    }
+}
+
+function getImgUrl(posterPath) {
+    if (!posterPath) return DEFAULT_POSTER;
+    if (posterPath.startsWith('http')) return posterPath;
+    return `${IMG_DOMAINS[0]}${posterPath}`;
+}
 const video = document.getElementById("video");
 const episodesGrid = document.getElementById("episodes");
 const loader = document.getElementById("loader");
@@ -24,9 +102,9 @@ document.addEventListener('DOMContentLoaded', () => {
     async function initFilters() {
         try {
             const [cats, counts, years] = await Promise.all([
-                fetch(`${API_BASE}/v1/api/the-loai`).then(r => r.json()),
-                fetch(`${API_BASE}/v1/api/quoc-gia`).then(r => r.json()),
-                fetch(`${API_BASE}/v1/api/nam-phat-hanh`).then(r => r.json())
+                fetchAPI(`/v1/api/the-loai`),
+                fetchAPI(`/v1/api/quoc-gia`),
+                fetchAPI(`/v1/api/nam-phat-hanh`)
             ]);
             const getItems = (obj) => obj?.data?.items || (Array.isArray(obj?.data) ? obj.data : []);
 
@@ -329,8 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function playMovie(slug, epIndex = 0, startTime = 0) {
     showLoader(true);
     try {
-        const res = await fetch(`${API_BASE}/v1/api/phim/${slug}`);
-        const data = await res.json();
+        const data = await fetchAPI(`/v1/api/phim/${slug}`);
         currentMovie = data.data.item;
 
         document.title = `Đang xem: ${currentMovie.name} - Lumina Play`;
@@ -500,9 +577,7 @@ function initPlayer(url, startTime = 0) {
 
     // --- Media Session Metadata (Hiện tên phim thay vì URL trong cửa sổ PiP) ---
     if ('mediaSession' in navigator && currentMovie) {
-        const fullPoster = currentMovie.poster_url && !currentMovie.poster_url.startsWith('http') 
-            ? `${IMG_BASE}${currentMovie.poster_url}` 
-            : (currentMovie.poster_url || DEFAULT_POSTER);
+        const fullPoster = getImgUrl(currentMovie.poster_url);
 
         navigator.mediaSession.metadata = new MediaMetadata({
             title: currentMovie.name,
@@ -563,29 +638,19 @@ function showLoader(show) {
     if (loader) loader.className = show ? "loader active" : "loader";
 }
 
-const IMG_BASE = "https://img.ophim1.com/uploads/movies/";
-const DEFAULT_POSTER = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' width%3D'200' height%3D'300' viewBox%3D'0 0 200 300'%3E%3Crect width%3D'200' height%3D'300' fill%3D'%23252830'%2F%3E%3Ctext x%3D'50%25' y%3D'50%25' dominant-baseline%3D'middle' text-anchor%3D'middle' font-family%3D'sans-serif' font-size%3D'14' fill%3D'%23555'%3EImage Error%3C%2Ftext%3E%3C%2Fsvg%3E";
-
 async function fetchRelatedMovies(movie) {
     if (!movie) return;
     try {
         const nameParts = movie.name.split(' ');
         const searchKeyword = nameParts.slice(0, 3).join(' ');
         const categorySlug = movie.category && movie.category.length > 0 ? movie.category[0].slug : '';
-        const [searchRes, catRes] = await Promise.all([
-            fetch(`${API_BASE}/v1/api/tim-kiem?keyword=${encodeURIComponent(searchKeyword)}`).catch(() => null),
-            categorySlug ? fetch(`${API_BASE}/v1/api/the-loai/${categorySlug}`).catch(() => null) : Promise.resolve(null)
+        const [searchData, catData] = await Promise.all([
+            fetchAPI(`/v1/api/tim-kiem?keyword=${encodeURIComponent(searchKeyword)}`).catch(() => null),
+            categorySlug ? fetchAPI(`/v1/api/the-loai/${categorySlug}`).catch(() => null) : Promise.resolve(null)
         ]);
-        let searchItems = [];
-        let catItems = [];
-        if (searchRes && searchRes.ok) {
-            const data = await searchRes.json();
-            searchItems = data.data.items || [];
-        }
-        if (catRes && catRes.ok) {
-            const data = await catRes.json();
-            catItems = data.data.items || [];
-        }
+
+        let searchItems = searchData?.data?.items || [];
+        let catItems = catData?.data?.items || [];
         const relatedMovies = [...searchItems, ...catItems];
         const uniqueMovies = [];
         const seenSlugs = new Set();
@@ -613,12 +678,7 @@ function renderRelatedMovies(items) {
     section.style.display = 'block';
     grid.innerHTML = '';
     items.forEach((movie, index) => {
-        let poster = DEFAULT_POSTER;
-        if (movie.poster_url) {
-            poster = movie.poster_url.startsWith('http') ? movie.poster_url : `${IMG_BASE}${movie.poster_url}`;
-        } else if (movie.thumb_url) {
-            poster = movie.thumb_url.startsWith('http') ? movie.thumb_url : `${IMG_BASE}${movie.thumb_url}`;
-        }
+        let poster = getImgUrl(movie.poster_url || movie.thumb_url);
         const quality = movie.quality ? movie.quality.toUpperCase().replace('FULL ', '') : 'HD';
         const epStatus = movie.episode_current || 'Full';
         const rating = (movie.tmdb && movie.tmdb.vote_average) ?
@@ -644,8 +704,13 @@ function renderRelatedMovies(items) {
         const img = card.querySelector('.poster');
         img.addEventListener('load', () => img.classList.add('loaded'));
         img.addEventListener('error', () => {
-            img.onerror = null;
-            img.src = DEFAULT_POSTER;
+            if (img.src !== DEFAULT_POSTER && !img.dataset.proxied) {
+                console.warn("Thử load ảnh liên quan qua Proxy...");
+                img.dataset.proxied = "true";
+                img.src = `/api/proxy?url=${encodeURIComponent(poster)}`;
+            } else {
+                img.src = DEFAULT_POSTER;
+            }
         });
         card.onclick = () => {
             window.location.assign(`player.html?slug=${movie.slug}`);
@@ -663,8 +728,7 @@ async function fetchCast(slug) {
     if (!section || !list) return;
 
     try {
-        const res = await fetch(`${API_BASE}/v1/api/phim/${slug}/peoples`);
-        const data = await res.json();
+        const data = await fetchAPI(`/v1/api/phim/${slug}/peoples`);
 
         if (data.success && data.data.peoples && data.data.peoples.length > 0) {
             section.style.display = 'block';
@@ -764,3 +828,11 @@ async function fetchKeywords(slug) {
         }
     }
 }
+
+// --- Anti-DevTools (Security Shield) ---
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'F12' || e.keyCode === 123) e.preventDefault();
+    if ((e.ctrlKey || e.metaKey) && (e.shiftKey || e.altKey) && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j')) e.preventDefault();
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'U' || e.key === 'u')) e.preventDefault();
+});

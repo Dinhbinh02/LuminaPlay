@@ -1,5 +1,88 @@
-const API_BASE = "https://ophim1.com";
-const IMG_BASE = "https://img.ophim1.com/uploads/movies/";
+// --- Cấu hình API và Chống Chặn (Resilience) ---
+const API_DOMAINS = [
+    "https://ophim1.com",
+    "https://ophim8.cc",
+    "https://ophim10.cc",
+    "https://kkphimapi.com"
+];
+
+const IMG_DOMAINS = [
+    "https://img.ophim1.com/uploads/movies/",
+    "https://img.kkphim.com/uploads/movies/"
+];
+
+let currentApiBase = API_DOMAINS[0];
+const API_BASE = API_DOMAINS[0];
+const IMG_BASE = IMG_DOMAINS[0];
+const DEFAULT_POSTER = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' width%3D'200' height%3D'300' viewBox%3D'0 0 200 300'%3E%3Crect width%3D'200' height%3D'300' fill%3D'%23252830'%2F%3E%3Ctext x%3D'50%25' y%3D'50%25' dominant-baseline%3D'middle' text-anchor%3D'middle' font-family%3D'sans-serif' font-size%3D'14' fill%3D'%23555'%3EImage Error%3C%2Ftext%3E%3C%2Fsvg%3E";
+
+let contentAbortController = new AbortController();
+
+// NẾU CHẠY EXTENSION: Bạn cần thay bằng domain Vercel thật của bạn ở đây
+const PRODUCTION_DOMAIN = "https://lumina-play.vercel.app"; 
+
+// Hàm Fetch thông minh: Tự động thử các Domain khác hoặc qua Proxy nếu bị chặn
+async function fetchAPI(pathOrUrl, options = {}) {
+    let path = pathOrUrl;
+    if (pathOrUrl.startsWith('http')) {
+        try {
+            const urlObj = new URL(pathOrUrl);
+            path = urlObj.pathname + urlObj.search;
+        } catch (e) {
+            path = pathOrUrl;
+        }
+    }
+
+    const isExtension = window.location.protocol === 'chrome-extension:';
+    const proxyBase = isExtension ? PRODUCTION_DOMAIN : "";
+
+    // Thử domain chính và dự phòng trước
+    for (const domain of API_DOMAINS) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6000); 
+            
+            let combinedSignal = controller.signal;
+            if (options.signal) {
+                if (typeof AbortSignal.any === 'function') {
+                    combinedSignal = AbortSignal.any([controller.signal, options.signal]);
+                }
+            }
+
+            const fullUrl = `${domain}${path.startsWith('/') ? '' : '/'}${path}`;
+            const res = await fetch(fullUrl, { ...options, signal: combinedSignal });
+            clearTimeout(timeoutId);
+            
+            if (res.ok) {
+                currentApiBase = domain;
+                return await res.json();
+            }
+        } catch (e) {
+            console.warn(`Domain ${domain} lỗi: ${e.message}`);
+            if (options.signal?.aborted) throw e; 
+        }
+    }
+
+    // Proxy fallback (Stealth Mode: Encode Base64 để vượt tường lửa công ty)
+    console.log("Dùng Proxy (Stealth Mode)...");
+    try {
+        const targetUrl = `${API_DOMAINS[0]}${path.startsWith('/') ? '' : '/'}${path}`;
+        const proxyUrl = `${proxyBase}/api/proxy?q=${btoa(targetUrl)}`;
+        const res = await fetch(proxyUrl, options);
+        if (!res.ok) throw new Error("Proxy error");
+        return await res.json();
+    } catch (err) {
+        throw new Error("Không thể kết nối.");
+    }
+}
+
+// Hàm lấy ảnh thông minh
+function getImgUrl(posterPath) {
+    if (!posterPath) return DEFAULT_POSTER;
+    if (posterPath.startsWith('http')) return posterPath;
+    return `${IMG_DOMAINS[0]}${posterPath}`;
+}
+
 const movieGrid = document.getElementById("movieGrid");
 const loader = document.getElementById("loader");
 const searchInput = document.getElementById("searchInput");
@@ -465,9 +548,9 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initFilters() {
     try {
         const [cats, counts, years] = await Promise.all([
-            fetch(`${API_BASE}/v1/api/the-loai`).then(r => r.json()),
-            fetch(`${API_BASE}/v1/api/quoc-gia`).then(r => r.json()),
-            fetch(`${API_BASE}/v1/api/nam-phat-hanh`).then(r => r.json())
+            fetchAPI(`/v1/api/the-loai`),
+            fetchAPI(`/v1/api/quoc-gia`),
+            fetchAPI(`/v1/api/nam-phat-hanh`)
         ]);
 
         const getItems = (obj) => {
@@ -653,7 +736,6 @@ const apiCache = {
 };
 let isFetching = false;
 let hasMore = true;
-let contentAbortController = null;
 
 const state = {
     type: 'home',
@@ -777,7 +859,7 @@ async function loadContent(page = 1) {
         // TẢI SONG SONG (Promise.all)
         const responses = await Promise.all(urls.map(url => {
             if (apiCache.has(url)) return Promise.resolve(apiCache.get(url));
-            return fetch(url, { signal }).then(r => r.json()).then(data => {
+            return fetchAPI(url, { signal }).then(data => {
                 // Kiểm tra data hợp lệ trước khi cache
                 if (data && data.data) {
                     apiCache.set(url, data);
@@ -926,8 +1008,7 @@ async function renderHomeSections() {
     // Tải toàn bộ section song song nhưng render theo thứ tự cố định
     const promises = sections.map(async (sec) => {
         try {
-            const res = await fetch(sec.url + "?page=1");
-            const data = await res.json();
+            const data = await fetchAPI(sec.url + "?page=1");
             let movies = data.data.items || [];
             if (sec.title === "Anime") {
                 movies = movies.filter(m => {
@@ -1030,10 +1111,7 @@ function renderMoviesToGrid(targetGrid, items) {
         const isAdult = cats.some(c => c.name === "Phim 18+" || c.slug === "phim-18");
         if (isAdult) return;
 
-        let poster = DEFAULT_POSTER;
-        if (movie.poster_url) {
-            poster = movie.poster_url.startsWith('http') ? movie.poster_url : `${IMG_BASE}${movie.poster_url}`;
-        }
+        let poster = getImgUrl(movie.poster_url);
 
         const priorityAttr = index < priorityLimit ? 'fetchpriority="high"' : 'loading="lazy"';
         const card = document.createElement("div");
@@ -1057,7 +1135,16 @@ function renderMoviesToGrid(targetGrid, items) {
 
         const img = card.querySelector('.poster');
         img.addEventListener('load', () => img.classList.add('loaded'));
-        img.addEventListener('error', () => { img.src = DEFAULT_POSTER; });
+        img.addEventListener('error', () => {
+            // Nếu load trực tiếp tạch, thử qua Proxy trước khi buông xuôi dùng Default
+            if (img.src !== DEFAULT_POSTER && !img.dataset.proxied) {
+                console.warn("Thử load ảnh qua Proxy...");
+                img.dataset.proxied = "true";
+                img.src = `/api/proxy?url=${encodeURIComponent(poster)}`;
+            } else {
+                img.src = DEFAULT_POSTER;
+            }
+        });
 
         card.onclick = () => window.location.assign(`player.html?slug=${movie.slug}`);
 
@@ -1089,8 +1176,7 @@ function renderMoviesToGrid(targetGrid, items) {
     }, 200);
 }
 
-// Ảnh mặc định (Base64 SVG) để dùng khi không tải được ảnh từ server
-const DEFAULT_POSTER = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' width%3D'200' height%3D'300' viewBox%3D'0 0 200 300'%3E%3Crect width%3D'200' height%3D'300' fill%3D'%23252830'%2F%3E%3Ctext x%3D'50%25' y%3D'50%25' dominant-baseline%3D'middle' text-anchor%3D'middle' font-family%3D'sans-serif' font-size%3D'14' fill%3D'%23555'%3EImage Error%3C%2Ftext%3E%3C%2Fsvg%3E";
+
 
 function renderMovies(items, isFirstPage = true) {
     const temp = document.getElementById('tempSkeletons');
@@ -1262,7 +1348,7 @@ function renderWatchHistory() {
 
     history.forEach(item => {
         const percent = Math.min(100, Math.floor((item.time / item.duration) * 100)) || 0;
-        const posterUrl = item.poster.startsWith('http') ? item.poster : `${IMG_BASE}${item.poster}`;
+        const posterUrl = getImgUrl(item.poster);
 
         const card = document.createElement('div');
         card.className = "recent-card";
@@ -1381,3 +1467,11 @@ document.getElementById('ctxDeleteAll')?.addEventListener('click', () => {
     updateGist(); // Sync lên mây
 });
 
+
+// --- Anti-DevTools (Security Shield) ---
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'F12' || e.keyCode === 123) e.preventDefault();
+    if ((e.ctrlKey || e.metaKey) && (e.shiftKey || e.altKey) && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j')) e.preventDefault();
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'U' || e.key === 'u')) e.preventDefault();
+});
