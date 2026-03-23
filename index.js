@@ -19,7 +19,7 @@ const DEFAULT_POSTER = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D'http%3A
 let contentAbortController = new AbortController();
 
 // NẾU CHẠY EXTENSION: Bạn cần thay bằng domain Vercel thật của bạn ở đây
-const PRODUCTION_DOMAIN = "https://lumina-play.vercel.app"; 
+const PRODUCTION_DOMAIN = "https://lumina-play.vercel.app";
 
 // Hàm Fetch thông minh: Tự động thử các Domain khác hoặc qua Proxy nếu bị chặn
 async function fetchAPI(pathOrUrl, options = {}) {
@@ -36,36 +36,45 @@ async function fetchAPI(pathOrUrl, options = {}) {
     const isExtension = window.location.protocol === 'chrome-extension:';
     const proxyBase = isExtension ? PRODUCTION_DOMAIN : "";
 
-    // Thử domain chính và dự phòng trước
-    for (const domain of API_DOMAINS) {
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s là đủ cho gói tin API nhỏ
-            
-            let combinedSignal = controller.signal;
-            if (options.signal) {
-                if (typeof AbortSignal.any === 'function') {
-                    combinedSignal = AbortSignal.any([controller.signal, options.signal]);
-                }
-            }
+    // CHIẾN THUẬT SIÊU TỐC: Nếu phiên này đã được xác nhận là chặn mạng, nhảy thẳng vào Proxy luôn
+    const forceProxy = sessionStorage.getItem('lumina_force_proxy') === 'true';
 
-            const fullUrl = `${domain}${path.startsWith('/') ? '' : '/'}${path}`;
-            const res = await fetch(fullUrl, { ...options, signal: combinedSignal });
-            clearTimeout(timeoutId);
-            
-            if (res.ok) {
-                currentApiBase = domain;
-                return await res.json();
-            }
-        } catch (e) {
-            console.warn(`Domain ${domain} lỗi: ${e.message}`);
-            if (options.signal?.aborted) throw e; 
-            
-            // CHIẾN THUẬT NHANH: Nếu domain đầu tiên bị chặn mạng hoàn toàn (NET::ERR...)
-            // thì nhảy thẳng sang Proxy luôn cho nhanh.
-            if (domain === API_DOMAINS[0] && (e.name === 'TypeError' || e.message.includes('fetch'))) {
-                console.log("Mạng công ty chặn gắt, dùng Proxy ngay...");
-                break; 
+    if (!forceProxy) {
+        // Thử domain chính và dự phòng trước
+        for (const domain of API_DOMAINS) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 1500);
+
+                let combinedSignal = controller.signal;
+                if (options.signal) {
+                    if (typeof AbortSignal.any === 'function') {
+                        combinedSignal = AbortSignal.any([controller.signal, options.signal]);
+                    }
+                }
+
+                const fullUrl = `${domain}${path.startsWith('/') ? '' : '/'}${path}`;
+                const res = await fetch(fullUrl, { ...options, signal: combinedSignal });
+                clearTimeout(timeoutId);
+
+                if (res.ok) {
+                    currentApiBase = domain;
+                    return await res.json();
+                }
+            } catch (e) {
+                console.warn(`Domain ${domain} lỗi: ${e.message}`);
+                // Phân biệt: Nếu hàm load Content chính thức ra lệnh Hủy (người dùng chuyển page) thì dừng hẳn
+                if (options.signal?.aborted) throw e;
+
+                // CHIẾN THUẬT SIÊU NHANH: Nếu domain đầu tiên bị chặn mạng thẳng (TypeError)
+                // hoặc bị chặn im lặng gây ra Timeout -> AbortError
+                const isBlocked = e.name === 'TypeError' || e.message.includes('fetch');
+                const isTimeout = e.name === 'AbortError' || e.message.includes('aborted');
+
+                if (domain === API_DOMAINS[0] && (isBlocked || isTimeout)) {
+                    console.log("Mạng công ty chặn gắt hoặc timeout, dùng Proxy ngay...");
+                    break; // Bỏ qua mớ Domain dự phòng, nhảy thẳng xuống Proxy
+                }
             }
         }
     }
@@ -77,6 +86,10 @@ async function fetchAPI(pathOrUrl, options = {}) {
         const proxyUrl = `${proxyBase}/api/proxy?q=${btoa(targetUrl)}`;
         const res = await fetch(proxyUrl, options);
         if (!res.ok) throw new Error("Proxy error");
+
+        // Ghi nhớ để lần sau không cần thử các domain bị chặn nữa
+        sessionStorage.setItem('lumina_force_proxy', 'true');
+
         return await res.json();
     } catch (err) {
         throw new Error("Không thể kết nối.");
@@ -1011,6 +1024,30 @@ async function renderHomeSections() {
     ];
 
     const container = document.getElementById('movieContent');
+    container.innerHTML = '';
+
+    // Render Skeletons ngay lập tức
+    sections.forEach(sec => {
+        let skeletonHTML = '';
+        for (let i = 0; i < 6; i++) {
+            skeletonHTML += '<div class="movie-card skeleton-card"></div>';
+        }
+
+        const secDiv = document.createElement('div');
+        secDiv.className = 'movie-section-block';
+        secDiv.id = `skeleton-${sec.slug.replace(/\//g, '-')}`;
+        secDiv.innerHTML = `
+            <div class="section-header">
+                <h2>${sec.title}</h2>
+            </div>
+            <div class="movie-slider-wrapper">
+                <div class="movie-grid">
+                    ${skeletonHTML}
+                </div>
+            </div>
+        `;
+        container.appendChild(secDiv);
+    });
 
     // Tải toàn bộ section song song nhưng render theo thứ tự cố định
     const promises = sections.map(async (sec) => {
@@ -1031,6 +1068,9 @@ async function renderHomeSections() {
 
     const results = await Promise.all(promises);
     results.forEach(res => {
+        const skeletonDiv = document.getElementById(`skeleton-${res.sec.slug.replace(/\//g, '-')}`);
+        if (skeletonDiv) skeletonDiv.remove();
+
         if (res.movies.length > 0) {
             sortMoviesNewest(res.movies);
             renderSingleSection(container, res.sec.title, res.movies, res.sec.slug);

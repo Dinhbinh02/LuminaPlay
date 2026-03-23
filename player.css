@@ -1197,7 +1197,15 @@ main {
     overflow: hidden;
 }
 
-.skeleton-card::after {
+.skeleton-text {
+    background: var(--surface);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.skeleton-card::after, .skeleton-text::after {
     content: "";
     position: absolute;
     top: 0;

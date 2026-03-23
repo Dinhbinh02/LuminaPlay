@@ -34,43 +34,58 @@ async function fetchAPI(pathOrUrl, options = {}) {
     const isExtension = window.location.protocol === 'chrome-extension:';
     const proxyBase = isExtension ? PRODUCTION_DOMAIN : "";
 
-    for (const domain of API_DOMAINS) {
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s
+    // CHIẾN THUẬT SIÊU TỐC: Nếu phiên này đã được xác nhận là chặn mạng, nhảy thẳng vào Proxy luôn
+    const forceProxy = sessionStorage.getItem('lumina_force_proxy') === 'true';
 
-            let combinedSignal = controller.signal;
-            if (options.signal) {
-                if (typeof AbortSignal.any === 'function') {
-                    combinedSignal = AbortSignal.any([controller.signal, options.signal]);
+    if (!forceProxy) {
+        for (const domain of API_DOMAINS) {
+            try {
+                const controller = new AbortController();
+                // Giảm xuống 1.5s để phát hiện chặn mạng cực nhanh
+                const timeoutId = setTimeout(() => controller.abort(), 1500); 
+
+                let combinedSignal = controller.signal;
+                if (options.signal) {
+                    if (typeof AbortSignal.any === 'function') {
+                        combinedSignal = AbortSignal.any([controller.signal, options.signal]);
+                    }
                 }
-            }
 
-            const fullUrl = `${domain}${path.startsWith('/') ? '' : '/'}${path}`;
-            const res = await fetch(fullUrl, { ...options, signal: combinedSignal });
-            clearTimeout(timeoutId);
-            if (res.ok) {
-                currentApiBase = domain;
-                return await res.json();
-            }
-        } catch (e) {
-            console.warn(`Domain ${domain} lỗi: ${e.message}`);
-            if (options.signal?.aborted) throw e;
+                const fullUrl = `${domain}${path.startsWith('/') ? '' : '/'}${path}`;
+                const res = await fetch(fullUrl, { ...options, signal: combinedSignal });
+                clearTimeout(timeoutId);
+                if (res.ok) {
+                    currentApiBase = domain;
+                    return await res.json();
+                }
+            } catch (e) {
+                console.warn(`Domain ${domain} lỗi: ${e.message}`);
+                // Phân biệt: Nếu hàm load Content chính thức ra lệnh Hủy (người dùng chuyển page) thì dừng hẳn
+                if (options.signal?.aborted) throw e;
 
-            // Fail-fast: Nếu domain đầu bị chặn gắt, dùng Proxy luôn 
-            if (domain === API_DOMAINS[0] && (e.name === 'TypeError' || e.message.includes('fetch'))) {
-                break;
+                // CHIẾN THUẬT SIÊU NHANH: Nếu domain đầu tiên bị chặn mạng thẳng (TypeError)
+                // hoặc bị chặn im lặng gây ra Timeout -> AbortError
+                const isBlocked = e.name === 'TypeError' || e.message.includes('fetch');
+                const isTimeout = e.name === 'AbortError' || e.message.includes('aborted');
+
+                if (domain === API_DOMAINS[0] && (isBlocked || isTimeout)) {
+                    console.log("Mạng công ty chặn gắt hoặc timeout, dùng Proxy ngay...");
+                    break; // Bỏ qua mớ Domain dự phòng, nhảy thẳng xuống Proxy
+                }
             }
         }
     }
 
-    // Proxy fallback (Stealth Mode)
     console.log("Dùng Proxy (Stealth Mode)...");
     try {
         const targetUrl = `${API_DOMAINS[0]}${path.startsWith('/') ? '' : '/'}${path}`;
         const proxyUrl = `${proxyBase}/api/proxy?q=${btoa(targetUrl)}`;
         const res = await fetch(proxyUrl, options);
         if (!res.ok) throw new Error("Proxy error");
+
+        // Ghi nhớ để lần sau không cần thử các domain bị chặn nữa
+        sessionStorage.setItem('lumina_force_proxy', 'true');
+
         return await res.json();
     } catch (err) {
         throw new Error("Không kết nối được server.");
@@ -411,6 +426,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function playMovie(slug, epIndex = 0, startTime = 0) {
     showLoader(true);
+    
+    // Đặt Skeleton trong lúc chờ lấy dữ liệu (đặc biệt khi đang thăm dò mạng)
+    document.getElementById("current-title").innerHTML = '<div class="skeleton-text" style="width: 70%; height: 40px;"></div>';
+    const metaRow = document.getElementById("current-meta");
+    if (metaRow) metaRow.style.display = "none";
+    document.getElementById("current-desc").innerHTML = '<div class="skeleton-text" style="width: 100%; height: 20px;"></div><div class="skeleton-text" style="width: 80%; height: 20px;"></div>';
+    
+    document.getElementById("relatedSection").style.display = "block";
+    document.getElementById("relatedGrid").innerHTML = Array(6).fill('<div class="movie-card skeleton-card" style="min-width: 140px;"></div>').join('');
+
     try {
         const data = await fetchAPI(`/v1/api/phim/${slug}`);
         currentMovie = data.data.item;
