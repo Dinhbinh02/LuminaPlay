@@ -40,7 +40,7 @@ async function fetchAPI(pathOrUrl, options = {}) {
     for (const domain of API_DOMAINS) {
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 6000); 
+            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s là đủ cho gói tin API nhỏ
             
             let combinedSignal = controller.signal;
             if (options.signal) {
@@ -60,6 +60,13 @@ async function fetchAPI(pathOrUrl, options = {}) {
         } catch (e) {
             console.warn(`Domain ${domain} lỗi: ${e.message}`);
             if (options.signal?.aborted) throw e; 
+            
+            // CHIẾN THUẬT NHANH: Nếu domain đầu tiên bị chặn mạng hoàn toàn (NET::ERR...)
+            // thì nhảy thẳng sang Proxy luôn cho nhanh.
+            if (domain === API_DOMAINS[0] && (e.name === 'TypeError' || e.message.includes('fetch'))) {
+                console.log("Mạng công ty chặn gắt, dùng Proxy ngay...");
+                break; 
+            }
         }
     }
 
