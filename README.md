@@ -1,6 +1,5 @@
 <div align="center">
   <h1>Lumina Play</h1>
-  <p>Trải nghiệm xem phim mượt mà, không quảng cáo.</p>
 </div>
 
 <br/>
