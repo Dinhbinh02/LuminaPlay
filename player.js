@@ -442,15 +442,33 @@ function initPlayer(url, startTime = 0) {
 
     const startPlay = () => {
         if (startTime > 0) video.currentTime = startTime;
-        video.play().catch(() => { });
+        
+        // Cố gắng Auto play ngay lập tức
+        const attemptPlay = () => {
+            video.play().catch(err => {
+                console.log("Autoplay blocked, waiting for user interaction or muted playback.");
+                // Nếu bị block (thường do chính sách trình duyệt), thử Play ở chế độ MUTE
+                video.muted = true;
+                video.play().catch(() => { });
+                
+                // Hiển thị một thông báo nhỏ hoặc để người dùng tự bấm Unmute (nếu cần)
+                // Tuy nhiên, thường thì video sẽ chạy nhưng không có tiếng.
+            });
+        };
+        attemptPlay();
     };
 
-    if (Hls.isSupported()) {
+    // Ưu tiên dùng Native HLS của Safari (Apple) để Auto PiP ổn định nhất khi vuốt lên
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = url;
+        video.addEventListener('loadedmetadata', startPlay, { once: true });
+    } else if (Hls.isSupported()) {
         hls = new Hls();
         hls.loadSource(url);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, startPlay);
     } else {
+        // Fallback cuối cùng cho các browser cổ
         video.src = url;
         video.addEventListener('loadedmetadata', startPlay, { once: true });
     }
@@ -746,11 +764,3 @@ async function fetchKeywords(slug) {
         }
     }
 }
-
-// --- Anti-DevTools (Security Shield) ---
-document.addEventListener('contextmenu', e => e.preventDefault());
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'F12' || e.keyCode === 123) e.preventDefault();
-    if ((e.ctrlKey || e.metaKey) && (e.shiftKey || e.altKey) && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j')) e.preventDefault();
-    if ((e.ctrlKey || e.metaKey) && (e.key === 'U' || e.key === 'u')) e.preventDefault();
-});

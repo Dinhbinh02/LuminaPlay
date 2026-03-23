@@ -10,43 +10,6 @@
 <body>
     <div id="status">Đang kết nối với GitHub...</div>
 
-    <script>
-        (async () => {
-            const params = new URLSearchParams(window.location.search);
-            const code = params.get('code');
-            const status = document.getElementById('status');
-
-            if (!code) {
-                status.innerText = "Lỗi: Không tìm thấy mã xác thực.";
-                setTimeout(() => window.location.href = 'index.html', 2000);
-                return;
-            }
-
-            try {
-                // Gọi tới Serverless Function chúng ta vừa tạo
-                const res = await fetch(`/api/github-auth?code=${code}`);
-                const data = await res.json();
-
-                if (data.access_token) {
-                    localStorage.setItem('gh_token', data.access_token);
-                    status.innerText = "Đăng nhập thành công! Đang quay lại trang chủ...";
-                    
-                    // Lấy thêm thông tin user để hiển thị avatar ngay
-                    const userRes = await fetch('https://api.github.com/user', {
-                        headers: { 'Authorization': `Bearer ${data.access_token}` }
-                    });
-                    const userData = await userRes.json();
-                    localStorage.setItem('gh_user', JSON.stringify(userData));
-                    
-                    window.location.href = 'index.html';
-                } else {
-                    status.innerText = "Lỗi xác thực: " + (data.error_description || "Không xác định");
-                    setTimeout(() => window.location.href = 'index.html', 3000);
-                }
-            } catch (err) {
-                status.innerText = "Lỗi kết nối server: " + err.message;
-            }
-        })();
-    </script>
+    <script src="auth-handler.js"></script>
 </body>
 </html>

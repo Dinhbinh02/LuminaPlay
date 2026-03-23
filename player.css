@@ -1305,4 +1305,13 @@ main {
     #current-title {
         font-size: 1.3rem;
     }
+
+    /* Sticky Player on Mobile */
+    .player-container {
+        position: sticky;
+        top: 56px;
+        z-index: 500;
+        background: #000;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    }
 }

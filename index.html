@@ -15,11 +15,7 @@
             pointer-events: none;
         }
     </style>
-    <script>
-        if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward') {
-            document.documentElement.classList.add('back-nav-hiding');
-        }
-    </script>
+    <script src="back-nav-hider.js"></script>
 </head>
 
 <body>
