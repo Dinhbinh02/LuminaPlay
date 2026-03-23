@@ -312,7 +312,7 @@ video {
     overflow: hidden;
 }
 
-/* Metadata Row */
+
 .movie-meta-row {
     display: flex;
     flex-wrap: wrap;
@@ -457,7 +457,7 @@ video {
     text-overflow: ellipsis;
 }
 
-/* Tags / Keywords */
+
 .tags-container {
     display: flex;
     flex-wrap: wrap;
@@ -498,7 +498,7 @@ video {
     text-decoration: underline;
 }
 
-/* Episodes Section */
+
 .episodes-container {
     margin-top: 1rem;
     display: flex;
@@ -528,7 +528,7 @@ video {
     font-weight: 700;
 }
 
-/* Filter Bar */
+
 .filter-bar {
     display: flex;
     align-items: center;
@@ -704,7 +704,7 @@ video {
     background: #1a1c22;
     border: 1px solid var(--glass);
     border-radius: 20px;
-    /* Độ cong lớn hơn cho hộp options */
+    
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     z-index: 1000;
     overflow-y: auto;
@@ -966,7 +966,7 @@ main {
     gap: 1.2rem;
     padding: 10px 0;
     min-height: 300px;
-    /* Duy trì không gian khi nạp lại */
+    
     -ms-overflow-style: none;
     scrollbar-width: none;
     scroll-behavior: smooth;
@@ -980,7 +980,7 @@ main {
 .movie-card {
     flex: 0 0 auto;
     width: 200px;
-    /* Fixed width for consistent horizontal row */
+    
     scroll-snap-align: start;
     background: var(--surface);
     border-radius: 12px;
@@ -1023,12 +1023,12 @@ main {
 
 .slider-btn.prev {
     left: 10px;
-    /* Adjusted from -20px for better visibility */
+    
 }
 
 .slider-btn.next {
     right: 10px;
-    /* Adjusted from -20px */
+    
 }
 
 .movie-card:hover {
@@ -1063,13 +1063,13 @@ main {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
-    /* Hỗ trợ trình duyệt tiêu chuẩn */
+    
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.4;
     height: 2.24rem;
-    /* Cố định chiều cao (0.8rem * 1.4 line-height * 2 lines) để lưới thẳng tắp */
+    
 }
 
 .movie-card .poster-wrapper {
@@ -1085,7 +1085,7 @@ main {
     top: 10px;
     left: 10px;
     background: rgba(15, 18, 24, 0.9);
-    /* Màu tối đặc hơn thay cho blur */
+    
     color: #00d2ff;
     padding: 3px 8px;
     border-radius: 6px;
@@ -1115,7 +1115,7 @@ main {
     bottom: 10px;
     left: 10px;
     background: rgba(15, 18, 24, 0.95);
-    /* Màu tối đặc hơn thay cho blur */
+    
     padding: 4px 10px;
     border-radius: 50px;
     display: flex;
@@ -1132,7 +1132,7 @@ main {
     font-weight: 700;
 }
 
-/* Loading Spinner */
+
 .loader {
     display: none;
     justify-content: center;
@@ -1171,7 +1171,7 @@ main {
     }
 }
 
-/* Search Results Info */
+
 .search-results-info {
     margin-bottom: 2rem;
     color: var(--text-dim);
@@ -1188,7 +1188,7 @@ main {
     font-weight: 700;
 }
 
-/* --- Skeleton Loading (Chuẩn OPhim Core) --- */
+
 .skeleton-card {
     background: var(--surface);
     aspect-ratio: 2/3;
@@ -1314,7 +1314,7 @@ main {
         font-size: 1.3rem;
     }
 
-    /* Sticky Player on Mobile */
+    
     .player-container {
         position: sticky;
         top: 56px;

@@ -1,4 +1,4 @@
-// --- Cấu hình API và Chống Chặn (Resilience) ---
+// --- Cấu hình API ---
 const API_DOMAINS = [
     "https://ophim1.com",
     "https://ophim8.cc",
@@ -18,10 +18,9 @@ const DEFAULT_POSTER = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D'http%3A
 
 let contentAbortController = new AbortController();
 
-// NẾU CHẠY EXTENSION: Bạn cần thay bằng domain Vercel thật của bạn ở đây
 const PRODUCTION_DOMAIN = "https://lumina-play.vercel.app";
 
-// Hàm Fetch thông minh: Tự động thử các Domain khác hoặc qua Proxy nếu bị chặn
+// Tự động thử các Domain khác hoặc qua Proxy nếu bị chặn
 async function fetchAPI(pathOrUrl, options = {}) {
     let path = pathOrUrl;
     if (pathOrUrl.startsWith('http')) {
@@ -36,11 +35,10 @@ async function fetchAPI(pathOrUrl, options = {}) {
     const isExtension = window.location.protocol === 'chrome-extension:';
     const proxyBase = isExtension ? PRODUCTION_DOMAIN : "";
 
-    // CHIẾN THUẬT SIÊU TỐC: Nếu phiên này đã được xác nhận là chặn mạng, nhảy thẳng vào Proxy luôn
+    // Hàm Cache
     const forceProxy = sessionStorage.getItem('lumina_force_proxy') === 'true';
 
     if (!forceProxy) {
-        // Thử domain chính và dự phòng trước
         for (const domain of API_DOMAINS) {
             try {
                 const controller = new AbortController();
@@ -63,31 +61,26 @@ async function fetchAPI(pathOrUrl, options = {}) {
                 }
             } catch (e) {
                 console.warn(`Domain ${domain} lỗi: ${e.message}`);
-                // Phân biệt: Nếu hàm load Content chính thức ra lệnh Hủy (người dùng chuyển page) thì dừng hẳn
                 if (options.signal?.aborted) throw e;
-
-                // CHIẾN THUẬT SIÊU NHANH: Nếu domain đầu tiên bị chặn mạng thẳng (TypeError)
-                // hoặc bị chặn im lặng gây ra Timeout -> AbortError
                 const isBlocked = e.name === 'TypeError' || e.message.includes('fetch');
                 const isTimeout = e.name === 'AbortError' || e.message.includes('aborted');
 
                 if (domain === API_DOMAINS[0] && (isBlocked || isTimeout)) {
                     console.log("Mạng công ty chặn gắt hoặc timeout, dùng Proxy ngay...");
-                    break; // Bỏ qua mớ Domain dự phòng, nhảy thẳng xuống Proxy
+                    break;
                 }
             }
         }
     }
 
-    // Proxy fallback (Stealth Mode: Encode Base64 để vượt tường lửa công ty)
-    console.log("Dùng Proxy (Stealth Mode)...");
+    // Proxy fallback
+    console.log("Dùng Proxy...");
     try {
         const targetUrl = `${API_DOMAINS[0]}${path.startsWith('/') ? '' : '/'}${path}`;
         const proxyUrl = `${proxyBase}/api/proxy?q=${btoa(targetUrl)}`;
         const res = await fetch(proxyUrl, options);
         if (!res.ok) throw new Error("Proxy error");
 
-        // Ghi nhớ để lần sau không cần thử các domain bị chặn nữa
         sessionStorage.setItem('lumina_force_proxy', 'true');
 
         return await res.json();
@@ -96,7 +89,6 @@ async function fetchAPI(pathOrUrl, options = {}) {
     }
 }
 
-// Hàm lấy ảnh thông minh
 function getImgUrl(posterPath) {
     if (!posterPath) return DEFAULT_POSTER;
     if (posterPath.startsWith('http')) return posterPath;
@@ -107,7 +99,7 @@ const movieGrid = document.getElementById("movieGrid");
 const loader = document.getElementById("loader");
 const searchInput = document.getElementById("searchInput");
 
-// Kiểm soát cuộn thủ công để tránh bị nhảy (jump) khi Back
+// Kiểm soát cuộn thủ công
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
 window.addEventListener('beforeunload', () => {
@@ -123,7 +115,7 @@ const listTitle = document.getElementById("list-title");
 const listSeeMore = document.getElementById("listSeeMore");
 const recentSeeMore = document.getElementById("recentSeeMore");
 
-// Biến điều khiển infinite scroll toàn cục
+// Infinite scroll
 let mainObserver = null;
 let scrollSentinel = document.getElementById('scrollSentinel');
 
@@ -159,14 +151,12 @@ function handleUrlParams() {
 
     if (listTitle) listTitle.innerText = "";
 
-    // Reset trạng thái trước khi nạp mới
     state.type = 'home';
     state.query = '';
     state.category = { slugs: '', names: '' };
     state.country = { slugs: '', names: '' };
     state.year = { slugs: '', names: '' };
     state.list = { slugs: '', names: '' };
-    // searchInput might not be available yet if called before DOMContentLoaded, but usually it's called after
     if (searchInput) {
         searchInput.value = q || '';
         if (searchInput.parentElement) {
@@ -174,7 +164,7 @@ function handleUrlParams() {
         }
     }
 
-    // Reset giao diện bộ lọc về mặc định
+    // Reset lọc
     filters.forEach(f => {
         const container = document.getElementById(f.id);
         if (container) {
@@ -219,7 +209,6 @@ function handleUrlParams() {
             if (!container) return;
             const triggerText = container.querySelector('.select-trigger span');
 
-            // Reset trước khi nạp
             container.selectedItems = [];
             container.classList.remove('has-selection');
             container.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
@@ -265,8 +254,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
     const query = params.get('q');
     const type = params.get('type');
-    // Filter Toggle Logic
-    // Popup Filter Logic (New)
     const filterPopup = document.getElementById('filterPopup');
     const filterBackdrop = document.getElementById('filterPopupBackdrop');
     const filterBtn = document.getElementById('filterToggle');
@@ -310,12 +297,10 @@ document.addEventListener('DOMContentLoaded', () => {
         closePopup();
     });
 
-    // Nếu đang mở mà có di chuyển chuột, cũng coi như đang "làm gì đó"
-
     initFilters();
     renderWatchHistory();
 
-    // --- LOGIC SLIDER NGANG (Dùng Delegation cho nhiều Section) ---
+    // --- LOGIC SLIDER NGANG ---
     document.addEventListener('click', (e) => {
         const btn = e.target.closest('.slider-btn');
         if (!btn) return;
@@ -357,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Khởi tạo lần đầu mặc định là slider (home)
+    // Khởi tạo lần đầu
     updateMainObserver(false);
     const GH_CLIENT_ID = "Ov23liDh2aDjxMY5xJ99";
 
@@ -376,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
             userDropdown?.classList.toggle('active');
         });
 
-        // Close on click outside
+        // Close
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.user-container')) {
                 userDropdown?.classList.remove('active');
@@ -463,7 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const newGist = await res.json();
                 gistId = newGist.id;
                 localStorage.setItem('gh_gist_id', gistId);
-                return; // Vừa tạo xong, data local đã mới nhất
+                return;
             }
 
             // Merge dữ liệu
@@ -548,7 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Xử lý nạp lần đầu & Back/Forward
+    // Xử lý nạp lần đầu
     handleUrlParams();
     window.addEventListener('popstate', handleUrlParams);
 
@@ -578,7 +563,7 @@ async function initFilters() {
             return Array.isArray(obj.data) ? obj.data : (obj.data.items || []);
         };
 
-        // 1. Danh sách (Manual populate)
+        // 1. Danh sách
         const collectionItems = [
             { name: "Phim Mới", slug: "phim-moi" },
             { name: "Phim Bộ", slug: "phim-bo" },
@@ -621,7 +606,7 @@ function buildCustomDropdown(containerId, items, type, defaultLabel) {
     const optionsBox = container.querySelector('.options-container');
     const triggerText = trigger.querySelector('span');
 
-    // BẢO TỒN DỮ LIỆU: Nếu handleUrlParams đã load trước và có giá trị, thì giữ lại
+    // Cache dữ liệu
     container.selectedItems = container.selectedItems || [];
 
     trigger.onclick = (e) => {
@@ -632,7 +617,7 @@ function buildCustomDropdown(containerId, items, type, defaultLabel) {
         container.classList.toggle('active');
     };
 
-    // Option "Tất cả" - Reset toàn bộ dropdown này
+    // Option "Tất cả"
     const defaultOpt = document.createElement('div');
     defaultOpt.className = 'option';
     defaultOpt.innerText = "Tất cả";
@@ -652,7 +637,6 @@ function buildCustomDropdown(containerId, items, type, defaultLabel) {
         opt.dataset.slug = item.slug;
         opt.dataset.name = item.name;
 
-        // Nếu handleUrlParams đã chọn mục này từ trước (Race condition fix)
         if (container.selectedItems.some(i => i.slug === item.slug)) {
             opt.classList.add('selected');
         }
@@ -660,7 +644,7 @@ function buildCustomDropdown(containerId, items, type, defaultLabel) {
         opt.onclick = (e) => {
             e.stopPropagation();
 
-            // Logic Chọn nhiều (Toggle)
+            // Logic multiple choices
             const idx = container.selectedItems.findIndex(i => i.slug === item.slug);
             if (idx > -1) {
                 container.selectedItems.splice(idx, 1);
@@ -938,26 +922,23 @@ async function loadContent(page = 1) {
 
         renderMovies(finalItems, page === 1);
 
-        // Khôi phục vị trí cuộn NGAY LẬP TỨC sau khi render xong (chỉ trang đầu)
+        // Khôi phục vị trí cuộn ngay sau khi render
         if (page === 1 && navType === 'back_forward') {
             const savedPos = sessionStorage.getItem('lumina_scroll_pos');
             if (savedPos) {
-                // Tắt tạm thời hiệu ứng smooth scroll nếu có để snap tức thì
                 document.documentElement.style.scrollBehavior = 'auto';
                 window.scrollTo({ top: parseInt(savedPos), behavior: 'instant' });
-                // Trả lại trạng thái sau 1 frame
                 requestAnimationFrame(() => {
                     document.documentElement.style.scrollBehavior = '';
                 });
             }
-            // Hiện trang lại sau khi đã snap xong vị trí cũ
             document.documentElement.classList.remove('back-nav-hiding');
         }
 
     } catch (e) {
         if (e.name === 'AbortError') {
             console.log("Request aborted");
-            return; // Không làm gì cả vì đã có yêu cầu mới thay thế
+            return;
         }
         console.error("Load Content Error:", e);
     } finally {
@@ -1026,7 +1007,7 @@ async function renderHomeSections() {
     const container = document.getElementById('movieContent');
     container.innerHTML = '';
 
-    // Render Skeletons ngay lập tức
+    // Render Skeletons
     sections.forEach(sec => {
         let skeletonHTML = '';
         for (let i = 0; i < 6; i++) {
@@ -1049,7 +1030,7 @@ async function renderHomeSections() {
         container.appendChild(secDiv);
     });
 
-    // Tải toàn bộ section song song nhưng render theo thứ tự cố định
+    // Tải toàn bộ section song song
     const promises = sections.map(async (sec) => {
         try {
             const data = await fetchAPI(sec.url + "?page=1");
@@ -1079,11 +1060,10 @@ async function renderHomeSections() {
 }
 
 function renderSingleSection(parent, title, movies, slug) {
-    // Tạo link cho nút Xem Thêm
     let filterUrl = "index.html";
     const parts = slug.split('/');
     if (parts.length >= 2) {
-        const type = parts[0]; // quoc-gia, the-loai, danh-sach
+        const type = parts[0];
         const key = type === 'quoc-gia' ? 'country' : (type === 'the-loai' ? 'category' : 'list');
         const val = parts[1];
         filterUrl = `index.html?type=filter&${key}=${val}&${key}Name=${encodeURIComponent(title)}`;
@@ -1183,7 +1163,6 @@ function renderMoviesToGrid(targetGrid, items) {
         const img = card.querySelector('.poster');
         img.addEventListener('load', () => img.classList.add('loaded'));
         img.addEventListener('error', () => {
-            // Nếu load trực tiếp tạch, thử qua Proxy trước khi buông xuôi dùng Default
             if (img.src !== DEFAULT_POSTER && !img.dataset.proxied) {
                 console.warn("Thử load ảnh qua Proxy...");
                 img.dataset.proxied = "true";
@@ -1202,7 +1181,6 @@ function renderMoviesToGrid(targetGrid, items) {
         }
     });
 
-    // Cập nhật mũi tên ngay sau khi render
     setTimeout(() => {
         const updateSliderArrows = (grid) => {
             const wrapper = grid.closest('.movie-slider-wrapper');
@@ -1244,7 +1222,6 @@ function renderMovies(items, isFirstPage = true) {
     const priorityLimit = isMobile ? 2 : 6;
 
     items.forEach((movie, index) => {
-        // --- BỘ LỌC 18+ (TUYÊN NGÔN: Chỉ ẩn ở ngoài, tìm kiếm vẫn ra) ---
         const cats = movie.category || [];
         const isAdult = cats.some(c => c.name === "Phim 18+" || c.slug === "phim-18");
         if (isAdult && state.type !== 'search') return;
@@ -1258,7 +1235,6 @@ function renderMovies(items, isFirstPage = true) {
             poster = movie.poster.startsWith('http') ? movie.poster : `${IMG_BASE}${movie.poster}`;
         }
 
-        // Ưu tiên nạp cao cho các ảnh đầu (để user thấy ngay), còn lại lazy load
         const priorityAttr = index < priorityLimit ? 'fetchpriority="high"' : 'loading="lazy"';
 
         const card = document.createElement("div");
@@ -1300,7 +1276,6 @@ function renderMovies(items, isFirstPage = true) {
             window.location.assign(`player.html?slug=${movie.slug}`);
         };
 
-        // Luôn chèn trước sentinel nếu sentinel có trong movieGrid
         if (scrollSentinel && movieGrid.contains(scrollSentinel)) {
             movieGrid.insertBefore(card, scrollSentinel);
         } else {
@@ -1308,12 +1283,10 @@ function renderMovies(items, isFirstPage = true) {
         }
     });
 
-    // Đảm bảo sentinel luôn ở cuối cùng
     if (scrollSentinel) {
         movieGrid.appendChild(scrollSentinel);
     }
 
-    // Cập nhật mũi tên sau khi render
     setTimeout(() => {
         const updateSliderArrows = () => {
             const scrollLeft = movieGrid.scrollLeft;
@@ -1342,16 +1315,14 @@ function showLoader(show) {
     }
 }
 
-// --- Skeleton Loading (Chuẩn OPhim Core) ---
+// --- Skeleton Loading ---
 function showSkeletons(show) {
     if (!show) return;
 
     // Tính toán số lượng card khớp với màn hình hiện tại
     const containerWidth = movieGrid.clientWidth || (window.innerWidth * 0.9);
-    // Độ rộng ước tính của 1 card (200px) + gap (1.2rem ~ 20px) = 220px
     const itemsPerRow = Math.max(2, Math.floor(containerWidth / 220));
 
-    // Trang 1 hiện ít nhất 2 hàng, cuộn tiếp hiện ít nhất 1 hàng
     const count = state.page === 1 ? (itemsPerRow * 2) : itemsPerRow;
 
     const skeletonHTML = Array(count).fill('<div class="skeleton-card"></div>').join('');
@@ -1364,7 +1335,6 @@ function showSkeletons(show) {
         div.style.display = 'contents';
         div.innerHTML = skeletonHTML;
 
-        // Luôn chèn trước sentinel nếu có
         if (scrollSentinel && movieGrid.contains(scrollSentinel)) {
             movieGrid.insertBefore(div, scrollSentinel);
         } else {
@@ -1378,7 +1348,7 @@ function renderWatchHistory() {
     const recentGrid = document.getElementById('recentGrid');
     const history = JSON.parse(localStorage.getItem('watchHistory') || "[]");
 
-    // Chỉ hiện Lịch sử xem ở trang chủ và nếu có dữ liệu
+    // Chỉ hiện Lịch sử xem ở trang chủ nếu có dữ liệu
     if (history.length === 0 || state.type !== 'home') {
         recentSection.style.display = 'none';
         return;
@@ -1387,7 +1357,6 @@ function renderWatchHistory() {
     recentSection.style.display = 'block';
     recentGrid.innerHTML = "";
 
-    // Hiện nút 'Xem Thêm' cho lịch sử
     if (recentSeeMore) {
         recentSeeMore.style.display = history.length > 4 ? "flex" : "none";
         recentSeeMore.href = "index.html?type=history";
@@ -1412,7 +1381,6 @@ function renderWatchHistory() {
             </div>
         `;
 
-        // Gắn sự kiện CSP-compliant cho ảnh lịch sử
         const img = card.querySelector('img');
         img.addEventListener('load', () => img.classList.add('loaded'));
         img.addEventListener('error', () => {
@@ -1424,7 +1392,6 @@ function renderWatchHistory() {
             window.location.assign(`player.html?slug=${item.slug}&ep=${item.epIndex}&t=${item.time}`);
         };
 
-        // --- Logic Context Menu cho Lịch sử ---
         let touchTimer = null;
         const handleLongPress = (x, y) => {
             showContextMenu(x, y, item.slug);
@@ -1504,18 +1471,18 @@ document.getElementById('ctxDeleteOne')?.addEventListener('click', () => {
     localStorage.setItem('watchHistory', JSON.stringify(history));
     hideContextMenu();
     renderWatchHistory();
-    updateGist(); // Sync lên mây
+    updateGist();
 });
 
 document.getElementById('ctxDeleteAll')?.addEventListener('click', () => {
     localStorage.removeItem('watchHistory');
     hideContextMenu();
     renderWatchHistory();
-    updateGist(); // Sync lên mây
+    updateGist();
 });
 
 
-// --- Anti-DevTools (Security Shield) ---
+// --- Anti-DevTools ---
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('keydown', (e) => {
     if (e.key === 'F12' || e.keyCode === 123) e.preventDefault();

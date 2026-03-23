@@ -1,5 +1,4 @@
 module.exports = async (req, res) => {
-    // Vercel handles CORS headers automatically if configured, or we do it here
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -10,7 +9,7 @@ module.exports = async (req, res) => {
 
     let { url, q } = req.query;
 
-    // Giải mã Base64 tàng hình
+    // Giải mã Base64
     if (q) {
         try {
             // Dùng Buffer của Node.js để giải mã
@@ -37,15 +36,15 @@ module.exports = async (req, res) => {
         res.setHeader('Content-Type', contentType || 'application/octet-stream');
         res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
 
-        // Đọc dữ liệu dưới dạng buffer (arrayBuffer) để hỗ trợ cả JSON và Ảnh
+        // Đọc dữ liệu dưới dạng buffer để hỗ trợ cả JSON và Ảnh
         const data = await response.arrayBuffer();
         return res.send(Buffer.from(data));
 
     } catch (error) {
         console.error('Proxy Error:', error);
-        return res.status(500).json({ 
-            error: 'Proxy không thể kết nối tới server nguồn', 
-            details: error.message 
+        return res.status(500).json({
+            error: 'Proxy không thể kết nối tới server nguồn',
+            details: error.message
         });
     }
 };

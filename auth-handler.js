@@ -10,21 +10,20 @@
     }
 
     try {
-        // Gọi tới Serverless Function chúng ta vừa tạo
+        // Gọi tới Serverless Function vừa tạo
         const res = await fetch(`/api/github-auth?code=${code}`);
         const data = await res.json();
 
         if (data.access_token) {
             localStorage.setItem('gh_token', data.access_token);
             status.innerText = "Đăng nhập thành công! Đang quay lại trang chủ...";
-            
-            // Lấy thêm thông tin user để hiển thị avatar ngay
+
             const userRes = await fetch('https://api.github.com/user', {
                 headers: { 'Authorization': `Bearer ${data.access_token}` }
             });
             const userData = await userRes.json();
             localStorage.setItem('gh_user', JSON.stringify(userData));
-            
+
             window.location.href = 'index.html';
         } else {
             status.innerText = "Lỗi xác thực: " + (data.error_description || "Không xác định");
@@ -35,7 +34,7 @@
     }
 })();
 
-// --- Anti-DevTools (Security Shield) ---
+// --- Anti-DevTools ---
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('keydown', (e) => {
     if (e.key === 'F12' || e.keyCode === 123) e.preventDefault();

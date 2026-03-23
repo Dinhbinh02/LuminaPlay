@@ -1,4 +1,4 @@
-// --- Cấu hình API và Chống Chặn (Resilience) ---
+// --- Cấu hình API ---
 const API_DOMAINS = [
     "https://ophim1.com",
     "https://ophim8.cc",
@@ -16,10 +16,9 @@ const API_BASE = API_DOMAINS[0];
 const IMG_BASE = IMG_DOMAINS[0];
 const DEFAULT_POSTER = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' width%3D'200' height%3D'300' viewBox%3D'0 0 200 300'%3E%3Crect width%3D'200' height%3D'300' fill%3D'%23252830'%2F%3E%3Ctext x%3D'50%25' y%3D'50%25' dominant-baseline%3D'middle' text-anchor%3D'middle' font-family%3D'sans-serif' font-size%3D'14' fill%3D'%23555'%3EImage Error%3C%2Ftext%3E%3C%2Fsvg%3E";
 
-// NẾU CHẠY EXTENSION: Bạn cần thay bằng domain Vercel thật của bạn ở đây
-const PRODUCTION_DOMAIN = "https://lumina-play.vercel.app"; 
+const PRODUCTION_DOMAIN = "https://lumina-play.vercel.app";
 
-// Hàm Fetch thông minh: Tự động thử các Domain khác hoặc qua Proxy nếu bị chặn
+// Fetch thông minh
 async function fetchAPI(pathOrUrl, options = {}) {
     let path = pathOrUrl;
     if (pathOrUrl.startsWith('http')) {
@@ -34,15 +33,13 @@ async function fetchAPI(pathOrUrl, options = {}) {
     const isExtension = window.location.protocol === 'chrome-extension:';
     const proxyBase = isExtension ? PRODUCTION_DOMAIN : "";
 
-    // CHIẾN THUẬT SIÊU TỐC: Nếu phiên này đã được xác nhận là chặn mạng, nhảy thẳng vào Proxy luôn
     const forceProxy = sessionStorage.getItem('lumina_force_proxy') === 'true';
 
     if (!forceProxy) {
         for (const domain of API_DOMAINS) {
             try {
                 const controller = new AbortController();
-                // Giảm xuống 1.5s để phát hiện chặn mạng cực nhanh
-                const timeoutId = setTimeout(() => controller.abort(), 1500); 
+                const timeoutId = setTimeout(() => controller.abort(), 1000);
 
                 let combinedSignal = controller.signal;
                 if (options.signal) {
@@ -60,17 +57,14 @@ async function fetchAPI(pathOrUrl, options = {}) {
                 }
             } catch (e) {
                 console.warn(`Domain ${domain} lỗi: ${e.message}`);
-                // Phân biệt: Nếu hàm load Content chính thức ra lệnh Hủy (người dùng chuyển page) thì dừng hẳn
                 if (options.signal?.aborted) throw e;
 
-                // CHIẾN THUẬT SIÊU NHANH: Nếu domain đầu tiên bị chặn mạng thẳng (TypeError)
-                // hoặc bị chặn im lặng gây ra Timeout -> AbortError
                 const isBlocked = e.name === 'TypeError' || e.message.includes('fetch');
                 const isTimeout = e.name === 'AbortError' || e.message.includes('aborted');
 
                 if (domain === API_DOMAINS[0] && (isBlocked || isTimeout)) {
                     console.log("Mạng công ty chặn gắt hoặc timeout, dùng Proxy ngay...");
-                    break; // Bỏ qua mớ Domain dự phòng, nhảy thẳng xuống Proxy
+                    break;
                 }
             }
         }
@@ -83,7 +77,6 @@ async function fetchAPI(pathOrUrl, options = {}) {
         const res = await fetch(proxyUrl, options);
         if (!res.ok) throw new Error("Proxy error");
 
-        // Ghi nhớ để lần sau không cần thử các domain bị chặn nữa
         sessionStorage.setItem('lumina_force_proxy', 'true');
 
         return await res.json();
@@ -278,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
         closePopup();
     });
 
-    // Xử lý tìm kiếm (Redirect về home)
+    // Xử lý tìm kiếm
     const searchInput = document.getElementById("searchInput");
     if (searchInput) {
         searchInput.addEventListener('keypress', (e) => {
@@ -426,13 +419,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function playMovie(slug, epIndex = 0, startTime = 0) {
     showLoader(true);
-    
+
     // Đặt Skeleton trong lúc chờ lấy dữ liệu (đặc biệt khi đang thăm dò mạng)
     document.getElementById("current-title").innerHTML = '<div class="skeleton-text" style="width: 70%; height: 40px;"></div>';
     const metaRow = document.getElementById("current-meta");
     if (metaRow) metaRow.style.display = "none";
     document.getElementById("current-desc").innerHTML = '<div class="skeleton-text" style="width: 100%; height: 20px;"></div><div class="skeleton-text" style="width: 80%; height: 20px;"></div>';
-    
+
     document.getElementById("relatedSection").style.display = "block";
     document.getElementById("relatedGrid").innerHTML = Array(6).fill('<div class="movie-card skeleton-card" style="min-width: 140px;"></div>').join('');
 
@@ -443,7 +436,7 @@ async function playMovie(slug, epIndex = 0, startTime = 0) {
         document.title = `Đang xem: ${currentMovie.name} - Lumina Play`;
         document.getElementById("current-title").innerText = currentMovie.name;
 
-        // Metadata badges
+        // Metadata badge
         const metaRow = document.getElementById("current-meta");
         if (metaRow) {
             metaRow.style.display = "flex";
@@ -455,14 +448,13 @@ async function playMovie(slug, epIndex = 0, startTime = 0) {
         fetchCast(slug);
         fetchKeywords(slug);
 
-        // Giải mã mô tả
+        // Mô tả
         const descEl = document.getElementById("current-desc");
         const tempDiv = document.createElement("div");
         tempDiv.innerHTML = (currentMovie.content || "").replace(/<[^>]*>?/gm, '');
         descEl.innerText = tempDiv.textContent || "";
         descEl.classList.add('collapsed');
 
-        // Cleanup cũ nếu load lại phim
         const oldBtn = document.querySelector('.see-more-btn');
         if (oldBtn) oldBtn.remove();
 
@@ -471,7 +463,6 @@ async function playMovie(slug, epIndex = 0, startTime = 0) {
         seeMoreBtn.innerText = 'Xem thêm';
         descEl.parentNode.insertBefore(seeMoreBtn, descEl.nextSibling);
 
-        // Kiểm tra xem có bị tràn (cắt bớt) không
         setTimeout(() => {
             if (descEl.scrollHeight > descEl.clientHeight) {
                 seeMoreBtn.style.display = 'block';
@@ -509,7 +500,6 @@ async function playMovie(slug, epIndex = 0, startTime = 0) {
                 currentEpIndex = epIndex;
             }
 
-            // CHỈ HIỆN DANH SÁCH NÚT BẤM NẾU CÓ TỪ 2 TẬP TRỞ LÊN
             if (serverData.length > 1) {
                 const fragment = document.createDocumentFragment();
                 serverData.forEach((ep, index) => {
@@ -549,23 +539,18 @@ function initPlayer(url, startTime = 0) {
 
     const startPlay = () => {
         if (startTime > 0) video.currentTime = startTime;
-        
-        // Cố gắng Auto play ngay lập tức
+
+        // Auto play
         const attemptPlay = () => {
             video.play().catch(err => {
                 console.log("Autoplay blocked, waiting for user interaction or muted playback.");
-                // Nếu bị block (thường do chính sách trình duyệt), thử Play ở chế độ MUTE
                 video.muted = true;
                 video.play().catch(() => { });
-                
-                // Hiển thị một thông báo nhỏ hoặc để người dùng tự bấm Unmute (nếu cần)
-                // Tuy nhiên, thường thì video sẽ chạy nhưng không có tiếng.
             });
         };
         attemptPlay();
     };
 
-    // Ưu tiên dùng Native HLS của Safari (Apple) để Auto PiP ổn định nhất khi vuốt lên
     if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = url;
         video.addEventListener('loadedmetadata', startPlay, { once: true });
@@ -575,14 +560,13 @@ function initPlayer(url, startTime = 0) {
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, startPlay);
     } else {
-        // Fallback cuối cùng cho các browser cổ
         video.src = url;
         video.addEventListener('loadedmetadata', startPlay, { once: true });
     }
 
     video.autoPictureInPicture = true;
 
-    // --- Chế độ Auto-PiP khi chuyển Tab (Desktop & Mobile) ---
+    // --- Auto-PiP khi chuyển Tab ---
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
             if (video && !video.paused && video.readyState >= 2) {
@@ -590,13 +574,11 @@ function initPlayer(url, startTime = 0) {
                     if (video.requestPictureInPicture) {
                         video.requestPictureInPicture().catch(() => { });
                     } else if (video.webkitSetPresentationMode) {
-                        // Fallback cho Safari
                         video.webkitSetPresentationMode('picture-in-picture');
                     }
                 } catch (e) { }
             }
         } else {
-            // Khi quay lại tab, tự động thoát PiP
             if (document.pictureInPictureElement === video) {
                 try { document.exitPictureInPicture().catch(() => { }); } catch (e) { }
             } else if (video.webkitPresentationMode === 'picture-in-picture') {
@@ -605,7 +587,6 @@ function initPlayer(url, startTime = 0) {
         }
     });
 
-    // --- Media Session Metadata (Hiện tên phim thay vì URL trong cửa sổ PiP) ---
     if ('mediaSession' in navigator && currentMovie) {
         const fullPoster = getImgUrl(currentMovie.poster_url);
 
@@ -635,7 +616,7 @@ video.addEventListener('pause', saveHistory);
 function saveHistory() {
     if (!currentMovie || video.currentTime < 5) return;
 
-    // 1. Lưu vào Danh sách hiển thị (Watch History)
+    // 1. Lưu vào Danh sách lịch sử
     let history = JSON.parse(localStorage.getItem('watchHistory') || "[]");
     const entry = {
         slug: currentMovie.slug,
@@ -652,9 +633,9 @@ function saveHistory() {
     history.unshift(entry);
     if (history.length > 20) history.pop();
     localStorage.setItem('watchHistory', JSON.stringify(history));
-    updateGist(); // Sync lên mây
+    updateGist();
 
-    // 2. Lưu vào Kho lưu trữ Tiến độ thực tế (Video Progress - Không bị xóa khi xóa hiển thị)
+    // 2. Lưu vào Video Progress
     let progress = JSON.parse(localStorage.getItem('videoProgress') || "{}");
     progress[currentMovie.slug] = {
         epIndex: currentEpIndex,
@@ -749,9 +730,6 @@ function renderRelatedMovies(items) {
     });
 }
 
-/** 
- * NEW: Fetch cast & people from API
- */
 async function fetchCast(slug) {
     const section = document.getElementById('castSection');
     const list = document.getElementById('castList');
@@ -790,9 +768,6 @@ async function fetchCast(slug) {
     }
 }
 
-/** 
- * NEW: Fetch keywords from API
- */
 async function fetchKeywords(slug) {
     const container = document.getElementById('keywords-container');
     if (!container) return;
@@ -815,7 +790,7 @@ async function fetchKeywords(slug) {
     };
 
     if (currentMovie) {
-        // 1. Phân loại theo Type (Danh sách chính)
+        // 1. Phân loại theo Danh sách chính
         const typeMapping = {
             'series': { name: 'Phim Bộ', slug: 'phim-bo' },
             'single': { name: 'Phim Lẻ', slug: 'phim-le' },
@@ -825,7 +800,7 @@ async function fetchKeywords(slug) {
         const mainType = typeMapping[currentMovie.type];
         if (mainType) addTag(mainType.name, mainType.slug, 'list');
 
-        // 2. Phân loại theo Ngôn ngữ (Dựa trên list dropdown của user)
+        // 2. Phân loại theo Ngôn ngữ 
         if (currentMovie.lang) {
             const l = currentMovie.lang.toLowerCase();
             if (l.includes('vietsub')) addTag('Vietsub', 'phim-vietsub', 'list');
@@ -833,7 +808,7 @@ async function fetchKeywords(slug) {
             if (l.includes('lồng tiếng')) addTag('Lồng Tiếng', 'phim-long-tien', 'list');
         }
 
-        // 3. Phân loại theo Trạng thái (Ongoing/Completed/Trailer)
+        // 3. Phân loại theo Trạng thái 
         if (currentMovie.status === 'ongoing') {
             addTag('Đang Chiếu', 'phim-bo-dang-chieu', 'list');
         } else if (currentMovie.status === 'completed') {
@@ -842,7 +817,7 @@ async function fetchKeywords(slug) {
             addTag('Sắp Chiếu', 'phim-sap-chieu', 'list');
         }
 
-        // 4. Các danh sách đặc biệt
+        // 4. Các danh sách khác
         if (currentMovie.year === new Date().getFullYear().toString()) {
             addTag('Phim Mới', 'phim-moi', 'list');
         }
@@ -850,7 +825,7 @@ async function fetchKeywords(slug) {
             addTag('Chiêu Rạp', 'phim-chieu-rap', 'list');
         }
 
-        // 5. Hiện Thể loại (Genre)
+        // 5. Hiện Thể loại 
         if (currentMovie.category) {
             currentMovie.category.forEach(cat => {
                 addTag(cat.name, cat.slug, 'the-loai');
@@ -859,7 +834,7 @@ async function fetchKeywords(slug) {
     }
 }
 
-// --- Anti-DevTools (Security Shield) ---
+// --- Anti-DevTools ---
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('keydown', (e) => {
     if (e.key === 'F12' || e.keyCode === 123) e.preventDefault();
