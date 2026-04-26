@@ -1,0 +1,90 @@
+.container {
+  padding: 120px 4% 60px;
+  min-height: 100vh;
+  background-color: #050505;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 40px;
+  letter-spacing: -1px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 30px 20px;
+}
+
+.cardWrapper {
+  width: 100%;
+}
+
+.card {
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-8px);
+}
+
+.imageContainer {
+  position: relative;
+  aspect-ratio: 2/3;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #111;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.poster {
+  object-fit: cover;
+}
+
+.quality {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(59, 130, 246, 0.9);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  backdrop-filter: blur(4px);
+  z-index: 5;
+}
+
+.info {
+  padding: 0 4px;
+}
+
+.movieTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.movieYear {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px 15px;
+  }
+  .container {
+    padding-top: 100px;
+  }
+}

@@ -1,0 +1,345 @@
+.hero {
+  position: relative;
+  height: 90vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 100px;
+  /* Optimized padding */
+  overflow: hidden;
+  background-color: #000;
+}
+
+.heroBg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.heroImg {
+  object-fit: cover;
+  object-position: center;
+  animation: fadeIn 1.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.heroOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(to right,
+      rgba(5, 5, 5, 1) 0%,
+      rgba(5, 5, 5, 0.7) 30%,
+      rgba(5, 5, 5, 0.3) 60%,
+      transparent 100%),
+    linear-gradient(to top,
+      rgba(5, 5, 5, 1) 0%,
+      rgba(5, 5, 5, 0) 50%);
+}
+
+.desktopOnly {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.mobileOnly {
+  display: none;
+}
+
+.heroLink {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 100px;
+  text-decoration: none;
+  z-index: 5;
+  transition: all 0.5s ease;
+}
+
+.heroLink:hover .heroImg {
+  transform: scale(1.05);
+}
+
+.heroContent {
+  max-width: 750px;
+  position: relative;
+  margin-top: 40px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.rankBadge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.rankNumber {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--primary);
+  font-style: italic;
+  line-height: 1;
+}
+
+.rankText {
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.title {
+  font-size: clamp(48px, 6vw, 84px);
+  font-weight: 900;
+  line-height: 1.05;
+  margin-bottom: 20px;
+  color: #fff;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+  letter-spacing: -2px;
+}
+
+.metaInfo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #fbbf24;
+}
+
+.metaItem {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.qualityBadge {
+  padding: 2px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 3px;
+  font-size: 12px;
+  color: #fff;
+}
+
+.langBadge {
+  color: #10b981;
+}
+
+.description {
+  font-size: 18px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 32px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
+  max-width: 600px;
+}
+
+.genres {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 40px;
+}
+
+.genreTag {
+  font-size: 13px;
+  color: #fff;
+  padding: 6px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.3s ease;
+}
+
+.genreTag:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #fff;
+}
+
+.watchHint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 40px;
+  color: white;
+  font-weight: 700;
+  font-size: 16px;
+  opacity: 0.8;
+  transition: all 0.3s ease;
+}
+
+.heroLink:hover .watchHint {
+  opacity: 1;
+  transform: translateX(10px);
+}
+
+.playCircle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px var(--primary-glow);
+}
+
+.playIconInner {
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 14px solid white;
+  margin-left: 4px;
+}
+
+.sliderBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 20;
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.hero:hover .sliderBtn {
+  opacity: 1;
+}
+
+.sliderBtn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: white;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.prev {
+  left: 15px;
+}
+
+.next {
+  right: 15px;
+}
+
+.dots {
+  position: absolute;
+  bottom: 150px;
+  right: 100px;
+  display: flex;
+  gap: 12px;
+  z-index: 20;
+}
+
+.dot {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dotActive {
+  background: var(--primary);
+  width: 70px;
+}
+
+@media (max-width: 1024px) {
+  .hero {
+    padding: 0 80px;
+  }
+
+  .dots {
+    right: 80px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    height: auto;
+    min-height: 75vh;
+    padding: 100px 20px 100px;
+    align-items: center;
+  }
+
+  .desktopOnly {
+    display: none;
+  }
+
+  .mobileOnly {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .heroOverlay {
+    background: linear-gradient(to top,
+        rgba(5, 5, 5, 1) 0%,
+        rgba(5, 5, 5, 0.8) 20%,
+        rgba(5, 5, 5, 0.2) 50%,
+        rgba(5, 5, 5, 0.6) 100%);
+  }
+
+  .heroLink {
+    padding: 100px 20px 140px;
+    align-items: center;
+  }
+
+  .title {
+    font-size: 38px;
+    margin-bottom: 12px;
+  }
+
+  .watchHint {
+    margin-top: 20px;
+    font-size: 14px;
+  }
+
+  .playCircle {
+    width: 36px;
+    height: 36px;
+  }
+
+  .playIconInner {
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-left: 10px solid white;
+  }
+}
