@@ -124,7 +124,7 @@ a.secondary {
 }
 
 .contentWrapper {
-  margin-top: -100px;
+  margin-top: 0;
   position: relative;
   z-index: 20;
   padding-bottom: 60px;
@@ -133,6 +133,38 @@ a.secondary {
 @media (max-width: 768px) {
   .contentWrapper {
     margin-top: 0;
+  }
+}
+
+.heroLoading {
+  height: 80vh;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    #111 25%,
+    #1a1a1a 50%,
+    #111 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+  position: relative;
+}
+
+.heroLoading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, #000 0%, transparent 50%);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (max-width: 768px) {
+  .heroLoading {
+    height: 75vh;
   }
 }
 
@@ -152,4 +184,40 @@ a.secondary {
     --button-secondary-hover: #1a1a1a;
     --button-secondary-border: #1a1a1a;
   }
+}
+
+.historySkeleton {
+  height: 280px;
+  width: 100%;
+  margin: 40px 0;
+  padding: 0 4%;
+}
+
+.historySkeletonTitle {
+  width: 200px;
+  height: 28px;
+  background: #111;
+  border-radius: 4px;
+  margin-bottom: 24px;
+  animation: pulse 2s infinite ease-in-out;
+}
+
+.historySkeletonList {
+  display: flex;
+  gap: 20px;
+  overflow: hidden;
+}
+
+.historySkeletonCard {
+  flex: 0 0 280px;
+  height: 157px;
+  background: #111;
+  border-radius: 12px;
+  animation: pulse 2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
 }

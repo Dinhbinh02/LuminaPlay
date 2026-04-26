@@ -1,10 +1,10 @@
 .hero {
   position: relative;
-  height: 90vh;
+  height: 80vh;
   width: 100%;
   display: flex;
   align-items: flex-end;
-  padding: 0 100px 80px;
+  padding: 0; /* Remove padding here to keep content separate */
   overflow: hidden;
   background-color: #000;
 }
@@ -39,13 +39,14 @@
   inset: 0;
   z-index: 2;
   background: linear-gradient(to right,
-      rgba(5, 5, 5, 1) 0%,
-      rgba(5, 5, 5, 0.7) 30%,
-      rgba(5, 5, 5, 0.3) 60%,
+      rgba(0, 0, 0, 0.9) 0%,
+      rgba(0, 0, 0, 0.4) 40%,
       transparent 100%),
     linear-gradient(to top,
-      rgba(5, 5, 5, 1) 0%,
-      rgba(5, 5, 5, 0) 50%);
+      #000000 0%,
+      rgba(0, 0, 0, 0.9) 15%,
+      rgba(0, 0, 0, 0.6) 30%,
+      rgba(0, 0, 0, 0) 70%);
 }
 
 .desktopOnly {
@@ -65,14 +66,11 @@
   inset: 0;
   display: flex;
   align-items: flex-end;
-  padding: 0 100px 80px;
+  padding: 0 4% 120px; /* Use padding here instead */
   text-decoration: none;
   z-index: 5;
   transition: all 0.5s ease;
-}
-
-.heroLink:hover .heroImg {
-  transform: scale(1.05);
+  overflow: hidden;
 }
 
 .heroContent {
@@ -219,48 +217,11 @@
   margin-left: 4px;
 }
 
-.sliderBtn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 20;
-  opacity: 0;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
 
-.hero:hover .sliderBtn {
-  opacity: 1;
-}
-
-.sliderBtn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: white;
-  transform: translateY(-50%) scale(1.1);
-}
-
-.prev {
-  left: 15px;
-}
-
-.next {
-  right: 15px;
-}
 
 .dots {
   position: absolute;
-  bottom: 30px;
+  bottom: 70px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -281,17 +242,32 @@
   background: var(--primary);
   width: 70px;
 }
-
-@media (max-width: 1024px) {
-  .hero {
-    padding: 0 80px;
-  }
+  
+.reflection {
+  position: absolute;
+  bottom: -150px;
+  left: 0;
+  width: 100%;
+  height: 200px;
+  z-index: 1;
+  transform: scaleY(-1);
+  opacity: 0.4;
+  filter: blur(50px);
+  pointer-events: none;
 }
+
+.reflectionImg {
+  object-fit: cover;
+  mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+
 
 @media (max-width: 768px) {
   .hero {
     height: auto;
-    min-height: 60vh;
+    min-height: 75vh;
     padding: 100px 20px 60px;
     align-items: flex-end;
   }
@@ -309,10 +285,10 @@
 
   .heroOverlay {
     background: linear-gradient(to top,
-        rgba(5, 5, 5, 1) 0%,
-        rgba(5, 5, 5, 0.8) 20%,
-        rgba(5, 5, 5, 0.2) 50%,
-        rgba(5, 5, 5, 0.6) 100%);
+        rgba(0, 0, 0, 1) 0%,
+        rgba(0, 0, 0, 0.8) 20%,
+        rgba(0, 0, 0, 0.2) 50%,
+        rgba(0, 0, 0, 0.6) 100%);
   }
 
   .heroLink {

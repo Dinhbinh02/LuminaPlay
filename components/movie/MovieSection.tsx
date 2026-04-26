@@ -13,7 +13,6 @@ interface Movie {
   id: string;
   title: string;
   poster: string;
-  rating?: string;
   year?: string;
   slug: string;
 }
@@ -93,8 +92,7 @@ export default function MovieSection({ title, type, slug, params = {} }: MovieSe
       title: item.name,
       poster: ophim.getImageUrl(item.thumb_url, page.data.APP_DOMAIN_CDN_IMAGE),
       slug: item.slug,
-      year: item.year?.toString(),
-      rating: item.tmdb?.vote_average?.toFixed(1) || item.imdb?.vote_average?.toFixed(1)
+      year: item.year?.toString()
     }))
   ) || [];
 
@@ -155,7 +153,6 @@ export default function MovieSection({ title, type, slug, params = {} }: MovieSe
                   <h3 className={styles.movieTitle}>{movie.title}</h3>
                   <div className={styles.meta}>
                     <span>{movie.year}</span>
-                    {movie.rating && <span className={styles.rating}>{movie.rating}</span>}
                   </div>
                 </div>
               </div>

@@ -15,6 +15,7 @@ interface WatchHistoryItem {
   currentTime: number;
   duration: number;
   lastUpdated: number;
+  thumbnail?: string;
 }
 
 interface ContinueWatchingProps {
@@ -29,10 +30,10 @@ export default function ContinueWatching({ movies }: ContinueWatchingProps) {
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
       const { scrollLeft, clientWidth } = scrollContainerRef.current;
-      const scrollTo = direction === 'left' 
-        ? scrollLeft - clientWidth * 0.8 
+      const scrollTo = direction === 'left'
+        ? scrollLeft - clientWidth * 0.8
         : scrollLeft + clientWidth * 0.8;
-      
+
       scrollContainerRef.current.scrollTo({
         left: scrollTo,
         behavior: 'smooth'
@@ -50,6 +51,11 @@ export default function ContinueWatching({ movies }: ContinueWatchingProps) {
     if (left <= 0) return 'Finished';
     const mins = Math.ceil(left / 60);
     return `${mins}m left`;
+  };
+
+  const cleanImageUrl = (url: string) => {
+    if (!url) return '';
+    return url.replace(/https:\/\/i\d\.wp\.com\//, 'https://');
   };
 
   return (
@@ -70,7 +76,7 @@ export default function ContinueWatching({ movies }: ContinueWatchingProps) {
 
       <div className={styles.sliderContainer} ref={scrollContainerRef}>
         {movies.map((movie, index) => (
-          <motion.div 
+          <motion.div
             key={movie.id}
             className={styles.cardWrapper}
             initial={{ opacity: 0, x: 20 }}
@@ -79,9 +85,9 @@ export default function ContinueWatching({ movies }: ContinueWatchingProps) {
           >
             <Link href={`/watch/${movie.slug}`} className={styles.card}>
               <div className={styles.thumbnailWrapper}>
-                <Image 
-                  src={movie.backdrop} 
-                  alt={movie.title} 
+                <Image
+                  src={movie.thumbnail || cleanImageUrl(movie.backdrop)}
+                  alt={movie.title}
                   fill
                   className={styles.thumbnail}
                   sizes="(max-width: 768px) 240px, 300px"
@@ -91,8 +97,8 @@ export default function ContinueWatching({ movies }: ContinueWatchingProps) {
                   <Play size={32} fill="white" className={styles.playIcon} />
                 </div>
                 <div className={styles.progressBar}>
-                  <div 
-                    className={styles.progressFill} 
+                  <div
+                    className={styles.progressFill}
                     style={{ width: `${calculateProgress(movie.currentTime, movie.duration)}%` }}
                   />
                 </div>

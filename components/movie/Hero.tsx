@@ -48,6 +48,18 @@ export default function Hero({ movies = [] }: HeroProps) {
 
   return (
     <section className={styles.hero}>
+      {movies.length > 1 && (
+        <div className={styles.dots}>
+          {movies.map((_, idx) => (
+            <div 
+              key={idx} 
+              className={`${styles.dot} ${idx === currentIndex ? styles.dotActive : ''}`}
+              onClick={() => setCurrentIndex(idx)}
+            />
+          ))}
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
         <Link 
           href={`/watch/${movie.slug}`} 
@@ -95,6 +107,15 @@ export default function Hero({ movies = [] }: HeroProps) {
               />
             </div>
             <div className={styles.heroOverlay}></div>
+            <div className={styles.reflection}>
+              <Image 
+                src={movie.backdrop} 
+                alt="reflection" 
+                fill
+                className={styles.reflectionImg}
+                quality={10}
+              />
+            </div>
           </motion.div>
 
           <div className={styles.heroContent}>
@@ -140,26 +161,6 @@ export default function Hero({ movies = [] }: HeroProps) {
         </Link>
       </AnimatePresence>
 
-      {movies.length > 1 && (
-        <>
-          <button className={`${styles.sliderBtn} ${styles.prev}`} onClick={prevSlide}>
-            <ChevronLeft size={30} />
-          </button>
-          <button className={`${styles.sliderBtn} ${styles.next}`} onClick={nextSlide}>
-            <ChevronRight size={30} />
-          </button>
-          
-          <div className={styles.dots}>
-            {movies.map((_, idx) => (
-              <div 
-                key={idx} 
-                className={`${styles.dot} ${idx === currentIndex ? styles.dotActive : ''}`}
-                onClick={() => setCurrentIndex(idx)}
-              />
-            ))}
-          </div>
-        </>
-      )}
     </section>
   );
 }

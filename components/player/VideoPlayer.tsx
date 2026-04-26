@@ -9,31 +9,80 @@ import styles from './VideoPlayer.module.css';
 interface VideoPlayerProps {
   src: string;
   poster?: string;
+  startTime?: number;
   onProgress?: (currentTime: number, duration: number) => void;
+  onCapture?: (thumbnail: string) => void;
 }
 
-export default function VideoPlayer({ src, poster, onProgress }: VideoPlayerProps) {
+export interface VideoPlayerRef {
+  captureThumbnail: () => string | null;
+}
+
+const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, poster, startTime, onProgress, onCapture }, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hlsInstance, setHlsInstance] = useState<Hls | null>(null);
+
+  React.useImperativeHandle(ref, () => ({
+    captureThumbnail: () => {
+      const video = videoRef.current;
+      if (!video) return null;
+
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 360;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          return canvas.toDataURL('image/jpeg', 0.7);
+        }
+      } catch (e) {
+        console.error("Failed to capture thumbnail", e);
+      }
+      return null;
+    }
+  }));
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !isPlaying) return;
 
+    if (hlsInstance) {
+      hlsInstance.destroy();
+    }
+
+    // Simple seek logic from old version
+    const seekWhenReady = (targetTime: number, maxRetries = 20) => {
+      if (targetTime <= 0) return;
+      let attempts = 0;
+      const trySeek = () => {
+        attempts++;
+        if (video.seekable && video.seekable.length > 0 && video.seekable.end(0) >= targetTime) {
+          video.currentTime = targetTime;
+        } else if (attempts < maxRetries) {
+          setTimeout(trySeek, 300);
+        }
+      };
+      trySeek();
+    };
+
     if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS (Safari/iOS)
       video.src = src;
-      video.play().catch(e => console.log('Autoplay blocked', e));
+      video.addEventListener('canplay', () => {
+        seekWhenReady(startTime || 0);
+        video.play().catch(e => console.log('Autoplay blocked', e));
+      }, { once: true });
     } else if (Hls.isSupported()) {
-      const hls = new Hls({
-        capLevelToPlayerSize: true,
-        autoStartLoad: true,
-      });
+      // Simple Hls.js logic
+      const hls = new Hls();
       hls.loadSource(src);
       hls.attachMedia(video);
       setHlsInstance(hls);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        seekWhenReady(startTime || 0);
         video.play().catch(e => console.log('Autoplay blocked', e));
       });
       
@@ -41,15 +90,15 @@ export default function VideoPlayer({ src, poster, onProgress }: VideoPlayerProp
         hls.destroy();
       };
     }
-  }, [src, isPlaying]);
+  }, [src, isPlaying, startTime]);
 
-  // Handle progress
+  // Handle progress for history saving
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const handleTimeUpdate = () => {
-      if (onProgress) {
+      if (onProgress && video.duration) {
         onProgress(video.currentTime, video.duration);
       }
     };
@@ -89,7 +138,10 @@ export default function VideoPlayer({ src, poster, onProgress }: VideoPlayerProp
         className={`${styles.video} ${!isPlaying ? styles.hidden : ''}`} 
         controls={isPlaying}
         playsInline
+        crossOrigin="anonymous"
       />
     </div>
   );
-}
+});
+
+export default VideoPlayer;

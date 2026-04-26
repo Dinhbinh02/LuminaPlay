@@ -10,6 +10,44 @@ import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import styles from './SearchPage.module.css';
 
+function SearchCard({ movie, cdnDomain, index }: { movie: any, cdnDomain: string, index: number }) {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: index * 0.05 }}
+    >
+      <Link href={`/watch/${movie.slug}`}>
+        <div className={styles.card}>
+          {!isLoaded && <div className={styles.skeleton} />}
+          <Image
+            src={ophim.getImageUrl(movie.thumb_url, cdnDomain)}
+            alt={movie.name}
+            fill
+            sizes="(max-width: 480px) 45vw, (max-width: 768px) 30vw, (max-width: 1200px) 18vw, 200px"
+            style={{ 
+              objectFit: 'cover',
+              opacity: isLoaded ? 1 : 0,
+              transition: 'opacity 0.4s ease'
+            }}
+            onLoadingComplete={() => setIsLoaded(true)}
+            quality={70}
+          />
+          <div className={styles.cardInfo}>
+            <h3>{movie.name}</h3>
+            <div className={styles.meta}>
+              <span>{movie.year}</span>
+              <span className={styles.quality}>{movie.quality}</span>
+            </div>
+          </div>
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
+
 function SearchResults() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -84,43 +122,30 @@ function SearchResults() {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.title}>
-        {title}{title && page > 1 ? ` (${page})` : ''}
-      </h1>
+      {isLoading ? (
+        <div className={styles.skeletonTitle} />
+      ) : (
+        <h1 className={styles.title}>
+          {title}{title && page > 1 ? ` (${page})` : ''}
+        </h1>
+      )}
 
       {isLoading ? (
         <div className={styles.grid}>
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div key={i} className={styles.skeletonCard} />
+          ))}
         </div>
       ) : (
         <>
           <div className={styles.grid}>
             {results.map((movie, index) => (
-              <motion.div
-                key={movie._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Link href={`/watch/${movie.slug}`}>
-                  <div className={styles.card}>
-                    <Image
-                      src={ophim.getImageUrl(movie.thumb_url, cdnDomain)}
-                      alt={movie.name}
-                      fill
-                      sizes="(max-width: 480px) 45vw, (max-width: 768px) 30vw, (max-width: 1200px) 18vw, 200px"
-                      style={{ objectFit: 'cover' }}
-                      quality={70}
-                    />
-                    <div className={styles.cardInfo}>
-                      <h3>{movie.name}</h3>
-                      <div className={styles.meta}>
-                        <span>{movie.year}</span>
-                        <span className={styles.quality}>{movie.quality}</span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
+              <SearchCard 
+                key={movie._id} 
+                movie={movie} 
+                cdnDomain={cdnDomain} 
+                index={index} 
+              />
             ))}
           </div>
 
@@ -131,21 +156,48 @@ function SearchResults() {
                 disabled={page <= 1}
                 onClick={() => handlePageChange(page - 1)}
               >
-                <ChevronLeft size={20} />
-                <span>Prev</span>
+                <ChevronLeft size={18} />
               </button>
 
-              <div className={styles.pageInfo}>
-                Page <span>{page}</span> of {totalPages}
-              </div>
+              {(() => {
+                const pages = [];
+                const maxVisible = 5;
+                
+                if (totalPages <= maxVisible + 2) {
+                  for (let i = 1; i <= totalPages; i++) pages.push(i);
+                } else {
+                  pages.push(1);
+                  if (page > 3) pages.push('...');
+                  
+                  const start = Math.max(2, page - 1);
+                  const end = Math.min(totalPages - 1, page + 1);
+                  
+                  for (let i = start; i <= end; i++) {
+                    if (!pages.includes(i)) pages.push(i);
+                  }
+                  
+                  if (page < totalPages - 2) pages.push('...');
+                  if (!pages.includes(totalPages)) pages.push(totalPages);
+                }
+
+                return pages.map((p, i) => (
+                  <button
+                    key={i}
+                    className={`${styles.pageItem} ${p === page ? styles.active : ''} ${p === '...' ? styles.dots : ''}`}
+                    onClick={() => typeof p === 'number' && handlePageChange(p)}
+                    disabled={p === '...'}
+                  >
+                    {p}
+                  </button>
+                ));
+              })()}
 
               <button
                 className={styles.pageBtn}
                 disabled={page >= totalPages}
                 onClick={() => handlePageChange(page + 1)}
               >
-                <span>Next</span>
-                <ChevronRight size={20} />
+                <ChevronRight size={18} />
               </button>
             </div>
           )}
@@ -163,7 +215,16 @@ export default function SearchPage() {
   return (
     <main className={styles.main}>
       <Header />
-      <Suspense fallback={<div className={styles.loading}>Loading...</div>}>
+      <Suspense fallback={
+        <div className={styles.container}>
+          <div className={styles.skeletonTitle} />
+          <div className={styles.grid}>
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className={styles.skeletonCard} />
+            ))}
+          </div>
+        </div>
+      }>
         <SearchResults />
       </Suspense>
     </main>

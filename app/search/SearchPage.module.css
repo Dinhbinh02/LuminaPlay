@@ -1,13 +1,12 @@
 .main {
   min-height: 100vh;
-  background: #050505;
+  background: #000000;
   color: white;
   padding-top: var(--nav-height);
 }
 
 .container {
   max-width: 1400px;
-  margin: 0 auto;
   padding: 40px 4%;
 }
 
@@ -29,12 +28,15 @@
   border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
+  background: transparent;
   transition: transform 0.3s ease;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .card:hover {
-  transform: scale(1.05);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  z-index: 10;
 }
 
 .card img {
@@ -46,7 +48,7 @@
 .cardInfo {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -92,24 +94,57 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 24px;
-  margin-top: 60px;
+  gap: 12px;
   padding-top: 40px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pageItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.pageItem:hover:not(.active, .dots) {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.pageItem.active {
+  background: white;
+  color: black;
+  border-color: white;
+}
+
+.pageItem.dots {
+  background: transparent;
+  border: none;
+  cursor: default;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .pageBtn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: white;
-  padding: 10px 20px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 600;
+  transition: all 0.2s ease;
 }
 
 .pageBtn:hover:not(:disabled) {
@@ -131,4 +166,55 @@
 .pageInfo span {
   color: white;
   font-weight: 700;
+}
+
+.skeletonTitle {
+  width: 300px;
+  height: 34px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  margin-bottom: 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeletonCard {
+  aspect-ratio: 2/3;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.05);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.skeletonTitle::after,
+.skeletonCard::after,
+.skeleton::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
 }

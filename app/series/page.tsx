@@ -98,7 +98,7 @@ function SeriesContent() {
 
 export default function SeriesPage() {
   return (
-    <main style={{ minHeight: '100vh', backgroundColor: '#050505' }}>
+    <main style={{ minHeight: '100vh', backgroundColor: '#000000' }}>
       <Header />
       <Suspense fallback={
         <div style={{ padding: '120px 4%' }}>

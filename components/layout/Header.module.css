@@ -13,7 +13,7 @@
 }
 
 .headerScrolled {
-  background: rgba(5, 5, 5, 0.85);
+  background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   height: 64px;
@@ -145,5 +145,41 @@
 @media (max-width: 768px) {
   .nav {
     display: none;
+  }
+  
+  .actions {
+    gap: 20px;
+  }
+  
+  .logoText {
+    font-size: 20px;
+  }
+  
+  .header {
+    padding: 0 16px;
+  }
+
+  .searchBoxFocused {
+    width: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .actions {
+    gap: 16px;
+  }
+
+  .logoText {
+    font-size: 18px;
+  }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .searchBoxFocused {
+    width: 140px;
+    padding: 6px 12px;
   }
 }

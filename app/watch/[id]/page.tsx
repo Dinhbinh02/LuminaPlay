@@ -2,12 +2,41 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Header from "@/components/layout/Header";
-import VideoPlayer from "@/components/player/VideoPlayer";
+import VideoPlayer, { VideoPlayerRef } from "@/components/player/VideoPlayer";
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { useMovieDetail, useMovieCast } from "@/hooks/useMovie";
+import { useMovieDetail, useMovieCast, useMovies } from "@/hooks/useMovie";
 import { ophim } from "@/lib/ophim";
+import Link from 'next/link';
 import styles from './WatchPage.module.css';
+
+function RelatedMoviesSection({ movie, cdnDomain }: { movie: any, cdnDomain: string }) {
+  const genreSlug = movie.category?.[0]?.slug;
+  const { data: relatedData } = useMovies('the-loai', genreSlug, { limit: 10 });
+  
+  const relatedMovies = relatedData?.data?.items?.filter((m: any) => m.slug !== movie.slug) || [];
+
+  if (relatedMovies.length === 0) return null;
+
+  return (
+    <div className={styles.relatedSection}>
+      <h3>Related Movies</h3>
+      <div className={styles.relatedList}>
+        {relatedMovies.map((m: any) => (
+          <Link key={m._id} href={`/watch/${m.slug}`} className={styles.relatedCard}>
+            <div className={styles.relatedThumb}>
+              <img src={ophim.getImageUrl(m.thumb_url, cdnDomain)} alt={m.name} />
+            </div>
+            <div className={styles.relatedInfo}>
+              <h4>{m.name}</h4>
+              <span>{m.year} • {m.quality}</span>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function WatchPage() {
   const params = useParams();
@@ -15,7 +44,24 @@ export default function WatchPage() {
   const { data: movieData, isLoading } = useMovieDetail(slug);
   const { data: castData } = useMovieCast(slug);
   const [currentEpisode, setCurrentEpisode] = useState(0);
+  const [initialTime, setInitialTime] = useState(0);
   const progressRef = useRef({ currentTime: 0, duration: 0 });
+  const playerRef = useRef<VideoPlayerRef>(null);
+  const lastCaptureRef = useRef<number>(0);
+
+  // Load last watched position
+  useEffect(() => {
+    if (movieData?.data?.item) {
+      const history = localStorage.getItem('watch_history');
+      if (history) {
+        const historyList = JSON.parse(history);
+        const savedItem = historyList.find((item: any) => item.slug === movieData.data.item.slug);
+        if (savedItem) {
+          setInitialTime(savedItem.currentTime || 0);
+        }
+      }
+    }
+  }, [movieData]);
 
   const saveHistory = useCallback((currentTime?: number, duration?: number) => {
     if (!movieData?.data?.item) return;
@@ -35,36 +81,41 @@ export default function WatchPage() {
       year: movie.year,
       currentTime: currentTime ?? progressRef.current.currentTime,
       duration: duration ?? progressRef.current.duration,
-      lastWatched: new Date().toISOString()
+      lastWatched: new Date().toISOString(),
+      thumbnail: playerRef.current?.captureThumbnail() || undefined
     };
     
     historyList.unshift(newItem);
     localStorage.setItem('watch_history', JSON.stringify(historyList.slice(0, 20)));
   }, [movieData]);
 
-  // Initial save on load
-  useEffect(() => {
-    if (movieData?.data?.item) {
-      saveHistory();
-    }
-  }, [movieData, saveHistory]);
-
   const handleProgress = (currentTime: number, duration: number) => {
     progressRef.current = { currentTime, duration };
-    // Save every 30 seconds or so to avoid excessive writes, 
-    // but also save on end or significant progress
-    if (Math.floor(currentTime) % 15 === 0) {
-      saveHistory(currentTime, duration);
+    
+    // Save history periodically
+    if (currentTime > 1) {
+      const now = Date.now();
+      // Save metadata every 15s, but only try to capture thumbnail if it's been at least 30s
+      if (Math.floor(currentTime) % 15 === 0) {
+        saveHistory(currentTime, duration);
+      }
     }
   };
 
   if (isLoading) return (
-    <div className="bg-black min-h-screen">
+    <main className={styles.main}>
       <Header />
-      <div className="pt-24 px-4 max-w-7xl mx-auto">
-        <div className="aspect-video bg-white/5 rounded-xl animate-pulse" />
+      <div className={styles.content}>
+        <div className={styles.mainGrid}>
+          <div className={styles.playerCol}>
+            <div className={styles.playerWrapper} style={{ animation: 'pulse 1.5s infinite' }} />
+          </div>
+          <div className={styles.sidebarCol}>
+            <div className={styles.epSection} style={{ height: '400px', animation: 'pulse 1.5s infinite' }} />
+          </div>
+        </div>
       </div>
-    </div>
+    </main>
   );
 
   const movie = movieData?.data?.item;
@@ -78,60 +129,83 @@ export default function WatchPage() {
       <Header />
       
       <div className={styles.content}>
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className={styles.playerWrapper}
-        >
-          <VideoPlayer 
-            src={videoSrc} 
-            poster={ophim.getImageUrl(movie.poster_url || movie.thumb_url, movieData.data.APP_DOMAIN_CDN_IMAGE)}
-            onProgress={handleProgress} 
-          />
-        </motion.div>
+        <div className={styles.mainGrid}>
+          <div className={styles.playerCol}>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className={styles.playerWrapper}
+            >
+              <VideoPlayer 
+                ref={playerRef}
+                src={videoSrc} 
+                poster={ophim.getImageUrl(movie.poster_url || movie.thumb_url, movieData.data.APP_DOMAIN_CDN_IMAGE)}
+                startTime={initialTime}
+                onProgress={handleProgress} 
+              />
+            </motion.div>
 
-        <div className={styles.movieDetails}>
-          <div className={styles.infoCol}>
-            <h1 className={styles.title}>{movie.name}</h1>
-            <div className={styles.meta}>
-              <span className={styles.metaItem}>{movie.year}</span>
-              <span className={styles.metaItem}>{movie.time}</span>
-              <span className={styles.metaItem}>{movie.quality}</span>
-              <span className={styles.imdb}>IMDb: {movie.imdb?.vote_average || 'N/A'}</span>
-            </div>
-            <p className={styles.description}>{movie.content?.replace(/<[^>]*>?/gm, '')}</p>
-
-            <div className={styles.castSection}>
-              <h3>Cast</h3>
-              <div className={styles.castGrid}>
-                {castData?.data?.peoples?.slice(0, 6).map((person: any) => (
-                  <div key={person.tmdb_people_id} className={styles.castCard}>
-                    <img 
-                      src={person.profile_path ? `https://image.tmdb.org/t/p/w185${person.profile_path}` : 'https://via.placeholder.com/185x278?text=No+Image'} 
-                      alt={person.name} 
-                      crossOrigin="anonymous"
-                    />
-                    <span>{person.name}</span>
-                  </div>
-                ))}
+            <div className={styles.movieInfo}>
+              <h1 className={styles.title}>{movie.name}</h1>
+              <div className={styles.meta}>
+                <span className={styles.metaItem}>{movie.year}</span>
+                <span className={styles.metaItem}>{movie.time}</span>
+                <span className={styles.metaItem}>{movie.quality}</span>
+                <span className={styles.metaItem}>{movie.lang}</span>
+                <span className={styles.imdb}>IMDb: {movie.imdb?.vote_average || 'N/A'}</span>
               </div>
+              <p className={styles.description}>{movie.content?.replace(/<[^>]*>?/gm, '')}</p>
+
+              {castData?.data?.peoples && castData.data.peoples.length > 0 && (
+                <div className={styles.castSection}>
+                  <h3>Cast</h3>
+                  <div className={styles.castGrid}>
+                    {castData.data.peoples.slice(0, 10).map((person: any) => (
+                      <a 
+                        key={person.tmdb_people_id} 
+                        href={`https://www.google.com/search?q=${encodeURIComponent(person.name)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.castCard}
+                      >
+                        <img 
+                          src={person.profile_path ? `https://image.tmdb.org/t/p/w185${person.profile_path}` : 'https://via.placeholder.com/185x185?text=Actor'} 
+                          alt={person.name} 
+                          crossOrigin="anonymous"
+                        />
+                        <span>{person.name}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className={styles.epCol}>
-            <h3>Episodes</h3>
-            <div className={styles.epList}>
-              {episodes.map((ep: any, index: number) => (
-                <button 
-                  key={index}
-                  className={`${styles.epBtn} ${currentEpisode === index ? styles.epActive : ''}`}
-                  onClick={() => setCurrentEpisode(index)}
-                >
-                  {ep.name}
-                </button>
-              ))}
+          <div className={styles.sidebarCol}>
+            <div className={styles.epSection}>
+              <h3>
+                Episodes 
+                <span className={styles.epCount}>{episodes.length} Total</span>
+              </h3>
+              <div className={styles.epList}>
+                {episodes.map((ep: any, index: number) => (
+                  <button 
+                    key={index}
+                    className={`${styles.epBtn} ${currentEpisode === index ? styles.epActive : ''}`}
+                    onClick={() => {
+                      setCurrentEpisode(index);
+                      setInitialTime(0); // Reset time when changing episode
+                    }}
+                  >
+                    {ep.name}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            <RelatedMoviesSection movie={movie} cdnDomain={movieData.data.APP_DOMAIN_CDN_IMAGE} />
           </div>
         </div>
       </div>

@@ -66,12 +66,12 @@ export default function Header() {
             <Sliders size={20} />
           </button>
 
-          <button className={`${styles.actionBtn} relative`}>
+          <button className={styles.actionBtn} style={{ position: 'relative' }}>
             <Bell size={20} />
             <span style={{
               position: 'absolute',
-              top: 0,
-              right: 0,
+              top: '2px',
+              right: '2px',
               width: '8px',
               height: '8px',
               backgroundColor: '#ef4444',
