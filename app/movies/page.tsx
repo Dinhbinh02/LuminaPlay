@@ -9,7 +9,9 @@ import { MovieGridSkeleton } from "@/components/ui/Skeleton";
 import { ophim } from "@/lib/ophim";
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-export default function MoviesPage() {
+import { Suspense } from 'react';
+
+function MoviesContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -27,16 +29,14 @@ export default function MoviesPage() {
   })) || [];
 
   const handlePageChange = (newPage: number) => {
-    const params = new URLSearchParams(searchParams);
+    const params = new URLSearchParams(searchParams.toString());
     params.set('page', newPage.toString());
     router.push(`${pathname}?${params.toString()}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
-    <main style={{ minHeight: '100vh', backgroundColor: '#050505' }}>
-      <Header />
-      
+    <>
       {isLoading ? (
         <div style={{ padding: '120px 4%' }}>
           <MovieGridSkeleton />
@@ -92,6 +92,22 @@ export default function MoviesPage() {
           </div>
         </>
       )}
+    </>
+  );
+}
+
+export default function MoviesPage() {
+  return (
+    <main style={{ minHeight: '100vh', backgroundColor: '#050505' }}>
+      <Header />
+      <Suspense fallback={
+        <div style={{ padding: '120px 4%' }}>
+          <MovieGridSkeleton />
+        </div>
+      }>
+        <MoviesContent />
+      </Suspense>
     </main>
   );
 }
+
