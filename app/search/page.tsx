@@ -7,7 +7,7 @@ import { ophim } from "@/lib/ophim";
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import Pagination from "@/components/ui/Pagination";
 import styles from './SearchPage.module.css';
 
 function SearchCard({ movie, cdnDomain, index }: { movie: any, cdnDomain: string, index: number }) {
@@ -150,56 +150,12 @@ function SearchResults() {
           </div>
 
           {totalPages > 1 && (
-            <div className={styles.pagination}>
-              <button
-                className={styles.pageBtn}
-                disabled={page <= 1}
-                onClick={() => handlePageChange(page - 1)}
-              >
-                <ChevronLeft size={18} />
-              </button>
-
-              {(() => {
-                const pages = [];
-                const maxVisible = 5;
-                
-                if (totalPages <= maxVisible + 2) {
-                  for (let i = 1; i <= totalPages; i++) pages.push(i);
-                } else {
-                  pages.push(1);
-                  if (page > 3) pages.push('...');
-                  
-                  const start = Math.max(2, page - 1);
-                  const end = Math.min(totalPages - 1, page + 1);
-                  
-                  for (let i = start; i <= end; i++) {
-                    if (!pages.includes(i)) pages.push(i);
-                  }
-                  
-                  if (page < totalPages - 2) pages.push('...');
-                  if (!pages.includes(totalPages)) pages.push(totalPages);
-                }
-
-                return pages.map((p, i) => (
-                  <button
-                    key={i}
-                    className={`${styles.pageItem} ${p === page ? styles.active : ''} ${p === '...' ? styles.dots : ''}`}
-                    onClick={() => typeof p === 'number' && handlePageChange(p)}
-                    disabled={p === '...'}
-                  >
-                    {p}
-                  </button>
-                ));
-              })()}
-
-              <button
-                className={styles.pageBtn}
-                disabled={page >= totalPages}
-                onClick={() => handlePageChange(page + 1)}
-              >
-                <ChevronRight size={18} />
-              </button>
-            </div>
+            <Pagination 
+              currentPage={page}
+              totalItems={pagination?.totalItems || 0}
+              itemsPerPage={pagination?.totalItemsPerPage || 24}
+              onPageChange={handlePageChange}
+            />
           )}
         </>
       )}

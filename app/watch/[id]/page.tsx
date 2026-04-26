@@ -184,7 +184,12 @@ export default function WatchPage() {
           </div>
 
           <div className={styles.sidebarCol}>
-            <div className={styles.epSection}>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              <div className={styles.epSection}>
               <h3>
                 Episodes 
                 <span className={styles.epCount}>{episodes.length} Total</span>
@@ -205,7 +210,8 @@ export default function WatchPage() {
               </div>
             </div>
 
-            <RelatedMoviesSection movie={movie} cdnDomain={movieData.data.APP_DOMAIN_CDN_IMAGE} />
+              <RelatedMoviesSection movie={movie} cdnDomain={movieData.data.APP_DOMAIN_CDN_IMAGE} />
+            </motion.div>
           </div>
         </div>
       </div>

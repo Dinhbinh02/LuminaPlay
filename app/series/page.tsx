@@ -7,7 +7,7 @@ import MovieGrid from "@/components/movie/MovieGrid";
 import { useMovieList } from "@/hooks/useMovie";
 import { MovieGridSkeleton } from "@/components/ui/Skeleton";
 import { ophim } from "@/lib/ophim";
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import Pagination from "@/components/ui/Pagination";
 
 import { Suspense } from 'react';
 
@@ -45,51 +45,12 @@ function SeriesContent() {
         <>
           <MovieGrid title="TV Series" movies={movies} />
           
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            gap: '20px', 
-            paddingBottom: '80px',
-            color: 'white'
-          }}>
-            <button 
-              disabled={page === 1}
-              onClick={() => handlePageChange(page - 1)}
-              style={{
-                background: 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                padding: '10px 20px',
-                borderRadius: '4px',
-                cursor: page === 1 ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                color: page === 1 ? 'rgba(255,255,255,0.3)' : 'white'
-              }}
-            >
-              <ChevronLeft size={20} /> Previous
-            </button>
-            
-            <span style={{ fontWeight: '700' }}>Page {page}</span>
-            
-            <button 
-              onClick={() => handlePageChange(page + 1)}
-              style={{
-                background: 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                padding: '10px 20px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                color: 'white'
-              }}
-            >
-              Next <ChevronRight size={20} />
-            </button>
-          </div>
+          <Pagination 
+            currentPage={page}
+            totalItems={data?.data?.params?.pagination?.totalItems || 0}
+            itemsPerPage={data?.data?.params?.pagination?.totalItemsPerPage || 24}
+            onPageChange={handlePageChange}
+          />
         </>
       )}
     </>

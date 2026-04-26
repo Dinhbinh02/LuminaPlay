@@ -20,6 +20,7 @@
   grid-template-columns: minmax(0, 1fr) 350px;
   gap: 32px;
   align-items: start;
+  align-content: start;
   width: 100%;
 }
 
@@ -27,6 +28,7 @@
   width: 100%;
   min-width: 0;
   align-self: start;
+  margin-top: 0 !important;
 }
 
 .playerWrapper {
@@ -156,14 +158,13 @@
   width: 100%;
 }
 
-/* Sidebar Column */
 .sidebarCol {
-  position: sticky;
-  top: calc(var(--nav-height) + 32px);
   display: flex;
   flex-direction: column;
   gap: 24px;
   align-self: start;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 .epSection {
@@ -179,6 +180,7 @@
 .epSection h3 {
   font-size: 18px;
   margin: 0 0 20px 0;
+  line-height: 1;
   font-weight: 700;
   display: flex;
   justify-content: space-between;

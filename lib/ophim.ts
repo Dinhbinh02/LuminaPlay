@@ -31,6 +31,14 @@ export interface OphimListResponse {
     items: OphimItem[];
     APP_DOMAIN_CDN_IMAGE: string;
     titlePage: string;
+    params: {
+      pagination: {
+        totalItems: number;
+        totalItemsPerPage: number;
+        currentPage: number;
+        pageRanges: number;
+      };
+    };
   };
 }
 
