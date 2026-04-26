@@ -37,7 +37,7 @@ export default function Header() {
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <Link href="/" className={styles.logo}>
             <div className={styles.logoIcon}>
-              <Play size={18} color="white" fill="white" />
+              <Play size={16} color="white" fill="white" />
             </div>
             <span className={styles.logoText}>LUMINA</span>
           </Link>

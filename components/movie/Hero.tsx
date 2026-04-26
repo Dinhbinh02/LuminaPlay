@@ -60,6 +60,13 @@ export default function Hero({ movies = [] }: HeroProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.8 }}
+            onPanEnd={(e, info) => {
+              if (info.offset.x > 50) {
+                prevSlide();
+              } else if (info.offset.x < -50) {
+                nextSlide();
+              }
+            }}
           >
             {/* Desktop Backdrop */}
             <div className={styles.desktopOnly}>
@@ -67,8 +74,10 @@ export default function Hero({ movies = [] }: HeroProps) {
                 src={movie.backdrop} 
                 alt={movie.title} 
                 fill
+                sizes="(max-width: 768px) 100vw, 100vw"
                 className={styles.heroImg}
                 priority
+                loading="eager"
                 quality={85}
               />
             </div>
@@ -78,8 +87,10 @@ export default function Hero({ movies = [] }: HeroProps) {
                 src={movie.poster} 
                 alt={movie.title} 
                 fill
+                sizes="(max-width: 768px) 100vw, 100vw"
                 className={styles.heroImg}
                 priority
+                loading="eager"
                 quality={85}
               />
             </div>
