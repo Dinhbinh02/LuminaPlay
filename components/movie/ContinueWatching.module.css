@@ -10,13 +10,38 @@
   margin-bottom: 20px;
 }
 
+.titleWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.titleWrapper:hover {
+  transform: translateX(4px);
+}
+
+.titleWrapper:hover .title {
+  color: var(--primary);
+}
+
+.titleWrapper:hover .titleChevron {
+  color: var(--primary);
+}
+
 .title {
-  font-family: 'Outfit', sans-serif;
   font-size: 24px;
   font-weight: 700;
   color: white;
   margin: 0;
-  letter-spacing: -0.5px;
+  transition: color 0.3s ease;
+}
+
+.titleChevron {
+  color: rgba(255, 255, 255, 0.4);
+  transition: color 0.3s ease;
 }
 
 .controls {
@@ -152,7 +177,7 @@
   }
   
   .title {
-    font-size: 20px;
+    /* Kept at 24px for consistency */
   }
 
   .info {

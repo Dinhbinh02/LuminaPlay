@@ -61,7 +61,10 @@ export default function ContinueWatching({ movies }: ContinueWatchingProps) {
   return (
     <section className={styles.section}>
       <div className={styles.header}>
-        <h2 className={styles.title}>Continue Watching</h2>
+        <Link href="/search?mode=history" className={styles.titleWrapper}>
+          <h2 className={styles.title}>Continue Watching</h2>
+          <ChevronRight className={styles.titleChevron} size={20} />
+        </Link>
         {movies.length > 3 && (
           <div className={styles.controls}>
             <button className={styles.controlBtn} onClick={() => scroll('left')}>

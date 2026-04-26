@@ -61,7 +61,7 @@ export default function Home() {
       quality: item.quality,
       year: item.year,
       lang: item.lang,
-      genres: item.category?.map((c: any) => c.name) || [],
+      genres: item.category?.map((c: any) => ({ name: c.name, slug: c.slug })) || [],
       rating: item.tmdb?.vote_average || item.imdb?.vote_average,
       rank: index + 1,
       episode: item.episode_current
@@ -86,7 +86,8 @@ export default function Home() {
         )}
 
         {/* Dynamic Sections with Infinite Scroll */}
-        <MovieSection title="Trending Now" type="danh-sach" slug="phim-chieu-rap" />
+        <MovieSection title="Trending Now" type="danh-sach" slug="phim-moi" />
+        <MovieSection title="Cinema Movies" type="danh-sach" slug="phim-chieu-rap" />
 
         <MovieSection title="TV Series" type="danh-sach" slug="phim-bo" />
 

@@ -7,7 +7,7 @@
 
 .container {
   max-width: 1400px;
-  padding: 40px 4%;
+  padding: 4% 4% 0;
 }
 
 .title {
@@ -18,8 +18,15 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 24px;
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
 }
 
 .card {
@@ -53,12 +60,12 @@
   flex-direction: column;
   justify-content: flex-end;
   padding: 16px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  opacity: 1;
+  transition: transform 0.3s ease;
 }
 
 .card:hover .cardInfo {
-  opacity: 1;
+  transform: translateY(-2px);
 }
 
 .cardInfo h3 {

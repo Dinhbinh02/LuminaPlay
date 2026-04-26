@@ -16,7 +16,7 @@ interface HeroMovie {
   quality?: string;
   year?: number;
   lang?: string;
-  genres?: string[];
+  genres?: { name: string; slug: string }[];
   rating?: number;
   rank?: number;
   episode?: string;
@@ -48,76 +48,73 @@ export default function Hero({ movies = [] }: HeroProps) {
 
   return (
     <section className={styles.hero}>
-      {movies.length > 1 && (
-        <div className={styles.dots}>
-          {movies.map((_, idx) => (
-            <div 
-              key={idx} 
-              className={`${styles.dot} ${idx === currentIndex ? styles.dotActive : ''}`}
-              onClick={() => setCurrentIndex(idx)}
-            />
-          ))}
-        </div>
-      )}
-
       <AnimatePresence mode="wait">
-        <Link 
-          href={`/watch/${movie.slug}`} 
-          className={styles.heroLink}
+        <motion.div 
+          className={styles.slideContainer} 
           key={movie.slug}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.8 }}
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.2}
+          onDragEnd={(e, info) => {
+            const swipe = info.offset.x;
+            if (swipe > 50) {
+              prevSlide();
+            } else if (swipe < -50) {
+              nextSlide();
+            }
+          }}
         >
-          <motion.div 
-            className={styles.heroBg}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.8 }}
-            onPanEnd={(e, info) => {
-              if (info.offset.x > 50) {
-                prevSlide();
-              } else if (info.offset.x < -50) {
-                nextSlide();
-              }
-            }}
+          {/* Main Background Link */}
+          <Link 
+            href={`/watch/${movie.slug}`} 
+            className={styles.heroLink}
+            aria-label={`Watch ${movie.title}`}
           >
-            {/* Desktop Backdrop */}
-            <div className={styles.desktopOnly}>
-              <Image 
-                src={movie.backdrop} 
-                alt={movie.title} 
-                fill
-                sizes="(max-width: 768px) 100vw, 100vw"
-                className={styles.heroImg}
-                priority
-                loading="eager"
-                quality={85}
-              />
+            <div className={styles.heroBg}>
+              {/* Desktop Backdrop */}
+              <div className={styles.desktopOnly}>
+                <Image 
+                  src={movie.backdrop} 
+                  alt={movie.title} 
+                  fill
+                  sizes="(max-width: 768px) 100vw, 100vw"
+                  className={styles.heroImg}
+                  priority
+                  loading="eager"
+                  quality={85}
+                />
+              </div>
+              {/* Mobile Poster */}
+              <div className={styles.mobileOnly}>
+                <Image 
+                  src={movie.poster} 
+                  alt={movie.title} 
+                  fill
+                  sizes="(max-width: 768px) 100vw, 100vw"
+                  className={styles.heroImg}
+                  priority
+                  loading="eager"
+                  quality={85}
+                />
+              </div>
+              <div className={styles.heroOverlay}></div>
+              <div className={styles.reflection}>
+                <Image 
+                  src={movie.backdrop} 
+                  alt="reflection" 
+                  fill
+                  className={styles.reflectionImg}
+                  quality={10}
+                />
+              </div>
             </div>
-            {/* Mobile Poster */}
-            <div className={styles.mobileOnly}>
-              <Image 
-                src={movie.poster} 
-                alt={movie.title} 
-                fill
-                sizes="(max-width: 768px) 100vw, 100vw"
-                className={styles.heroImg}
-                priority
-                loading="eager"
-                quality={85}
-              />
-            </div>
-            <div className={styles.heroOverlay}></div>
-            <div className={styles.reflection}>
-              <Image 
-                src={movie.backdrop} 
-                alt="reflection" 
-                fill
-                className={styles.reflectionImg}
-                quality={10}
-              />
-            </div>
-          </motion.div>
+          </Link>
 
+          {/* Interactive Content Layer */}
           <div className={styles.heroContent}>
             <motion.div 
               initial={{ opacity: 0, y: 30 }}
@@ -132,7 +129,9 @@ export default function Hero({ movies = [] }: HeroProps) {
                 </div>
               )}
 
-              <h1 className={styles.title}>{movie.title}</h1>
+              <Link href={`/watch/${movie.slug}`} className={styles.titleLink}>
+                <h1 className={styles.title}>{movie.title}</h1>
+              </Link>
               
               <div className={styles.metaInfo}>
                 {movie.rating ? movie.rating > 0 ? (
@@ -153,12 +152,34 @@ export default function Hero({ movies = [] }: HeroProps) {
 
               <div className={styles.genres}>
                 {movie.genres?.slice(0, 3).map((genre, idx) => (
-                  <span key={idx} className={styles.genreTag}>{genre}</span>
+                  <Link 
+                    key={idx} 
+                    href={`/search?genre=${genre.slug}`}
+                    className={styles.genreTag}
+                  >
+                    {genre.name}
+                  </Link>
                 ))}
               </div>
+
+              {movies.length > 1 && (
+                <div className={styles.dots}>
+                  {movies.map((_, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`${styles.dot} ${idx === currentIndex ? styles.dotActive : ''}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setCurrentIndex(idx);
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
             </motion.div>
           </div>
-        </Link>
+        </motion.div>
       </AnimatePresence>
 
     </section>

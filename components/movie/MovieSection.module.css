@@ -9,10 +9,37 @@
   margin-bottom: 24px;
 }
 
+.titleWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.titleWrapper:hover {
+  transform: translateX(4px);
+}
+
+.titleWrapper:hover .title {
+  color: var(--primary);
+}
+
+.titleWrapper:hover .titleChevron {
+  color: var(--primary);
+}
+
 .title {
   font-size: 24px;
   font-weight: 700;
   color: white;
+  transition: color 0.3s ease;
+}
+
+.titleChevron {
+  color: rgba(255, 255, 255, 0.4);
+  transition: color 0.3s ease;
 }
 
 .controls {
@@ -94,13 +121,13 @@
   flex-direction: column;
   justify-content: flex-end;
   padding: 16px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  opacity: 1;
+  transition: transform 0.3s ease;
   z-index: 5;
 }
 
 .card:hover .overlay {
-  opacity: 1;
+  transform: translateY(-2px);
 }
 
 .movieTitle {

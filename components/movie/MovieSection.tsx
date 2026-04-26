@@ -110,7 +110,13 @@ export default function MovieSection({ title, type, slug, params = {} }: MovieSe
   return (
     <section className={styles.section}>
       <div className={styles.header}>
-        <h2 className={styles.title}>{title}</h2>
+        <Link 
+          href={`/search?${type === 'danh-sach' ? 'category' : type === 'the-loai' ? 'genre' : 'country'}=${slug}`}
+          className={styles.titleWrapper}
+        >
+          <h2 className={styles.title}>{title}</h2>
+          <ChevronRight className={styles.titleChevron} size={20} />
+        </Link>
         <div className={styles.controls}>
           <button className={styles.controlBtn} onClick={() => scroll('left')}>
             <ChevronLeft size={20} />
