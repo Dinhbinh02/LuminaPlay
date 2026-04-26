@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Providers from "./providers";
 import PinOverlay from "@/components/auth/PinOverlay";
+import Footer from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
   title: "Lumina Play - Premium Streaming Experience",
@@ -19,6 +20,7 @@ export default function RootLayout({
         <Providers>
           <PinOverlay />
           {children}
+          <Footer />
         </Providers>
       </body>
     </html>

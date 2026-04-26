@@ -80,9 +80,7 @@ export default function Home() {
         <MovieSection title="Coming Soon" type="danh-sach" slug="phim-sap-chieu" />
       </div>
 
-      <footer style={{ padding: '80px 4%', borderTop: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>
-        <p>© 2026 LUMINA PLAY. All rights reserved.</p>
-      </footer>
+
     </main>
   );
 }
