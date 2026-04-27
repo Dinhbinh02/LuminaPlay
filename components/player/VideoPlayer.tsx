@@ -129,6 +129,8 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
               fill
               className={styles.posterImg}
               priority
+              quality={50}
+              sizes="100vw"
             />
           )}
           <div className={styles.overlayColor} />

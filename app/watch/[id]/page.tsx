@@ -254,7 +254,7 @@ export default function WatchPage() {
                   src={videoSrc}
                   poster={ophim.getImageUrl(movie.poster_url || movie.thumb_url, movieData.data.APP_DOMAIN_CDN_IMAGE)}
                   startTime={initialTime}
-                  autoPlay={true}
+                  autoPlay={false}
                   onProgress={handleProgress}
                 />
               ) : !isHistoryLoaded ? (
