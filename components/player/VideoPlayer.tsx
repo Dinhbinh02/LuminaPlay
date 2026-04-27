@@ -54,27 +54,17 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
     }
 
     // Simple seek logic from old version
-    const seekWhenReady = (targetTime: number, maxRetries = 30) => {
+    const seekWhenReady = (targetTime: number, maxRetries = 20) => {
       if (targetTime <= 0) return;
       let attempts = 0;
-      
       const trySeek = () => {
         attempts++;
-        
-        // Check if seekable ranges are available and contain targetTime
-        const isSeekable = video.seekable && video.seekable.length > 0;
-        const canSeekNow = isSeekable && video.seekable.end(0) >= targetTime;
-        
-        if (canSeekNow) {
+        if (video.seekable && video.seekable.length > 0 && video.seekable.end(0) >= targetTime) {
           video.currentTime = targetTime;
-          console.log(`Seeked to ${targetTime} after ${attempts} attempts`);
         } else if (attempts < maxRetries) {
           setTimeout(trySeek, 300);
         }
       };
-      
-      // Also listen for loadedmetadata as a primary trigger
-      video.addEventListener('loadedmetadata', trySeek, { once: true });
       trySeek();
     };
 
@@ -102,7 +92,7 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
           setIsPlaying(false);
         });
       });
-      
+
       return () => {
         hls.destroy();
       };
@@ -158,7 +148,6 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
           });
         }
       } else if (document.visibilityState === 'visible') {
-        // Exit PiP if any element is in PiP mode when we return
         if (document.pictureInPictureElement) {
           document.exitPictureInPicture().catch(e => {
             console.log('Exit PiP failed', e);
@@ -185,9 +174,9 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
       {!isPlaying && (
         <div className={styles.posterOverlay} onClick={handleStartPlay}>
           {poster && (
-            <Image 
-              src={poster} 
-              alt="Movie Poster" 
+            <Image
+              src={poster}
+              alt="Movie Poster"
               fill
               className={styles.posterImg}
               priority
@@ -201,10 +190,10 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
           </button>
         </div>
       )}
-      
-      <video 
-        ref={videoRef} 
-        className={`${styles.video} ${!isPlaying ? styles.hidden : ''}`} 
+
+      <video
+        ref={videoRef}
+        className={`${styles.video} ${!isPlaying ? styles.hidden : ''}`}
         controls={isPlaying}
         playsInline
         crossOrigin="anonymous"

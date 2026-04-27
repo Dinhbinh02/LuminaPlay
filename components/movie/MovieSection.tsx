@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -86,19 +86,21 @@ export default function MovieSection({ title, type, slug, params = {} }: MovieSe
     }
   };
 
-  const allMovies = data?.pages.flatMap((page: any) => 
-    page.data.items.map((item: any) => ({
-      id: item._id,
-      title: item.name,
-      poster: ophim.getImageUrl(item.thumb_url, page.data.APP_DOMAIN_CDN_IMAGE),
-      slug: item.slug,
-      year: item.year?.toString(),
-      quality: item.quality,
-      episodeCurrent: item.episode_current,
-      episodeTotal: item.episode_total,
-      status: item.status
-    }))
-  ) || [];
+  const allMovies = useMemo(() => (
+    data?.pages.flatMap((page: any) => 
+      page.data.items.map((item: any) => ({
+        id: item._id,
+        title: item.name,
+        poster: ophim.getImageUrl(item.thumb_url, page.data.APP_DOMAIN_CDN_IMAGE),
+        slug: item.slug,
+        year: item.year?.toString(),
+        quality: item.quality,
+        episodeCurrent: item.episode_current,
+        episodeTotal: item.episode_total,
+        status: item.status
+      }))
+    ) || []
+  ), [data]);
 
   if (isLoading && allMovies.length === 0) {
     return (
@@ -138,7 +140,7 @@ export default function MovieSection({ title, type, slug, params = {} }: MovieSe
       >
         {allMovies.map((movie, index) => (
           <motion.div 
-            key={`${movie.id}-${index}`}
+            key={movie.id}
             ref={index === allMovies.length - 1 ? lastElementRef : null}
             className={styles.cardWrapper}
           >
