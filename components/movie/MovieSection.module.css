@@ -147,6 +147,11 @@
   border: none;
 }
 
+.soon {
+  background: rgba(59, 130, 246, 0.9);
+  border: none;
+}
+
 .movieTitle {
   font-size: 16px;
   font-weight: 700;

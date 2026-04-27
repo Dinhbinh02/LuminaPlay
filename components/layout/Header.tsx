@@ -42,11 +42,6 @@ export default function Header() {
             <span className={styles.logoText}>LUMINA</span>
           </Link>
 
-          <nav className={styles.nav}>
-            <Link href="/" className={styles.navLink}>Home</Link>
-            <Link href="/movies" className={styles.navLink}>Movies</Link>
-            <Link href="/series" className={styles.navLink}>TV Series</Link>
-          </nav>
         </div>
 
         <div className={styles.actions}>

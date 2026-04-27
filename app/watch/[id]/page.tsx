@@ -265,17 +265,17 @@ export default function WatchPage() {
                 <YouTubeEmbed url={movie.trailer_url} />
               ) : (
                 <div className={styles.noVideo}>
-                  <p>Phim hiện chưa có video. Vui lòng quay lại sau!</p>
+                  <p>Video currently unavailable. Please check back later!</p>
                 </div>
               )}
             </motion.div>
 
             <div className={styles.movieInfo}>
               {videoSrc === '' && movie.trailer_url && (
-                <div className={styles.trailerBadge}>Đang chiếu Trailer</div>
+                <div className={styles.trailerBadge}>Now Playing Trailer</div>
               )}
               {!videoSrc && !movie.trailer_url && movie.status === 'trailer' && (
-                <div className={styles.comingSoonBadge}>Sắp chiếu</div>
+                <div className={styles.comingSoonBadge}>Coming Soon</div>
               )}
               <h1 className={styles.title}>{movie.name}</h1>
               {movie.origin_name && movie.origin_name !== movie.name && (

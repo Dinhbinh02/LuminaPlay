@@ -20,7 +20,7 @@
 }
 
 .headerTransparent {
-  background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
 }
 
 .logo {
@@ -50,24 +50,6 @@
   font-size: 24px;
   font-weight: 800;
   letter-spacing: -1px;
-  color: white;
-}
-
-.nav {
-  display: flex;
-  align-items: center;
-  gap: 32px;
-  margin-left: 48px;
-}
-
-.navLink {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 14px;
-  font-weight: 500;
-  transition: color 0.3s ease;
-}
-
-.navLink:hover {
   color: white;
 }
 
@@ -143,18 +125,15 @@
 }
 
 @media (max-width: 768px) {
-  .nav {
-    display: none;
-  }
-  
+
   .actions {
     gap: 20px;
   }
-  
+
   .logoText {
     font-size: 20px;
   }
-  
+
   .header {
     padding: 0 16px;
   }
@@ -162,7 +141,7 @@
   .searchBoxFocused {
     width: 200px;
   }
-  
+
   .searchInput {
     font-size: 16px;
   }

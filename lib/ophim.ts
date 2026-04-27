@@ -15,6 +15,8 @@ export interface OphimItem {
   tmdb?: { vote_average: number; [key: string]: any };
   imdb?: { vote_average: number; [key: string]: any };
   episode_current?: string;
+  episode_total?: string;
+  status?: string;
 }
 
 export interface OphimHomeResponse {
@@ -110,13 +112,26 @@ export const ophim = {
     return `${cleanDomain}${cleanPath}`;
   },
 
-  formatEpisode: (ep: string | undefined) => {
-    if (!ep) return '';
-    if (ep.toLowerCase() === 'trailer') return 'Trailer';
-    if (ep.toLowerCase().includes('full')) return 'Full';
+  formatEpisode: (ep: string | undefined, total?: string, status?: string) => {
+    if (!ep && !status) return '';
     
-    // Extract patterns like "10/10" from "Hoàn tất (10/10)"
-    const matchRange = ep.match(/(\d+\/\d+)/);
+    const epLower = ep?.toLowerCase() || '';
+    const statusLower = status?.toLowerCase() || '';
+
+    // 1. Trailer
+    if (statusLower === 'trailer' || epLower === 'trailer') return 'Trailer';
+    
+    // 2. Full / Completed
+    if (statusLower === 'completed' || epLower.includes('full') || epLower.includes('hoàn tất')) {
+      return 'Full';
+    }
+
+    // 3. Coming Soon (no video info)
+    if (!ep || epLower === 'đang cập nhật' || epLower === 'coming soon') return 'Soon';
+
+    // 4. Ongoing (Show Ep X/Total or just Ep X)
+    // Extract patterns like "10/10"
+    const matchRange = epLower.match(/(\d+\/\d+)/);
     if (matchRange) {
       const range = matchRange[1];
       if (range === '1/1') return 'Full';
@@ -124,9 +139,16 @@ export const ophim = {
     }
     
     // Extract number from "Tập 2"
-    const matchNumber = ep.match(/Tập\s+(\d+)/i);
-    if (matchNumber) return matchNumber[1];
+    const matchNumber = epLower.match(/tập\s+(\d+)/i);
+    if (matchNumber) {
+      const current = matchNumber[1];
+      if (total) {
+        const totalNum = total.match(/(\d+)/)?.[1];
+        if (totalNum && totalNum !== '1') return `${current}/${totalNum}`;
+      }
+      return `Ep ${current}`;
+    }
     
-    return ep;
+    return ep || '';
   }
 };

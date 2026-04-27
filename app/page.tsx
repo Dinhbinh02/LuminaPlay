@@ -85,7 +85,7 @@ export default function Home() {
       genres: item.category?.map((c: any) => ({ name: c.name, slug: c.slug })) || [],
       rating: item.tmdb?.vote_average || item.imdb?.vote_average,
       rank: index + 1,
-      episode: item.episode_current
+      episode: ophim.formatEpisode(item.episode_current, item.episode_total)
     })) || [];
 
   return (

@@ -94,7 +94,9 @@ export default function MovieSection({ title, type, slug, params = {} }: MovieSe
       slug: item.slug,
       year: item.year?.toString(),
       quality: item.quality,
-      episodeCurrent: item.episode_current
+      episodeCurrent: item.episode_current,
+      episodeTotal: item.episode_total,
+      status: item.status
     }))
   ) || [];
 
@@ -154,9 +156,13 @@ export default function MovieSection({ title, type, slug, params = {} }: MovieSe
                   />
                 </div>
                 <div className={styles.overlay}>
-                  {(movie.episodeCurrent || movie.quality) && (
-                    <div className={`${styles.badge} ${movie.episodeCurrent === 'Trailer' ? styles.trailer : ''}`}>
-                      {ophim.formatEpisode(movie.episodeCurrent || movie.quality)}
+                  {(movie.episodeCurrent || movie.quality || movie.status) && (
+                    <div className={`
+                      ${styles.badge} 
+                      ${movie.status === 'trailer' || movie.episodeCurrent?.toLowerCase() === 'trailer' ? styles.trailer : ''}
+                      ${!movie.episodeCurrent || movie.episodeCurrent === 'Đang cập nhật' ? styles.soon : ''}
+                    `}>
+                      {ophim.formatEpisode(movie.episodeCurrent || movie.quality, movie.episodeTotal, movie.status)}
                     </div>
                   )}
                   <h3 className={styles.movieTitle}>{movie.title}</h3>
