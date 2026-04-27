@@ -48,12 +48,15 @@ export default function FilterOverlay({ isOpen, onClose }: FilterOverlayProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className={styles.overlay}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onClose();
+          }}
         >
           <div className={styles.container}>
             <div className={styles.header}>
               <h2 className={styles.title}>Choose Categories</h2>
               <button onClick={onClose} className={styles.closeBtn}>
-                <X size={28} />
+                Close
               </button>
             </div>
 

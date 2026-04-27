@@ -165,10 +165,29 @@
   line-height: 1.4;
 }
 
+.metaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
 .meta {
   font-size: 13px;
   color: rgba(255, 255, 255, 0.5);
   margin: 0;
+}
+
+.epBadge {
+  background: rgba(229, 9, 20, 0.1);
+  color: var(--primary);
+  border: 1px solid rgba(229, 9, 20, 0.3);
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {
@@ -176,10 +195,6 @@
     flex: 0 0 240px;
   }
   
-  .title {
-    /* Kept at 24px for consistency */
-  }
-
   .info {
     height: 44px;
   }

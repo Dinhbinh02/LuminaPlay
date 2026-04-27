@@ -86,6 +86,14 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
     setQuery('');
   };
 
+  const handleSearchEnter = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && query.trim()) {
+      router.push(`/search?keyword=${encodeURIComponent(query.trim())}`);
+      onClose();
+      setQuery('');
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -94,6 +102,9 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className={styles.overlay}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onClose();
+          }}
         >
           <div className={styles.container}>
             <div className={styles.header}>
@@ -106,6 +117,7 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                   className={styles.input}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={handleSearchEnter}
                 />
                 {query && (
                   <button onClick={() => setQuery('')} className={styles.clearBtn}>

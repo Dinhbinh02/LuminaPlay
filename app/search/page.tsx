@@ -52,7 +52,7 @@ function SearchResults() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const keyword = searchParams.get('q');
+  const keyword = searchParams.get('q') || searchParams.get('keyword');
   const country = searchParams.get('country');
   const genre = searchParams.get('genre');
   const category = searchParams.get('category');
@@ -125,9 +125,10 @@ function SearchResults() {
       {isLoading ? (
         <div className={styles.skeletonTitle} />
       ) : (
-        <h1 className={styles.title}>
-          {title}{title && page > 1 ? ` (${page})` : ''}
-        </h1>
+        <div className={styles.titleWrapper}>
+          <h1 className={styles.title}>{title}</h1>
+          {page > 1 && <span className={styles.pageLabel}>Page {page}</span>}
+        </div>
       )}
 
       {isLoading ? (

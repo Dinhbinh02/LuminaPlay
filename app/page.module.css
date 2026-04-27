@@ -123,17 +123,21 @@ a.secondary {
   }
 }
 
-.contentWrapper {
-  margin-top: 0;
-  position: relative;
-  z-index: 20;
-  padding-bottom: 60px;
+.heroWrapper {
+  height: 90vh;
+  width: 100%;
+  overflow: hidden;
 }
 
 @media (max-width: 768px) {
-  .contentWrapper {
-    margin-top: 0;
+  .heroWrapper {
+    height: auto;
+    min-height: 75vh;
   }
+}
+
+.contentWrapper {
+  margin-top: 0;
 }
 
 .heroLoading {

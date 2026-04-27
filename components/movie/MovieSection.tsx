@@ -137,10 +137,6 @@ export default function MovieSection({ title, type, slug, params = {} }: MovieSe
             key={`${movie.id}-${index}`}
             ref={index === allMovies.length - 1 ? lastElementRef : null}
             className={styles.cardWrapper}
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.3 }}
           >
             <Link href={`/watch/${movie.slug}`}>
               <div className={styles.card}>

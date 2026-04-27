@@ -6,23 +6,55 @@
 }
 
 .container {
-  max-width: 1400px;
+  width: 100%;
   padding: 4% 4% 0;
+}
+
+.titleWrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 32px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 12px;
 }
 
 .title {
   font-size: 28px;
-  margin-bottom: 32px;
+  margin-bottom: 0;
   font-weight: 700;
+  text-transform: capitalize;
+}
+
+.pageLabel {
+  font-size: 16px;
+  color: var(--primary);
+  font-weight: 600;
+  background: rgba(229, 9, 20, 0.1);
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(229, 9, 20, 0.2);
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(6, 1fr);
   gap: 24px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1280px) {
+  .grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
   .grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
@@ -55,7 +87,7 @@
 .cardInfo {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%);
+  background: linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 60%);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -65,7 +97,7 @@
 }
 
 .card:hover .cardInfo {
-  transform: translateY(-2px);
+  /* removed translate */
 }
 
 .cardInfo h3 {
@@ -157,7 +189,6 @@
 .pageBtn:hover:not(:disabled) {
   background: white;
   color: black;
-  transform: translateY(-2px);
 }
 
 .pageBtn:disabled {

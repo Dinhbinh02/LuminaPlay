@@ -37,7 +37,7 @@ export default function Hero({ movies = [] }: HeroProps) {
     }, 10000);
 
     return () => clearInterval(timer);
-  }, [movies.length]);
+  }, [movies.length, currentIndex]);
 
   if (!movies || movies.length === 0) return null;
 
@@ -52,10 +52,6 @@ export default function Hero({ movies = [] }: HeroProps) {
         <motion.div 
           className={styles.slideContainer} 
           key={movie.slug}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.8 }}
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={0.2}
@@ -116,12 +112,7 @@ export default function Hero({ movies = [] }: HeroProps) {
 
           {/* Interactive Content Layer */}
           <div className={styles.heroContent}>
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
+            <motion.div>
               {movie.rank && (
                 <div className={styles.rankBadge}>
                   <span className={styles.rankNumber}>#{movie.rank}</span>

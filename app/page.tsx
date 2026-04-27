@@ -29,15 +29,36 @@ export default function Home() {
   const [isHistoryChecked, setIsHistoryChecked] = useState(false);
 
   useEffect(() => {
-    const watchHistory = localStorage.getItem('watch_history');
-    if (watchHistory) {
-      try {
-        setHistory(JSON.parse(watchHistory).slice(0, 10));
-      } catch (e) {
-        console.error("Failed to parse watch history", e);
+    const loadHistory = () => {
+      const watchHistory = localStorage.getItem('watch_history');
+      if (watchHistory) {
+        try {
+          const parsed = JSON.parse(watchHistory);
+          // Sort by lastUpdated descending to ensure newest is first
+          const sorted = parsed.sort((a: any, b: any) => {
+            const timeA = a.lastUpdated || (a.lastWatched ? new Date(a.lastWatched).getTime() : 0);
+            const timeB = b.lastUpdated || (b.lastWatched ? new Date(b.lastWatched).getTime() : 0);
+            return timeB - timeA;
+          });
+          setHistory(sorted.slice(0, 10));
+        } catch (e) {
+          console.error("Failed to parse watch history", e);
+        }
       }
-    }
+    };
+
+    loadHistory();
     setIsHistoryChecked(true);
+
+    // Listen for storage changes from other tabs
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'watch_history') {
+        loadHistory();
+      }
+    });
+
+    // Also poll occasionally or use a custom event if needed
+    // But for now, storage event is enough for cross-tab
   }, []);
 
   // Filter and sort for best hero movies: High rating (> 7) and both image assets
@@ -71,11 +92,13 @@ export default function Home() {
     <main style={{ minHeight: '100vh', backgroundColor: '#000000' }}>
       <Header />
 
-      {isHeroLoading ? (
-        <div className={styles.heroLoading} />
-      ) : (
-        <Hero movies={heroMovies} />
-      )}
+      <div className={styles.heroWrapper}>
+        {heroMovies.length > 0 ? (
+          <Hero movies={heroMovies} />
+        ) : (
+          <div className={styles.heroLoading} />
+        )}
+      </div>
 
       <div className={styles.contentWrapper}>
         {isHistoryChecked && history.length > 0 && (

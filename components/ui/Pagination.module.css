@@ -1,9 +1,22 @@
+.paginationWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 60px 0 20px;
+}
+
+.paginationWrapper {
+  display: flex;
+  justify-content: center;
+  padding: 60px 0 40px;
+}
+
 .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 16px;
-  padding: 40px 0 0;
+  gap: 12px;
 }
 
 .pages {
@@ -16,16 +29,16 @@
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.05);
   color: rgba(255, 255, 255, 0.7);
-  height: 40px;
-  min-width: 40px;
-  padding: 0 12px;
-  border-radius: 8px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
   transition: all 0.3s var(--transition-smooth);
 }
 
@@ -40,11 +53,11 @@
   background: var(--primary) !important;
   border-color: var(--primary) !important;
   color: white !important;
-  box-shadow: 0 8px 20px var(--primary-glow);
+  box-shadow: 0 8px 25px rgba(229, 9, 20, 0.4);
 }
 
 .navBtn:disabled {
-  opacity: 0.3;
+  opacity: 0.2;
   cursor: not-allowed;
   transform: none !important;
 }
@@ -57,14 +70,28 @@
   width: 32px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
+  .paginationWrapper {
+    padding: 40px 0 20px;
+  }
+
   .pagination {
-    gap: 8px;
+    gap: 6px;
   }
   
-  .pageBtn {
-    min-width: 36px;
-    height: 36px;
-    padding: 0 8px;
+  .pages {
+    gap: 4px;
+  }
+  
+  .navBtn, .pageBtn {
+    min-width: 34px;
+    height: 38px;
+    padding: 0 6px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+  
+  .ellipsis {
+    width: 20px;
   }
 }

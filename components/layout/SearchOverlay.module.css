@@ -35,7 +35,6 @@
 .searchBar:focus-within {
   background: rgba(255, 255, 255, 0.15);
   border-color: var(--primary);
-  box-shadow: 0 0 20px rgba(229, 9, 20, 0.2);
 }
 
 .searchIcon {
@@ -193,7 +192,7 @@
     height: 42px;
   }
   .input {
-    font-size: 15px;
+    font-size: 16px;
     padding: 0 8px;
   }
   .closeBtn {

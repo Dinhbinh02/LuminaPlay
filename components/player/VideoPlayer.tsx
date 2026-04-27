@@ -10,6 +10,7 @@ interface VideoPlayerProps {
   src: string;
   poster?: string;
   startTime?: number;
+  autoPlay?: boolean;
   onProgress?: (currentTime: number, duration: number) => void;
   onCapture?: (thumbnail: string) => void;
 }
@@ -18,9 +19,9 @@ export interface VideoPlayerRef {
   captureThumbnail: () => string | null;
 }
 
-const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, poster, startTime, onProgress, onCapture }, ref) => {
+const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, poster, startTime, autoPlay = false, onProgress, onCapture }, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(autoPlay);
   const [hlsInstance, setHlsInstance] = useState<Hls | null>(null);
 
   React.useImperativeHandle(ref, () => ({
@@ -53,17 +54,27 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
     }
 
     // Simple seek logic from old version
-    const seekWhenReady = (targetTime: number, maxRetries = 20) => {
+    const seekWhenReady = (targetTime: number, maxRetries = 30) => {
       if (targetTime <= 0) return;
       let attempts = 0;
+      
       const trySeek = () => {
         attempts++;
-        if (video.seekable && video.seekable.length > 0 && video.seekable.end(0) >= targetTime) {
+        
+        // Check if seekable ranges are available and contain targetTime
+        const isSeekable = video.seekable && video.seekable.length > 0;
+        const canSeekNow = isSeekable && video.seekable.end(0) >= targetTime;
+        
+        if (canSeekNow) {
           video.currentTime = targetTime;
+          console.log(`Seeked to ${targetTime} after ${attempts} attempts`);
         } else if (attempts < maxRetries) {
           setTimeout(trySeek, 300);
         }
       };
+      
+      // Also listen for loadedmetadata as a primary trigger
+      video.addEventListener('loadedmetadata', trySeek, { once: true });
       trySeek();
     };
 
@@ -72,7 +83,10 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
       video.src = src;
       video.addEventListener('canplay', () => {
         seekWhenReady(startTime || 0);
-        video.play().catch(e => console.log('Autoplay blocked', e));
+        video.play().catch(e => {
+          console.log('Autoplay blocked', e);
+          setIsPlaying(false);
+        });
       }, { once: true });
     } else if (Hls.isSupported()) {
       // Simple Hls.js logic
@@ -83,7 +97,10 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         seekWhenReady(startTime || 0);
-        video.play().catch(e => console.log('Autoplay blocked', e));
+        video.play().catch(e => {
+          console.log('Autoplay blocked', e);
+          setIsPlaying(false);
+        });
       });
       
       return () => {
@@ -110,6 +127,58 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
   const handleStartPlay = () => {
     setIsPlaying(true);
   };
+
+  const togglePiP = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    try {
+      if (video !== document.pictureInPictureElement) {
+        await video.requestPictureInPicture();
+      } else {
+        await document.exitPictureInPicture();
+      }
+    } catch (e) {
+      console.error("PiP failed", e);
+    }
+  };
+
+  const isPiPSupported = typeof document !== 'undefined' && !!document.pictureInPictureEnabled;
+
+  // Auto PiP on tab switch
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const video = videoRef.current;
+      if (!video) return;
+
+      if (document.visibilityState === 'hidden') {
+        if (isPlaying && !document.pictureInPictureElement) {
+          video.requestPictureInPicture().catch(e => {
+            console.log('Auto-PiP blocked or failed', e);
+          });
+        }
+      } else if (document.visibilityState === 'visible') {
+        // Exit PiP if any element is in PiP mode when we return
+        if (document.pictureInPictureElement) {
+          document.exitPictureInPicture().catch(e => {
+            console.log('Exit PiP failed', e);
+          });
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isPlaying]);
+
+  // Handle auto PiP attribute
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      // Set attribute directly to avoid TS error
+      (video as any).autoPictureInPicture = true;
+    }
+  }, []);
 
   return (
     <div className={styles.container}>
@@ -142,6 +211,7 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
       />
     </div>
   );
-});
+}
+);
 
 export default VideoPlayer;

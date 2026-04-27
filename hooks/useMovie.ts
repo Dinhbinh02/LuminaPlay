@@ -12,6 +12,7 @@ export function useMovieList(category: string, page = 1, limit = 10) {
   return useQuery({
     queryKey: ['movie-list', category, page, limit],
     queryFn: () => ophim.getList(category, page, limit),
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -20,6 +21,7 @@ export function useMovieDetail(slug: string) {
     queryKey: ['movie', slug],
     queryFn: () => ophim.getMovieDetail(slug),
     enabled: !!slug,
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -57,6 +59,7 @@ export function useMovies(type: 'the-loai' | 'quoc-gia' | 'danh-sach', slug: str
     queryKey: ['movies', type, slug, params],
     queryFn: () => ophim.getMovies(type, slug, params),
     enabled: !!slug,
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -73,5 +76,13 @@ export function useInfiniteMovies(type: 'the-loai' | 'quoc-gia' | 'danh-sach', s
     initialPageParam: 1,
     enabled: !!slug,
     staleTime: 1000 * 60 * 30, // 30 minutes cache
+  });
+}
+export function useSearch(keyword: string, page = 1) {
+  return useQuery({
+    queryKey: ['search', keyword, page],
+    queryFn: () => ophim.search(keyword, page),
+    enabled: !!keyword,
+    staleTime: 1000 * 60 * 5,
   });
 }

@@ -16,6 +16,9 @@ interface WatchHistoryItem {
   duration: number;
   lastUpdated: number;
   thumbnail?: string;
+  episodeIndex?: number;
+  episodeName?: string;
+  totalEpisodes?: number;
 }
 
 interface ContinueWatchingProps {
@@ -82,9 +85,6 @@ export default function ContinueWatching({ movies }: ContinueWatchingProps) {
           <motion.div
             key={movie.id}
             className={styles.cardWrapper}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
           >
             <Link href={`/watch/${movie.slug}`} className={styles.card}>
               <div className={styles.thumbnailWrapper}>
@@ -108,9 +108,17 @@ export default function ContinueWatching({ movies }: ContinueWatchingProps) {
               </div>
               <div className={styles.info}>
                 <h3 className={styles.movieTitle}>{movie.title}</h3>
-                <p className={styles.meta}>
-                  {formatTimeLeft(movie.currentTime, movie.duration)}
-                </p>
+                <div className={styles.metaRow}>
+                  <p className={styles.meta}>
+                    {formatTimeLeft(movie.currentTime, movie.duration)}
+                  </p>
+                  {movie.totalEpisodes && movie.totalEpisodes > 1 && movie.episodeName && 
+                   !['full', 'trailer'].includes(movie.episodeName.toLowerCase()) && (
+                    <span className={styles.epBadge}>
+                      {movie.episodeName.includes('Tập') ? movie.episodeName : `Ep ${movie.episodeName}`}
+                    </span>
+                  )}
+                </div>
               </div>
             </Link>
           </motion.div>

@@ -162,6 +162,10 @@
   .searchBoxFocused {
     width: 200px;
   }
+  
+  .searchInput {
+    font-size: 16px;
+  }
 }
 
 @media (max-width: 480px) {
