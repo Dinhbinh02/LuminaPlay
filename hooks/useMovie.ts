@@ -1,4 +1,4 @@
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
 import { ophim } from '@/lib/ophim';
 
 export function useHomeMovies() {
@@ -76,6 +76,7 @@ export function useInfiniteMovies(type: 'the-loai' | 'quoc-gia' | 'danh-sach', s
     initialPageParam: 1,
     enabled: !!slug,
     staleTime: 1000 * 60 * 30, // 30 minutes cache
+    placeholderData: keepPreviousData, // Giữ lại ảnh cũ trong lúc load ảnh mới (chống nháy)
   });
 }
 export function useSearch(keyword: string, page = 1) {

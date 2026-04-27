@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { ophim } from '@/lib/ophim';
 import { useInfiniteMovies } from '@/hooks/useMovie';
 import styles from './MovieSection.module.css';
- 
+
 interface Movie {
   id: string;
   title: string;
@@ -28,13 +28,15 @@ interface MovieSectionProps {
 const scrollRegistry: Record<string, number> = {};
 
 export default function MovieSection({ title, type, slug, params = {} }: MovieSectionProps) {
+  const memoizedParams = useMemo(() => params, [JSON.stringify(params)]);
+
   const {
     data,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     isLoading
-  } = useInfiniteMovies(type, slug, params);
+  } = useInfiniteMovies(type, slug, memoizedParams);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const observer = useRef<IntersectionObserver | null>(null);
@@ -59,7 +61,7 @@ export default function MovieSection({ title, type, slug, params = {} }: MovieSe
   const lastElementRef = useCallback((node: HTMLDivElement) => {
     if (isFetchingNextPage) return;
     if (observer.current) observer.current.disconnect();
-    
+
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasNextPage) {
         fetchNextPage();
@@ -68,17 +70,17 @@ export default function MovieSection({ title, type, slug, params = {} }: MovieSe
       root: scrollContainerRef.current,
       rootMargin: '400px' // Load earlier for smoother feel
     });
-    
+
     if (node) observer.current.observe(node);
   }, [isFetchingNextPage, hasNextPage, fetchNextPage]);
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
       const { scrollLeft, clientWidth } = scrollContainerRef.current;
-      const scrollTo = direction === 'left' 
-        ? scrollLeft - clientWidth * 0.8 
+      const scrollTo = direction === 'left'
+        ? scrollLeft - clientWidth * 0.8
         : scrollLeft + clientWidth * 0.8;
-      
+
       scrollContainerRef.current.scrollTo({
         left: scrollTo,
         behavior: 'smooth'
@@ -87,7 +89,7 @@ export default function MovieSection({ title, type, slug, params = {} }: MovieSe
   };
 
   const allMovies = useMemo(() => (
-    data?.pages.flatMap((page: any) => 
+    data?.pages.flatMap((page: any) =>
       page.data.items.map((item: any) => ({
         id: item._id,
         title: item.name,
@@ -107,7 +109,7 @@ export default function MovieSection({ title, type, slug, params = {} }: MovieSe
       <div className={styles.section}>
         <h2 className={styles.title}>{title}</h2>
         <div className={styles.skeletonContainer}>
-          {[1,2,3,4,5,6].map(i => <div key={i} className={styles.skeletonCard} />)}
+          {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className={styles.skeletonCard} />)}
         </div>
       </div>
     );
@@ -116,7 +118,7 @@ export default function MovieSection({ title, type, slug, params = {} }: MovieSe
   return (
     <section className={styles.section}>
       <div className={styles.header}>
-        <Link 
+        <Link
           href={`/search?${type === 'danh-sach' ? 'category' : type === 'the-loai' ? 'genre' : 'country'}=${slug}`}
           className={styles.titleWrapper}
         >
@@ -133,13 +135,13 @@ export default function MovieSection({ title, type, slug, params = {} }: MovieSe
         </div>
       </div>
 
-      <div 
-        className={styles.sliderContainer} 
+      <div
+        className={styles.sliderContainer}
         ref={scrollContainerRef}
         onScroll={handleScroll}
       >
         {allMovies.map((movie, index) => (
-          <motion.div 
+          <motion.div
             key={movie.id}
             ref={index === allMovies.length - 1 ? lastElementRef : null}
             className={styles.cardWrapper}
@@ -147,9 +149,9 @@ export default function MovieSection({ title, type, slug, params = {} }: MovieSe
             <Link href={`/watch/${movie.slug}`}>
               <div className={styles.card}>
                 <div className={styles.imageContainer}>
-                  <Image 
-                    src={movie.poster} 
-                    alt={movie.title} 
+                  <Image
+                    src={movie.poster}
+                    alt={movie.title}
                     fill
                     className={styles.poster}
                     sizes="(max-width: 768px) 160px, 200px"

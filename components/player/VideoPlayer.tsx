@@ -118,57 +118,6 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
     setIsPlaying(true);
   };
 
-  const togglePiP = async () => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    try {
-      if (video !== document.pictureInPictureElement) {
-        await video.requestPictureInPicture();
-      } else {
-        await document.exitPictureInPicture();
-      }
-    } catch (e) {
-      console.error("PiP failed", e);
-    }
-  };
-
-  const isPiPSupported = typeof document !== 'undefined' && !!document.pictureInPictureEnabled;
-
-  // Auto PiP on tab switch
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      const video = videoRef.current;
-      if (!video) return;
-
-      if (document.visibilityState === 'hidden') {
-        if (isPlaying && !document.pictureInPictureElement) {
-          video.requestPictureInPicture().catch(e => {
-            console.log('Auto-PiP blocked or failed', e);
-          });
-        }
-      } else if (document.visibilityState === 'visible') {
-        if (document.pictureInPictureElement) {
-          document.exitPictureInPicture().catch(e => {
-            console.log('Exit PiP failed', e);
-          });
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isPlaying]);
-
-  // Handle auto PiP attribute
-  useEffect(() => {
-    const video = videoRef.current;
-    if (video) {
-      // Set attribute directly to avoid TS error
-      (video as any).autoPictureInPicture = true;
-    }
-  }, []);
-
   return (
     <div className={styles.container}>
       {!isPlaying && (

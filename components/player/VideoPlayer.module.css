@@ -33,7 +33,6 @@
 .posterImg {
   object-fit: cover;
   transition: transform 0.5s ease;
-  z-index: 0;
 }
 
 .posterOverlay:hover .posterImg {
@@ -44,7 +43,6 @@
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
-  z-index: 1;
 }
 
 .playBtn {
