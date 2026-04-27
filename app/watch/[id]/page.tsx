@@ -79,6 +79,7 @@ export default function WatchPage() {
   const { data: castData } = useMovieCast(slug);
   const [currentEpisode, setCurrentEpisode] = useState(0);
   const currentEpisodeRef = useRef(0);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [initialTime, setInitialTime] = useState(0);
   const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
   const progressRef = useRef({ currentTime: 0, duration: 0 });
@@ -297,7 +298,29 @@ export default function WatchPage() {
                   <span className={styles.imdb}>IMDb: {movie.imdb.vote_average}</span>
                 ) : null}
               </div>
-              <p className={styles.description}>{movie.content?.replace(/<[^>]*>?/gm, '')}</p>
+              {(() => {
+                const cleanContent = movie.content?.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ') || '';
+                const shouldShowExpand = cleanContent.length > 250;
+                const displayContent = (!isExpanded && shouldShowExpand) 
+                  ? cleanContent.slice(0, 250) + '...' 
+                  : cleanContent;
+
+                return (
+                  <div className={styles.descriptionWrapper}>
+                    <p className={styles.description}>
+                      {displayContent}
+                      {shouldShowExpand && (
+                        <button 
+                          className={styles.expandBtn} 
+                          onClick={() => setIsExpanded(!isExpanded)}
+                        >
+                          {isExpanded ? ' Show Less' : ' Expand'}
+                        </button>
+                      )}
+                    </p>
+                  </div>
+                );
+              })()}
 
               <div className={styles.genres}>
                 {movie.category?.map((genre: any, idx: number) => (
