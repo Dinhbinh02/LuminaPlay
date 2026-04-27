@@ -8,6 +8,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import Pagination from "@/components/ui/Pagination";
+import { useGenres, useCountries } from "@/hooks/useMovie";
+import { CATEGORIES } from "@/components/layout/FilterOverlay";
 import styles from './SearchPage.module.css';
 
 function SearchCard({ movie, cdnDomain, index }: { movie: any, cdnDomain: string, index: number }) {
@@ -27,7 +29,7 @@ function SearchCard({ movie, cdnDomain, index }: { movie: any, cdnDomain: string
             alt={movie.name}
             fill
             sizes="(max-width: 480px) 45vw, (max-width: 768px) 30vw, (max-width: 1200px) 18vw, 200px"
-            style={{ 
+            style={{
               objectFit: 'cover',
               opacity: isLoaded ? 1 : 0,
               transition: 'opacity 0.4s ease'
@@ -39,7 +41,11 @@ function SearchCard({ movie, cdnDomain, index }: { movie: any, cdnDomain: string
             <h3>{movie.name}</h3>
             <div className={styles.meta}>
               <span>{movie.year}</span>
-              <span className={styles.quality}>{movie.quality}</span>
+              {(movie.episode_current || movie.quality) && (
+                <span className={`${styles.quality} ${(movie.quality === 'Trailer' || movie.episode_current === 'Trailer') ? styles.trailer : ''}`}>
+                  {ophim.formatEpisode(movie.episode_current || movie.quality)}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -51,6 +57,8 @@ function SearchCard({ movie, cdnDomain, index }: { movie: any, cdnDomain: string
 function SearchResults() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { data: genresData } = useGenres();
+  const { data: countriesData } = useCountries();
 
   const keyword = searchParams.get('q') || searchParams.get('keyword');
   const country = searchParams.get('country');
@@ -79,16 +87,91 @@ function SearchResults() {
       setTitle('');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       try {
+        const mode = searchParams.get('mode');
         let data;
+
+        if (mode === 'history') {
+          setTitle('Watch History');
+          if (typeof window !== 'undefined') {
+            try {
+              const watchHistory = localStorage.getItem('watch_history');
+              if (watchHistory) {
+                const parsed = JSON.parse(watchHistory);
+                // Sort by lastUpdated descending to match home page
+                const sorted = parsed.sort((a: any, b: any) => {
+                  const timeA = a.lastUpdated || (a.lastWatched ? new Date(a.lastWatched).getTime() : 0);
+                  const timeB = b.lastUpdated || (b.lastWatched ? new Date(b.lastWatched).getTime() : 0);
+                  return timeB - timeA;
+                });
+
+                // Transform history items to match the expected structure
+                const historyItems = sorted.map((item: any) => ({
+                  _id: item.id || item.slug,
+                  name: item.title,
+                  slug: item.slug,
+                  thumb_url: item.poster,
+                  year: item.year,
+                  quality: item.quality,
+                  episode_current: item.episodeName ? `EP ${item.episodeName}` : item.quality
+                }));
+                
+                setResults(historyItems);
+              } else {
+                setResults([]);
+              }
+            } catch (e) {
+              console.error("Failed to load history in SearchPage", e);
+              setResults([]);
+            }
+          }
+          setIsLoading(false);
+          return;
+        }
+
         if (keyword) {
           setTitle(`Search results for: "${keyword}"`);
           data = await ophim.search(keyword, page);
-        } else if (country) {
-          data = await ophim.getMovies('quoc-gia', country, { page });
-        } else if (genre) {
-          data = await ophim.getMovies('the-loai', genre, { page });
-        } else if (category) {
-          data = await ophim.getMovies('danh-sach', category, { page });
+        } else {
+          const baseSlug = category || 'phim-moi';
+
+          // Determine the title based on filters
+          let customTitle = '';
+          const parts = [];
+
+          if (category && category !== 'phim-moi') {
+            const catObj = CATEGORIES.find((c: { name: string; slug: string }) => c.slug === category);
+            parts.push(catObj ? catObj.name : category);
+          }
+
+          if (genre) {
+            const genreNames = genre.split(',').map(s => {
+              const g = genresData?.data?.items?.find((i: any) => i.slug === s);
+              return g ? g.name : s;
+            });
+            parts.push(genreNames.join(', '));
+          }
+
+          if (country) {
+            const countryNames = country.split(',').map(s => {
+              const c = countriesData?.data?.items?.find((i: any) => i.slug === s);
+              return c ? c.name : s;
+            });
+            parts.push(countryNames.join(', '));
+          }
+
+          if (parts.length > 0) {
+            customTitle = parts.join(' • ');
+          } else {
+            customTitle = 'Phim Mới';
+          }
+
+          setTitle(customTitle);
+
+          data = await ophim.getMovies('danh-sach', baseSlug, {
+            page,
+            category: genre || undefined,
+            country: country || undefined
+          });
         }
 
         if (data) {
@@ -96,10 +179,14 @@ function SearchResults() {
           setCdnDomain(data.data?.APP_DOMAIN_CDN_IMAGE || '');
           setPagination(data.data?.params?.pagination);
 
-          if (data.data?.titlePage) {
-            setTitle(data.data.titlePage);
-          } else if (data.data?.seoOnPage?.titleHead) {
-            setTitle(data.data.seoOnPage.titleHead);
+          // Only use API title if we don't have specific filters 
+          // (because API doesn't know how to title multi-filters correctly)
+          if (!genre && !country) {
+            if (data.data?.titlePage) {
+              setTitle(data.data.titlePage);
+            } else if (data.data?.seoOnPage?.titleHead) {
+              setTitle(data.data.seoOnPage.titleHead);
+            }
           }
         }
       } catch (error) {
@@ -110,7 +197,7 @@ function SearchResults() {
     };
 
     fetchData();
-  }, [keyword, country, genre, category, page]);
+  }, [keyword, country, genre, category, page, genresData, countriesData]);
 
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -141,17 +228,17 @@ function SearchResults() {
         <>
           <div className={styles.grid}>
             {results.map((movie, index) => (
-              <SearchCard 
-                key={movie._id} 
-                movie={movie} 
-                cdnDomain={cdnDomain} 
-                index={index} 
+              <SearchCard
+                key={movie._id}
+                movie={movie}
+                cdnDomain={cdnDomain}
+                index={index}
               />
             ))}
           </div>
 
           {totalPages > 1 && (
-            <Pagination 
+            <Pagination
               currentPage={page}
               totalItems={pagination?.totalItems || 0}
               itemsPerPage={pagination?.totalItemsPerPage || 24}
@@ -162,7 +249,11 @@ function SearchResults() {
       )}
 
       {!isLoading && results.length === 0 && (
-        <div className={styles.noResults}>No movies found matching your criteria.</div>
+        <div className={styles.noResults}>
+          {searchParams.get('mode') === 'history' 
+            ? 'No watch history found.' 
+            : 'No movies found matching your criteria.'}
+        </div>
       )}
     </div>
   );

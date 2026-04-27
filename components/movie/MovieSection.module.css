@@ -125,8 +125,26 @@
   z-index: 5;
 }
 
-.card:hover .overlay {
-  /* No lift effect */
+.badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 10;
+}
+
+.trailer {
+  background: rgba(249, 115, 22, 0.9);
+  border: none;
 }
 
 .movieTitle {

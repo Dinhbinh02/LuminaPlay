@@ -115,6 +115,34 @@ export default function WatchPage() {
     }
   }, [movieData]);
 
+  const episodes = movieData?.data?.item?.episodes?.[0]?.server_data || [];
+  const isTrailerOnly = movieData?.data?.item?.status === 'trailer' || (episodes.length > 0 && !episodes[currentEpisode]?.link_m3u8);
+
+  // Auto-scroll to active episode within the list
+  useEffect(() => {
+    if (isHistoryLoaded && episodes.length > 0) {
+      const timer = setTimeout(() => {
+        const activeEp = document.getElementById('active-episode');
+        const epList = activeEp?.parentElement;
+        
+        if (activeEp && epList) {
+          // Calculate the scroll position to center the active episode
+          const activeRect = activeEp.getBoundingClientRect();
+          const listRect = epList.getBoundingClientRect();
+          
+          const relativeTop = activeRect.top - listRect.top;
+          const scrollTarget = epList.scrollTop + relativeTop - (listRect.height / 2) + (activeRect.height / 2);
+          
+          epList.scrollTo({
+            top: scrollTarget,
+            behavior: 'smooth'
+          });
+       }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [currentEpisode, isHistoryLoaded, episodes.length]);
+
   const saveHistory = useCallback((currentTime?: number, duration?: number) => {
     if (!movieData?.data?.item || !isHistoryLoaded) return;
 
@@ -204,9 +232,7 @@ export default function WatchPage() {
   
   if (!movie) return <div className="text-white text-center pt-40">Movie not found</div>;
 
-  const episodes = movie.episodes?.[0]?.server_data || [];
   const videoSrc = episodes[currentEpisode]?.link_m3u8;
-  const isTrailerOnly = movie.status === 'trailer' || !videoSrc;
 
   return (
     <main className={styles.main}>
@@ -244,8 +270,11 @@ export default function WatchPage() {
             </motion.div>
 
             <div className={styles.movieInfo}>
-              {isTrailerOnly && (
+              {videoSrc === '' && movie.trailer_url && (
                 <div className={styles.trailerBadge}>Đang chiếu Trailer</div>
+              )}
+              {!videoSrc && !movie.trailer_url && movie.status === 'trailer' && (
+                <div className={styles.comingSoonBadge}>Sắp chiếu</div>
               )}
               <h1 className={styles.title}>{movie.name}</h1>
               {movie.origin_name && movie.origin_name !== movie.name && (
@@ -324,24 +353,30 @@ export default function WatchPage() {
               <div className={styles.epSection}>
                 <h3>
                   Episodes 
-                  <span className={styles.epCount}>{episodes.length} Total</span>
+                  <span className={styles.epCount}>
+                    {episodes.length === 1 && episodes[0].name === '1' ? 'Full' : `${episodes.length} Total`}
+                  </span>
                 </h3>
                 <div className={styles.epList}>
-                  {episodes.map((ep: any, index: number) => (
-                    <button
-                      key={index}
-                      className={`${styles.epBtn} ${currentEpisode === index ? styles.epActive : ''}`}
-                      onClick={() => {
-                        saveHistory();
-                        setCurrentEpisode(index);
-                        setInitialTime(0); 
-                        progressRef.current = { currentTime: 0, duration: 0 };
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                    >
-                      {ep.name || (isTrailerOnly ? 'Trailer' : 'Full')}
-                    </button>
-                  ))}
+                  {episodes.map((ep: any, index: number) => {
+                    const isActive = isHistoryLoaded && currentEpisode === index;
+                    return (
+                      <button
+                        key={index}
+                        id={isActive ? 'active-episode' : undefined}
+                        className={`${styles.epBtn} ${isActive ? styles.epActive : ''}`}
+                        onClick={() => {
+                          saveHistory();
+                          setCurrentEpisode(index);
+                          setInitialTime(0); 
+                          progressRef.current = { currentTime: 0, duration: 0 };
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                      >
+                        {episodes.length === 1 && ep.name === '1' ? 'Full' : (ep.name || (isTrailerOnly ? 'Trailer' : 'Full'))}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

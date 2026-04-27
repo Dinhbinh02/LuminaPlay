@@ -45,7 +45,7 @@ export default function MovieGrid({ movies, title }: MovieGridProps) {
                     quality={60}
                   />
                   {movie.quality && (
-                    <span className={styles.quality}>{movie.quality}</span>
+                    <span className={`${styles.quality} ${movie.quality === 'Trailer' ? styles.trailer : ''}`}>{movie.quality}</span>
                   )}
                 </div>
                 <div className={styles.info}>

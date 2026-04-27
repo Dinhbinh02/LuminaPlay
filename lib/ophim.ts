@@ -108,5 +108,25 @@ export const ophim = {
     const cleanPath = path.startsWith('/') ? path.substring(1) : path;
     
     return `${cleanDomain}${cleanPath}`;
+  },
+
+  formatEpisode: (ep: string | undefined) => {
+    if (!ep) return '';
+    if (ep.toLowerCase() === 'trailer') return 'Trailer';
+    if (ep.toLowerCase().includes('full')) return 'Full';
+    
+    // Extract patterns like "10/10" from "Hoàn tất (10/10)"
+    const matchRange = ep.match(/(\d+\/\d+)/);
+    if (matchRange) {
+      const range = matchRange[1];
+      if (range === '1/1') return 'Full';
+      return range;
+    }
+    
+    // Extract number from "Tập 2"
+    const matchNumber = ep.match(/Tập\s+(\d+)/i);
+    if (matchNumber) return matchNumber[1];
+    
+    return ep;
   }
 };

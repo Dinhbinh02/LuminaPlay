@@ -25,7 +25,7 @@ function SeriesContent() {
     poster: ophim.getImageUrl(item.thumb_url, data?.data?.APP_DOMAIN_CDN_IMAGE),
     slug: item.slug,
     year: item.year?.toString(),
-    quality: item.quality
+    quality: ophim.formatEpisode(item.episode_current || item.quality)
   })) || [];
 
   const handlePageChange = (newPage: number) => {

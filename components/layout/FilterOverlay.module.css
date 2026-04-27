@@ -4,15 +4,18 @@
   background: rgba(0, 0, 0, 0.95);
   backdrop-filter: blur(15px);
   z-index: 1000;
-  padding: 40px 4%;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .container {
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding: 40px 4% 0;
 }
 
 .header {
@@ -20,6 +23,7 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 30px;
+  flex-shrink: 0;
 }
 
 .title {
@@ -49,6 +53,17 @@
   color: black;
 }
 
+.scrollContent {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 120px;
+  scrollbar-width: none;
+}
+
+.scrollContent::-webkit-scrollbar {
+  display: none;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -65,11 +80,35 @@
 .sectionHeader {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
   margin-bottom: 24px;
   color: var(--primary);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   padding-bottom: 12px;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sectionClear {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sectionClear:hover {
+  background: white;
+  color: black;
+  transform: scale(1.05);
 }
 
 .sectionHeader h3 {
@@ -99,15 +138,90 @@
 }
 
 .option:hover {
-  background: white;
-  color: black;
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
+.option:active {
+  transform: scale(0.95);
+}
+
+.option:focus {
+  outline: none;
+}
+
+.option.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
+}
+
+.option.active:hover {
+  background: #ff0f1a;
+  box-shadow: 0 6px 20px rgba(229, 9, 20, 0.5);
+}
+
+.footer {
+  position: absolute;
+  bottom: 40px;
+  right: 4%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  z-index: 1100;
+  pointer-events: none; /* Container is invisible, but buttons inside should work */
+}
+
+.footer button {
+  pointer-events: auto;
+}
+
+.applyBtn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 0 35px;
+  height: 50px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 25px rgba(229, 9, 20, 0.4);
+}
+
+.applyBtn:hover {
+  transform: translateY(-3px);
+  filter: brightness(1.1);
+  box-shadow: 0 12px 35px rgba(229, 9, 20, 0.6);
+}
+
+.clearBtn {
+  background: rgb(40, 40, 40);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0 25px;
+  height: 50px;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.clearBtn:hover {
+  background: rgb(55, 55, 55);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
 @media (max-width: 640px) {
-  .overlay {
-    padding: 24px 4%;
+  .container {
+    padding: 24px 4% 0;
   }
   .header {
     margin-bottom: 20px;
@@ -122,5 +236,32 @@
   }
   .grid {
     gap: 30px;
+  }
+  .scrollContent {
+    padding-bottom: 100px;
+  }
+  .option {
+    font-size: 16px;
+    padding: 10px 18px;
+  }
+  .sectionClear {
+    font-size: 16px;
+    padding: 6px 16px;
+  }
+  .footer {
+    bottom: 24px;
+    right: 4%;
+    gap: 12px;
+  }
+  .applyBtn {
+    height: 44px;
+    padding: 0 25px;
+    font-size: 14px;
+    flex: 1;
+  }
+  .clearBtn {
+    height: 44px;
+    padding: 0 15px;
+    font-size: 13px;
   }
 }

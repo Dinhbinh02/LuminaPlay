@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { ophim } from '@/lib/ophim';
 import { useInfiniteMovies } from '@/hooks/useMovie';
 import styles from './MovieSection.module.css';
-
+ 
 interface Movie {
   id: string;
   title: string;
@@ -92,7 +92,9 @@ export default function MovieSection({ title, type, slug, params = {} }: MovieSe
       title: item.name,
       poster: ophim.getImageUrl(item.thumb_url, page.data.APP_DOMAIN_CDN_IMAGE),
       slug: item.slug,
-      year: item.year?.toString()
+      year: item.year?.toString(),
+      quality: item.quality,
+      episodeCurrent: item.episode_current
     }))
   ) || [];
 
@@ -152,6 +154,11 @@ export default function MovieSection({ title, type, slug, params = {} }: MovieSe
                   />
                 </div>
                 <div className={styles.overlay}>
+                  {(movie.episodeCurrent || movie.quality) && (
+                    <div className={`${styles.badge} ${movie.episodeCurrent === 'Trailer' ? styles.trailer : ''}`}>
+                      {ophim.formatEpisode(movie.episodeCurrent || movie.quality)}
+                    </div>
+                  )}
                   <h3 className={styles.movieTitle}>{movie.title}</h3>
                   <div className={styles.meta}>
                     <span>{movie.year}</span>
