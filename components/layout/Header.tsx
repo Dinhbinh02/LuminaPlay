@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { Search, Bell, User, Sliders, Play } from 'lucide-react';
 import styles from './Header.module.css';
@@ -93,10 +93,12 @@ export default function Header() {
         onClose={() => setIsSearchOpen(false)} 
       />
       
-      <FilterOverlay 
-        isOpen={isFilterOpen} 
-        onClose={() => setIsFilterOpen(false)} 
-      />
+      <Suspense fallback={null}>
+        <FilterOverlay 
+          isOpen={isFilterOpen} 
+          onClose={() => setIsFilterOpen(false)} 
+        />
+      </Suspense>
     </>
   );
 }
