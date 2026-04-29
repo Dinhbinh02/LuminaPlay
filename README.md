@@ -1,6 +1,8 @@
-# 🎬 Lumina Play v2
+# 🎬 Lumina Play
 
-Lumina Play v2 is a premium movie streaming web application built on **Next.js 15**, focusing on smooth user experience, modern interface, and exceptional optimization across all devices.
+![Lumina Play Banner](banner.png)
+
+**Lumina Play** is a premium movie streaming web application built on **Next.js 15**, focusing on smooth user experience, modern interface, and exceptional optimization across all devices.
 
 ## ✨ Key Features
 
