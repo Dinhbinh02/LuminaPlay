@@ -95,6 +95,12 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
     showSpeedMenuRef.current = showSpeedMenu;
   }, [showSpeedMenu]);
 
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = isMuted;
+    }
+  }, [isMuted]);
+
   // Auto-hide controls effect
   useEffect(() => {
     if (showControls && isPlaying && !showSpeedMenu) {
@@ -128,14 +134,36 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
     }
   };
 
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    document.addEventListener('webkitfullscreenchange', handleFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFsChange);
+      document.removeEventListener('webkitfullscreenchange', handleFsChange);
+    };
+  }, []);
+
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
+    const container = containerRef.current;
+    
     if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch(e => console.error("Error enabling fullscreen", e));
-      setIsFullscreen(true);
+      if (container.requestFullscreen) {
+        container.requestFullscreen();
+      } else if ((container as any).webkitRequestFullscreen) {
+        (container as any).webkitRequestFullscreen();
+      } else if ((container as any).msRequestFullscreen) {
+        (container as any).msRequestFullscreen();
+      }
     } else {
-      if (document.exitFullscreen) document.exitFullscreen();
-      setIsFullscreen(false);
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      }
     }
   };
 
@@ -308,8 +336,8 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
   };
 
   // Removed toggleFullscreen from here as it is hoisted
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseFloat(e.target.value);
+  const handleVolumeChange = (e: React.FormEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.currentTarget.value);
     setVolume(val);
     if (videoRef.current) {
       videoRef.current.volume = val;
@@ -475,6 +503,8 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
                     step="0.05"
                     value={isMuted ? 0 : volume}
                     onChange={handleVolumeChange}
+                    onInput={handleVolumeChange}
+                    onClick={(e) => e.stopPropagation()}
                     className={styles.volumeSlider}
                   />
                 </div>
