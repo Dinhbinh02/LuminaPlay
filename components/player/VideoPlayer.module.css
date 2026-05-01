@@ -8,6 +8,14 @@
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
 }
 
+.theaterContainer {
+  border-radius: 0 !important;
+}
+
+.hideCursor {
+  cursor: none !important;
+}
+
 .video {
   width: 100%;
   height: 100%;
@@ -69,4 +77,416 @@
   transform: scale(1.15);
   background: #ff0f1e;
   box-shadow: 0 0 50px var(--primary-glow);
+}
+
+.speedBadge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  z-index: 20;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: opacity 0.3s ease;
+}
+
+.topIndicator {
+  position: absolute;
+  top: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: white;
+  padding: 8px 20px;
+  border-radius: 30px;
+  font-size: 16px;
+  font-weight: 700;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+}
+
+.leftIndicator,
+.rightIndicator {
+  position: absolute;
+  top: 50%;
+  z-index: 30;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.leftIndicator {
+  left: 0;
+  transform: translateY(-50%);
+}
+
+.rightIndicator {
+  right: 0;
+  transform: translateY(-50%);
+}
+
+.sideIndicatorCircle {
+  background: rgba(0, 0, 0, 0.4);
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.leftIndicator .sideIndicatorCircle {
+  margin-left: -100px;
+}
+
+.rightIndicator .sideIndicatorCircle {
+  margin-right: -100px;
+}
+
+.centerIndicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.6);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  z-index: 30;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.indicatorText {
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+}
+
+.controls {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  padding: 20px;
+}
+
+.controlsActive {
+  opacity: 1;
+}
+
+.bottomControls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.progressContainer {
+  position: relative;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: height 0.1s ease;
+}
+
+.progressContainer:hover {
+  height: 8px;
+}
+
+.progressBar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: #ff0000;
+  border-radius: 2px;
+  z-index: 2;
+}
+
+.progressHover {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  z-index: 1;
+}
+
+.previewTooltip {
+  position: absolute;
+  bottom: 20px;
+  transform: translateX(-50%);
+  background: rgba(15, 15, 15, 0.95);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  z-index: 30;
+  white-space: nowrap;
+}
+
+
+.controlButtons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.leftBtns,
+.rightBtns {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  transition: all 0.2s ease;
+  opacity: 0.85;
+}
+
+.btn:hover {
+  transform: scale(1.15);
+  opacity: 1;
+}
+
+.timeDisplay {
+  color: #ccc;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  margin-left: 8px;
+}
+
+.volumeContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 32px;
+  overflow: hidden;
+  transition: width 0.3s ease;
+}
+
+.volumeContainer:hover {
+  width: 120px;
+}
+
+.volumeSlider {
+  width: 80px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  outline: none;
+}
+
+.volumeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.speedWrapper {
+  position: relative;
+}
+
+.speedMenu {
+  position: absolute;
+  bottom: calc(100% + 15px);
+  right: 0;
+  background: rgba(15, 15, 25, 0.95);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 16px;
+  border-radius: 12px;
+  width: 200px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.speedCurrent {
+  font-size: 22px;
+  font-weight: 800;
+  text-align: center;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+
+.speedSliderWrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 2px;
+}
+
+.speedSlider {
+  flex: 1;
+  width: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  cursor: pointer;
+  appearance: none;
+  outline: none;
+}
+
+.speedSlider::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+.speedAdjustBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.speedAdjustBtn:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  transform: scale(1.1);
+}
+
+.speedPresets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.speedPresetBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 6px 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.speedPresetBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.speedPresetBtn.active {
+  background: #fff;
+  color: #000 !important;
+  border-color: #fff;
+}
+
+
+.presetLabel {
+  font-size: 10px;
+  opacity: 0.7;
+  text-transform: uppercase;
+}
+
+.activeBtn {
+  color: #4ade80 !important;
+  opacity: 1 !important;
+}
+
+@media (max-width: 768px) {
+  .speedMenu {
+    width: 160px;
+    padding: 10px;
+    gap: 12px;
+    right: -15px;
+    bottom: calc(100% + 10px);
+  }
+
+  .speedCurrent {
+    font-size: 16px;
+  }
+
+  .speedSliderWrapper {
+    gap: 6px;
+  }
+
+  .speedAdjustBtn {
+    width: 20px;
+    height: 20px;
+  }
+
+  .speedPresetBtn {
+    font-size: 10px;
+    padding: 4px 0;
+  }
+}
+
+@media (max-width: 1100px) {
+
+  .theaterBtn,
+  .timeDisplay {
+    display: none !important;
+  }
 }

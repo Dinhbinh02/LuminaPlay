@@ -31,10 +31,10 @@ export default function Hero({ movies = [] }: HeroProps) {
 
   useEffect(() => {
     if (movies.length <= 1) return;
-    
+
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % movies.length);
-    }, 10000);
+    }, 5000);
 
     return () => clearInterval(timer);
   }, [movies.length, currentIndex]);
@@ -49,33 +49,39 @@ export default function Hero({ movies = [] }: HeroProps) {
   return (
     <section className={styles.hero}>
       <AnimatePresence mode="wait">
-        <motion.div 
-          className={styles.slideContainer} 
+        <motion.div
+          className={styles.slideContainer}
           key={movie.slug}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.8, ease: "easeInOut" }}
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={0.2}
           onDragEnd={(e, info) => {
             const swipe = info.offset.x;
-            if (swipe > 50) {
+            if (swipe > 100) {
               prevSlide();
-            } else if (swipe < -50) {
+            } else if (swipe < -100) {
               nextSlide();
             }
           }}
+          whileTap={{ cursor: 'grabbing' }}
         >
           {/* Main Background Link */}
-          <Link 
-            href={`/watch/${movie.slug}`} 
+          <Link
+            href={`/watch/${movie.slug}`}
             className={styles.heroLink}
             aria-label={`Watch ${movie.title}`}
+            onDragStart={(e) => e.preventDefault()}
           >
             <div className={styles.heroBg}>
               {/* Desktop Backdrop */}
               <div className={styles.desktopOnly}>
-                <Image 
-                  src={movie.backdrop} 
-                  alt={movie.title} 
+                <Image
+                  src={movie.backdrop}
+                  alt={movie.title}
                   fill
                   sizes="(max-width: 768px) 100vw, 100vw"
                   className={styles.heroImg}
@@ -86,9 +92,9 @@ export default function Hero({ movies = [] }: HeroProps) {
               </div>
               {/* Mobile Poster */}
               <div className={styles.mobileOnly}>
-                <Image 
-                  src={movie.poster} 
-                  alt={movie.title} 
+                <Image
+                  src={movie.poster}
+                  alt={movie.title}
                   fill
                   sizes="(max-width: 768px) 100vw, 100vw"
                   className={styles.heroImg}
@@ -99,9 +105,9 @@ export default function Hero({ movies = [] }: HeroProps) {
               </div>
               <div className={styles.heroOverlay}></div>
               <div className={styles.reflection}>
-                <Image 
-                  src={movie.backdrop} 
-                  alt="reflection" 
+                <Image
+                  src={movie.backdrop}
+                  alt="reflection"
                   fill
                   className={styles.reflectionImg}
                   quality={10}
@@ -123,7 +129,7 @@ export default function Hero({ movies = [] }: HeroProps) {
               <Link href={`/watch/${movie.slug}`} className={styles.titleLink}>
                 <h1 className={styles.title}>{movie.title}</h1>
               </Link>
-              
+
               <div className={styles.metaInfo}>
                 {movie.rating ? movie.rating > 0 ? (
                   <div className={styles.rating}>
@@ -143,8 +149,8 @@ export default function Hero({ movies = [] }: HeroProps) {
 
               <div className={styles.genres}>
                 {movie.genres?.slice(0, 3).map((genre, idx) => (
-                  <Link 
-                    key={idx} 
+                  <Link
+                    key={idx}
                     href={`/search?genre=${genre.slug}`}
                     className={styles.genreTag}
                   >
@@ -156,8 +162,8 @@ export default function Hero({ movies = [] }: HeroProps) {
               {movies.length > 1 && (
                 <div className={styles.dots}>
                   {movies.map((_, idx) => (
-                    <div 
-                      key={idx} 
+                    <div
+                      key={idx}
                       className={`${styles.dot} ${idx === currentIndex ? styles.dotActive : ''}`}
                       onClick={(e) => {
                         e.preventDefault();
@@ -172,6 +178,20 @@ export default function Hero({ movies = [] }: HeroProps) {
           </div>
         </motion.div>
       </AnimatePresence>
+
+      {/* Invisible Preload Container */}
+      <div style={{ display: 'none' }} aria-hidden="true">
+        {movies.map((m, idx) => (
+          <React.Fragment key={`preload-${idx}`}>
+            {idx !== currentIndex && (
+              <>
+                <img src={m.backdrop} alt="" />
+                <img src={m.poster} alt="" />
+              </>
+            )}
+          </React.Fragment>
+        ))}
+      </div>
 
     </section>
   );

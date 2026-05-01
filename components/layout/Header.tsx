@@ -7,18 +7,22 @@ import styles from './Header.module.css';
 import SearchOverlay from './SearchOverlay';
 import FilterOverlay from './FilterOverlay';
 
-export default function Header() {
-  const [isScrolled, setIsScrolled] = useState(false);
+export default function Header({ isSolid = false }: { isSolid?: boolean }) {
+  const [isScrolled, setIsScrolled] = useState(isSolid);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   useEffect(() => {
+    if (isSolid) {
+      setIsScrolled(true);
+      return;
+    }
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [isSolid]);
 
   // Prevent scroll when overlays are open
   useEffect(() => {
@@ -33,7 +37,7 @@ export default function Header() {
 
   return (
     <>
-      <header className={`${styles.header} ${isScrolled ? styles.headerScrolled : styles.headerTransparent}`}>
+      <header className={`${styles.header} ${isScrolled ? styles.headerScrolled : styles.headerTransparent} ${isSolid ? styles.headerSolid : ''}`}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <Link href="/" className={styles.logo}>
             <div className={styles.logoIcon}>
