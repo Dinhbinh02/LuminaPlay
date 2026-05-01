@@ -147,14 +147,20 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
   }, []);
 
   const toggleFullscreen = () => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !videoRef.current) return;
     const container = containerRef.current;
+    const video = videoRef.current;
     
-    if (!document.fullscreenElement) {
+    const isFs = !!(document.fullscreenElement || (document as any).webkitFullscreenElement);
+
+    if (!isFs) {
       if (container.requestFullscreen) {
         container.requestFullscreen();
       } else if ((container as any).webkitRequestFullscreen) {
         (container as any).webkitRequestFullscreen();
+      } else if ((video as any).webkitEnterFullscreen) {
+        // Essential fallback for iPhone/iOS
+        (video as any).webkitEnterFullscreen();
       } else if ((container as any).msRequestFullscreen) {
         (container as any).msRequestFullscreen();
       }
