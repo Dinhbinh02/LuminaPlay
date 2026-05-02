@@ -63,6 +63,8 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
   const indicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const progressContainerRef = useRef<HTMLDivElement>(null);
+  const cumulativeSeekRef = useRef(0);
+  const cumulativeSeekTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragTime, setDragTime] = useState<number | null>(null);
@@ -207,7 +209,19 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
     seek: (amount: number) => {
       if (videoRef.current) {
         videoRef.current.currentTime += amount;
-        showIndicator('seek', `${amount > 0 ? '+' : ''}${amount}s`);
+        
+        // Accumulate seek amount
+        cumulativeSeekRef.current += amount;
+        const total = cumulativeSeekRef.current;
+        
+        // Show indicator with accumulated amount
+        showIndicator('seek', `${total > 0 ? '+' : ''}${total}s`);
+        
+        // Reset cumulative total after 1 second of inactivity
+        if (cumulativeSeekTimeoutRef.current) clearTimeout(cumulativeSeekTimeoutRef.current);
+        cumulativeSeekTimeoutRef.current = setTimeout(() => {
+          cumulativeSeekRef.current = 0;
+        }, 1000);
       }
     },
     changePlaybackRate: (delta: number) => {
@@ -440,9 +454,9 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
       <AnimatePresence>
         {indicator && indicator.type === 'speed' && (
           <motion.div
-            initial={{ opacity: 0, y: -20, x: '-50%' }}
-            animate={{ opacity: 1, y: 0, x: '-50%' }}
-            exit={{ opacity: 0, y: -20, x: '-50%' }}
+            initial={{ opacity: 0, x: '-50%' }}
+            animate={{ opacity: 1, x: '-50%' }}
+            exit={{ opacity: 0, x: '-50%' }}
             className={styles.topIndicator}
           >
             {indicator.value}
@@ -453,16 +467,32 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
       <AnimatePresence>
         {indicator && indicator.type === 'seek' && (
           <motion.div
-            key={indicator.type + indicator.value}
-            initial={{ opacity: 0, scale: 0.8, x: indicator.value.startsWith('-') ? '-50%' : '50%', y: '-50%' }}
-            animate={{ opacity: 1, scale: 1, x: indicator.value.startsWith('-') ? '0%' : '0%', y: '-50%' }}
-            exit={{ opacity: 0, scale: 1.2 }}
-            transition={{ duration: 0.3 }}
+            key={indicator.type + (indicator.value.startsWith('-') ? 'left' : 'right')}
+            initial={{ opacity: 0, scale: 0.8, y: '-50%' }}
+            animate={{ opacity: 1, scale: 1, y: '-50%' }}
+            exit={{ opacity: 0, scale: 1.2, y: '-50%' }}
+            transition={{ duration: 0.2 }}
             className={indicator.value.startsWith('-') ? styles.leftIndicator : styles.rightIndicator}
           >
             <div className={styles.sideIndicatorCircle}>
-              {indicator.value.startsWith('-') ? <SkipBack size={32} fill="white" /> : <SkipForward size={32} fill="white" />}
-              <span className={styles.indicatorText}>{indicator.value.replace('s', '')}</span>
+              <div className={styles.arrowGroup}>
+                {indicator.value.startsWith('-') ? (
+                  <>
+                    <ChevronLeft size={32} />
+                    <ChevronLeft size={32} />
+                    <ChevronLeft size={32} />
+                  </>
+                ) : (
+                  <>
+                    <ChevronRight size={32} />
+                    <ChevronRight size={32} />
+                    <ChevronRight size={32} />
+                  </>
+                )}
+              </div>
+              <span className={styles.indicatorText}>
+                {indicator.value.replace('s', '')}
+              </span>
             </div>
           </motion.div>
         )}
