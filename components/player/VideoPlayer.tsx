@@ -57,10 +57,17 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showControls, setShowControls] = useState(true);
+  const [isSeeking, setIsSeeking] = useState(false);
   const loadedSrcRef = useRef<string>('');
   const speedMenuRef = useRef<HTMLDivElement>(null);
   const indicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const progressContainerRef = useRef<HTMLDivElement>(null);
+
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragTime, setDragTime] = useState<number | null>(null);
+  const dragStartX = useRef(0);
+  const dragStartTime = useRef(0);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -304,6 +311,7 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
     if (!video) return;
 
     const handleTimeUpdate = () => {
+      if (isDragging || isSeeking) return;
       setCurrentTime(video.currentTime);
       if (onProgress && video.duration) {
         onProgress(video.currentTime, video.duration);
@@ -314,11 +322,17 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
       setDuration(video.duration);
     };
 
+    const handleSeeked = () => {
+      setIsSeeking(false);
+    };
+
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('seeked', handleSeeked);
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('seeked', handleSeeked);
     };
   }, [onProgress]);
 
@@ -328,6 +342,7 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
     const rect = e.currentTarget.getBoundingClientRect();
     const pos = (e.clientX - rect.left) / rect.width;
     const newTime = pos * duration;
+    setIsSeeking(true);
     videoRef.current.currentTime = newTime;
     setCurrentTime(newTime);
   };
@@ -350,6 +365,57 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
     }
     if (val === 0) setIsMuted(true);
     else setIsMuted(false);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    dragStartX.current = e.touches[0].clientX;
+    dragStartTime.current = videoRef.current?.currentTime || 0;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1 || !videoRef.current) return;
+    
+    const currentX = e.touches[0].clientX;
+    const deltaX = currentX - dragStartX.current;
+    
+    if (!isDragging && Math.abs(deltaX) > 10) {
+      setIsDragging(true);
+      setShowControls(true);
+    }
+
+    if (isDragging) {
+      // Sensitivity: 1.5px = 1 second of video
+      const sensitivity = 0.8; 
+      const seekAmount = deltaX * sensitivity;
+      let newTime = dragStartTime.current + seekAmount;
+      newTime = Math.max(0, Math.min(newTime, duration));
+      
+      setDragTime(newTime);
+      setHoverTime(newTime);
+      
+      if (progressContainerRef.current) {
+        const rect = progressContainerRef.current.getBoundingClientRect();
+        setHoverWidth(rect.width);
+        setHoverX((newTime / duration) * rect.width);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (isDragging && dragTime !== null) {
+      if (videoRef.current) {
+        setIsSeeking(true);
+        videoRef.current.currentTime = dragTime;
+        setCurrentTime(dragTime);
+      }
+      // Briefly keep isDragging true to prevent accidental click-to-pause
+      setTimeout(() => setIsDragging(false), 50);
+    } else {
+      setIsDragging(false);
+    }
+    setDragTime(null);
+    setHoverTime(null);
   };
 
   const handleSpeedChange = (rate: number) => {
@@ -445,7 +511,6 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
         className={styles.video}
         playsInline
         crossOrigin="anonymous"
-        onClick={() => togglePlay()}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
       />
@@ -453,10 +518,20 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
       {isPlaying || (videoRef.current && videoRef.current.currentTime > 0) ? (
         <div
           className={`${styles.controls} ${showControls ? styles.controlsActive : ''}`}
-          onClick={() => togglePlay()}
+          onClick={() => !isDragging && togglePlay()}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
-          <div className={styles.bottomControls} onClick={(e) => e.stopPropagation()}>
+          <div 
+            className={styles.bottomControls} 
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+          >
             <div
+              ref={progressContainerRef}
               className={styles.progressContainer}
               onClick={handleProgressClick}
               onMouseMove={handleProgressHover}
@@ -464,7 +539,7 @@ const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, p
             >
               <div
                 className={styles.progressBar}
-                style={{ width: `${(currentTime / duration) * 100}%` }}
+                style={{ width: `${((dragTime ?? currentTime) / duration) * 100}%` }}
               />
               {hoverTime !== null && (
                 <>

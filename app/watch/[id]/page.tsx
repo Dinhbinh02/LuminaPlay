@@ -11,9 +11,37 @@ import Link from 'next/link';
 import styles from './WatchPage.module.css';
 
 function RelatedMoviesSection({ movie, cdnDomain }: { movie: any, cdnDomain: string }) {
-  const baseTitle = movie.name.split(/[:(-]/)[0].trim();
+  // Better extraction of base title for series/anime
+  const getBaseTitle = (name: string) => {
+    if (!name) return '';
+    
+    // 1. Remove season/part indicators (Phần 2, Season 4, Part 2, etc.)
+    let base = name.split(/\s*(?:Phần|Season|Part|SS|Vol|Tập|Lồng Tiếng)\s*\d+/i)[0];
+    
+    // 2. Handle common anime title patterns like "Re:Zero"
+    // If it starts with "Re:", keep the next word too
+    if (base.toLowerCase().startsWith('re:') || base.toLowerCase().startsWith('re-')) {
+       const parts = base.split(/[:−–—-]/);
+       if (parts.length > 1 && parts[1].trim().length > 0) {
+         return (parts[0] + ':' + parts[1].split(/[(\[]/)[0]).trim();
+       }
+    }
 
-  const { data: searchData } = useSearch(baseTitle);
+    // 3. Split by common separators but keep the first significant part
+    // Using a more comprehensive list of dashes
+    const parts = base.split(/[(\[−–—-]/);
+    
+    // 4. If the first part is too short (e.g., "Re"), try to be smarter
+    if (parts[0].trim().length <= 2 && parts.length > 1) {
+       return (parts[0] + parts[1].split(/[(\[]/)[0]).trim();
+    }
+    
+    // 5. Final fallback: split by colon if it's not a special prefix
+    return parts[0].split(':')[0].trim();
+  };
+
+  const baseTitle = getBaseTitle(movie.name);
+  const { data: searchData } = useSearch(baseTitle || movie.name);
   const genreSlug = movie.category?.[0]?.slug;
   const { data: categoryData } = useMovies('the-loai', genreSlug, { limit: 12 });
 
@@ -85,7 +113,7 @@ export default function WatchPage() {
 
   // Initialize theater mode for mobile
   useEffect(() => {
-    if (window.innerWidth <= 1100) {
+    if (window.innerWidth <= 768) {
       setIsTheaterMode(true);
     }
   }, []);
@@ -239,7 +267,7 @@ export default function WatchPage() {
         playerRef.current?.togglePlay();
       } else if (e.key.toLowerCase() === 't') {
         e.preventDefault();
-        if (window.innerWidth <= 1100) return;
+        if (window.innerWidth <= 768) return;
         setIsTheaterMode(prev => !prev);
       } else if (e.key.toLowerCase() === 'f') {
         e.preventDefault();
@@ -318,7 +346,7 @@ export default function WatchPage() {
                   onPrev={currentEpisode > 0 ? handlePrevEpisode : undefined}
                   onNext={currentEpisode < episodes.length - 1 ? handleNextEpisode : undefined}
                   onTheaterToggle={() => {
-                    if (window.innerWidth <= 1100) return;
+                    if (window.innerWidth <= 768) return;
                     setIsTheaterMode(!isTheaterMode);
                   }}
                   isTheaterMode={isTheaterMode}
