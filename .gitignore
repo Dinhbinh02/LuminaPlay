@@ -40,3 +40,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env*.local
+/scratch/
+/venv/
+urls.txt
+*.py
+banner.png

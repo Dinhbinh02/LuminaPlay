@@ -539,7 +539,7 @@ const VideoPlayer = ({
                       onClick={() => setShowEpisodeSelector(true)}
                     >
                       <List size={24} />
-                      {/* Label removed for minimalism */}
+                      { }
                     </button>
                   )}
 
