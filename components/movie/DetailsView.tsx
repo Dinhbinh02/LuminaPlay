@@ -72,7 +72,10 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
   // Mapping logic to find Ophim slug from TMDB info
   const titleTMDB = detail?.title || detail?.name || '';
   const originalTitleTMDB = detail?.original_title || detail?.original_name || '';
-  const yearTMDB = (detail?.release_date || detail?.first_air_date || '').split('-')[0];
+  
+  // For TV shows, use the air date of the selected season if available for better mapping accuracy
+  const seasonAirDate = type === 'tv' ? detail?.seasons?.find((s: any) => s.season_number === selectedSeason)?.air_date : null;
+  const yearTMDB = (seasonAirDate || detail?.release_date || detail?.first_air_date || '').split('-')[0];
 
   const { data: mappingSlug, isLoading: isMappingLoading } = useOphimMapping(
     titleTMDB,

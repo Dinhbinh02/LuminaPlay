@@ -86,44 +86,51 @@ export default function ContinueWatching({ movies }: ContinueWatchingProps) {
       </div>
 
       <div className={styles.sliderContainer} ref={scrollContainerRef}>
-        {movies.map((movie) => (
-          <motion.div
-            key={movie.id}
-            className={styles.cardWrapper}
-          >
-            <Link href={getWatchLink(movie)} className={styles.card}>
-              <div className={styles.thumbnailWrapper}>
-                <Image
-                  src={getImageUrl(movie.poster)}
-                  alt={movie.title}
-                  fill
-                  className={styles.thumbnail}
-                  sizes="(max-width: 768px) 240px, 300px"
-                  quality={70}
-                />
-                <div className={styles.overlay}>
-                  <Play size={32} fill="white" className={styles.playIcon} />
-                </div>
-                <div className={styles.progressBar}>
-                  <div
-                    className={styles.progressFill}
-                    style={{ width: `${movie.progress}%` }}
+        {movies
+          .filter((item, index, self) => 
+            index === self.findIndex((t) => (
+              String(t.id) === String(item.id) && 
+              t.seasonNum === item.seasonNum && 
+              t.episodeNum === item.episodeNum
+            ))
+          )
+          .map((movie) => (
+            <motion.div
+              key={`${movie.id}-${movie.seasonNum || 0}-${movie.episodeNum || 0}`}
+              className={styles.cardWrapper}
+            >
+              <Link href={getWatchLink(movie)} className={styles.card}>
+                <div className={styles.thumbnailWrapper}>
+                  <Image
+                    src={getImageUrl(movie.poster)}
+                    alt={movie.title}
+                    fill
+                    className={styles.thumbnail}
+                    sizes="(max-width: 768px) 240px, 300px"
+                    quality={70}
                   />
+                  <div className={styles.overlay}>
+                    <Play size={32} fill="white" className={styles.playIcon} />
+                  </div>
+                  <div className={styles.progressBar}>
+                    <div
+                      className={styles.progressFill}
+                      style={{ width: `${movie.progress}%` }}
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className={styles.info}>
-                <h3 className={styles.movieTitle}>{movie.title}</h3>
-                <div className={styles.metaRow}>
-                  <p className={styles.meta}>
-                    {formatSubTitle(movie)}
-                  </p>
+                <div className={styles.info}>
+                  <h3 className={styles.movieTitle}>{movie.title}</h3>
+                  <div className={styles.metaRow}>
+                    <p className={styles.meta}>
+                      {formatSubTitle(movie)}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          </motion.div>
-        ))}
+              </Link>
+            </motion.div>
+          ))}
       </div>
     </section>
   );
 }
-

@@ -128,7 +128,7 @@ const VideoPlayer = ({
       if (!isExternalUpdate.current) broadcastSync(videoRef.current.currentTime, 'PAUSE');
     }
     resetControlsTimeout();
-  }, [isLocked, broadcastSync]);
+  }, [isLocked, broadcastSync, resetControlsTimeout]);
 
   const seek = useCallback((amount: number) => {
     if (!videoRef.current || isLocked) return;
@@ -330,6 +330,39 @@ const VideoPlayer = ({
     }
   };
 
+  const isClickOnBlackBars = (e: React.PointerEvent) => {
+    if (!videoRef.current || !containerRef.current || !videoRef.current.videoWidth) return false;
+    
+    const video = videoRef.current;
+    const container = containerRef.current;
+    const rect = container.getBoundingClientRect();
+    
+    const containerRatio = rect.width / rect.height;
+    const videoRatio = video.videoWidth / video.videoHeight;
+    
+    let videoDisplayWidth, videoDisplayHeight;
+    if (containerRatio > videoRatio) {
+      videoDisplayHeight = rect.height;
+      videoDisplayWidth = videoDisplayHeight * videoRatio;
+    } else {
+      videoDisplayWidth = rect.width;
+      videoDisplayHeight = videoDisplayWidth / videoRatio;
+    }
+    
+    const horizontalPadding = (rect.width - videoDisplayWidth) / 2;
+    const verticalPadding = (rect.height - videoDisplayHeight) / 2;
+    
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    
+    return (
+      clickX < horizontalPadding || 
+      clickX > (rect.width - horizontalPadding) ||
+      clickY < verticalPadding || 
+      clickY > (rect.height - verticalPadding)
+    );
+  };
+
   return (
     <div
       ref={containerRef}
@@ -430,7 +463,16 @@ const VideoPlayer = ({
         autoPlay={autoPlay}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
-        onClick={togglePlay}
+        onClick={(e) => {
+          if (isClickOnBlackBars(e as any)) {
+            setShowControls(false);
+            if (controlsTimeoutRef.current) {
+              clearTimeout(controlsTimeoutRef.current);
+            }
+          } else {
+            togglePlay();
+          }
+        }}
       />
 
       {/* Voice Chat Streams */}
@@ -611,7 +653,6 @@ const VideoPlayer = ({
                       onClick={() => setShowEpisodeSelector(true)}
                     >
                       <List size={24} />
-                      { }
                     </button>
                   )}
 
@@ -624,10 +665,7 @@ const VideoPlayer = ({
                     ) : (
                       <Maximize size={24} />
                     )}
-                    {/* Label removed for minimalism */}
                   </button>
-
-                  {/* onNext moved to controlsLeft for better grouping */}
                 </div>
               </div>
             </div>

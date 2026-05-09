@@ -21,8 +21,8 @@ export const tmdb = {
   fetch: async (endpoint: string, params: Record<string, string> = {}) => {
     const url = new URL(`${BASE_URL}${endpoint}`);
     
-    // Add query params
-    if (TMDB_API_KEY) {
+    // Only add api_key to URL if we don't have a Bearer Token
+    if (TMDB_API_KEY && !TMDB_ACCESS_TOKEN) {
       url.searchParams.append('api_key', TMDB_API_KEY);
     }
     Object.entries(params).forEach(([key, value]) => {
@@ -34,7 +34,6 @@ export const tmdb = {
       headers['Authorization'] = `Bearer ${TMDB_ACCESS_TOKEN}`;
     }
 
-    console.log(`Fetching TMDB: ${url.toString()}`);
     const res = await fetch(url.toString(), {
       headers,
       next: { revalidate: 3600 } // Cache for 1 hour
@@ -42,12 +41,13 @@ export const tmdb = {
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      console.error(`TMDB API Error [${res.status}] for ${endpoint}:`, errorData);
+      if (res.status !== 404) {
+        console.error(`TMDB API Error [${res.status}] for ${endpoint}:`, errorData);
+      }
       return null; 
     }
 
     const data = await res.json();
-    console.log(`TMDB Data received for ${endpoint}:`, data);
     return data;
   },
 

@@ -23,7 +23,7 @@ interface AppState {
   setPin: (pin: string | null) => void;
   setPinLocked: (isLocked: boolean) => void;
   addToHistory: (item: WatchHistoryItem) => void;
-  removeFromHistory: (id: string) => void;
+  removeFromHistory: (id: string, seasonNum?: number, episodeNum?: number) => void;
   setHistory: (history: WatchHistoryItem[]) => void;
   addToFavorites: (item: WatchHistoryItem) => void;
   removeFromFavorites: (id: string) => void;
@@ -44,12 +44,14 @@ export const useStore = create<AppState>()(
       addToHistory: (item) => set((state) => {
         // Filter out the EXACT SAME episode (same show ID, season, and episode)
         const filtered = state.history.filter((i) => 
-          !(i.id === item.id && i.seasonNum === item.seasonNum && i.episodeNum === item.episodeNum)
+          !(String(i.id) === String(item.id) && i.seasonNum === item.seasonNum && i.episodeNum === item.episodeNum)
         );
         return { history: [item, ...filtered].slice(0, 50) }; // Increased limit to 50 to accommodate more episodes
       }),
-      removeFromHistory: (id) => set((state) => ({
-        history: state.history.filter((i) => i.id !== id)
+      removeFromHistory: (id, seasonNum, episodeNum) => set((state) => ({
+        history: state.history.filter((i) => 
+          !(i.id === id && i.seasonNum === seasonNum && i.episodeNum === episodeNum)
+        )
       })),
       setHistory: (history) => set({ history }),
       addToFavorites: (item) => set((state) => {

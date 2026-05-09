@@ -153,7 +153,7 @@ function WatchPageWrapper({ paths }: { paths: string[] }) {
     ? `https://vidsrc.me/embed/movie?tmdb=${id}`
     : `https://vidsrc.me/embed/tv?tmdb=${id}&season=${season}&episode=${episode}`;
 
-  const isLoadingTotal = (isLoading && !detail) || (isNumeric && isMappingLoading && !ophimSlug);
+  const isLoadingTotal = (isNumeric && isMappingLoading && !ophimSlug) || (isOphimLoading && !ophimDetail);
 
   useEffect(() => {
     setPageLoading(isLoadingTotal);
@@ -177,7 +177,7 @@ function WatchPageWrapper({ paths }: { paths: string[] }) {
     const historyItem = {
       id: isNumeric ? id : (ophimDetail?.data?.item?._id || id),
       title: movieTitle,
-      poster: epImage || detail?.poster_path || (ophimDetail?.data?.item ? ophimDetail.data.item.thumb_url : ''),
+      poster: epImage || (detail?.poster_path ? tmdb.getImageUrl(detail.poster_path) : (ophimDetail?.data?.item ? ophim.getImageUrl(ophimDetail.data.item.thumb_url) : '')),
       progress,
       currentTime,
       episodeNum: type === 'tv' ? parseInt(episode) : undefined,
@@ -202,17 +202,17 @@ function WatchPageWrapper({ paths }: { paths: string[] }) {
 
   if (isLoadingTotal) return null;
 
-  if (!detail) {
+  if (!detail && !ophimDetail?.data?.item) {
     return (
       <main className={styles.main}>
         <Header />
-        <div className={styles.error}>Movie not found</div>
+        <div className={styles.error}>Nội dung này hiện không khả dụng.</div>
       </main>
     );
   }
 
-  const title = detail.title || detail.name || ophimDetail?.data?.item?.name || '';
-  const subTitle = type === 'tv' ? `Mùa ${season} : Tập ${episode}` : yearTMDB;
+  const title = detail?.title || detail?.name || ophimDetail?.data?.item?.name || '';
+  const subTitle = type === 'tv' ? `Mùa ${season} : Tập ${episode}` : (yearTMDB || ophimDetail?.data?.item?.year);
 
   return (
     <main className={styles.main}>
@@ -224,7 +224,7 @@ function WatchPageWrapper({ paths }: { paths: string[] }) {
                 src={videoUrl} 
                 title={title}
                 subTitle={subTitle}
-                poster={tmdb.getImageUrl(detail.backdrop_path, 'original')}
+                poster={detail ? tmdb.getImageUrl(detail.backdrop_path, 'original') : ophim.getImageUrl(ophimDetail?.data?.item?.thumb_url)}
                 partyId={searchParams.get('partyId') || undefined}
                 onProgress={(ct, d, f) => handleProgress(ct, d, f)}
                 onClose={(finalTime, finalDuration) => {

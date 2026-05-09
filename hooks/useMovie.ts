@@ -261,8 +261,11 @@ export function useOphimMapping(title: string, year: string | number, originalTi
       
       const isTV = !!season || type === 'tv';
       
-      // 1. Search with main title only (Ophim search is sensitive)
-      const searchRes = await ophim.search(title);
+      // 1. Search with main title or TMDB ID as fallback keyword
+      const searchKeyword = title || tmdbId?.toString();
+      if (!searchKeyword) return null;
+
+      const searchRes = await ophim.search(searchKeyword);
       let items = searchRes.data?.items || [];
       
       // 2. If no items, try searching with original title
@@ -273,10 +276,21 @@ export function useOphimMapping(title: string, year: string | number, originalTi
       
       if (items.length === 0) return null;
 
-      // 3. Match Priority 1: Exact TMDB ID match
+      // 3. Match Priority 1: Perfect TMDB ID match (matches ID and Season)
       if (tmdbId) {
-        const exactMatch = items.find((item: any) => item.tmdb?.id?.toString() === tmdbId.toString());
-        if (exactMatch) return exactMatch.slug;
+        const perfectMatch = items.find((item: any) => {
+          const matchId = item.tmdb?.id?.toString() === tmdbId.toString();
+          if (!matchId) return false;
+          
+          // For TV, if we have season info, it must match both season and year (if year provided)
+          if (isTV && season) {
+            const matchSeason = item.tmdb?.season?.toString() === season.toString();
+            const matchYear = !year || !item.year || item.year.toString() === year.toString();
+            return matchSeason && matchYear;
+          }
+          return true;
+        });
+        if (perfectMatch) return perfectMatch.slug;
       }
 
       // 4. Logic to pick the best match
@@ -349,9 +363,14 @@ export function useOphimMapping(title: string, year: string | number, originalTi
           score -= 5;
         }
 
+        // TMDB ID match (if not perfect, still very good)
+        if (tmdbId && item.tmdb?.id?.toString() === tmdbId.toString()) {
+          score += 15;
+        }
+
         // Type match
         if (type === 'movie' && itemType === 'single') score += 10;
-        if (type === 'tv' && itemType === 'series') score += 10;
+        if (type === 'tv' && (itemType === 'series' || itemType === 'hoathinh' || itemType === 'tvshows')) score += 10;
 
         // Name match
         if (itemName === lowTitle || itemOrigin === lowOrig) score += 10;
@@ -369,11 +388,13 @@ export function useOphimMapping(title: string, year: string | number, originalTi
       scoredItems.sort((a: { score: number }, b: { score: number }) => b.score - a.score);
       
       // Threshold: If the best match is still poor, don't return it
-      if (scoredItems[0].score < 10) return null;
+      if (scoredItems.length > 0 && scoredItems[0].score < 10) {
+        return null;
+      }
 
-      return scoredItems[0].item.slug;
+      return scoredItems[0]?.item?.slug || null;
     },
-    enabled: !!title,
+    enabled: !!title || !!tmdbId,
     staleTime: 1000 * 60 * 60 * 24, // Cache for 24 hours
     placeholderData: keepPreviousData,
   });
