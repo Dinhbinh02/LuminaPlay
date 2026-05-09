@@ -68,7 +68,8 @@ export function useWatchParty(roomId?: string, isHost: boolean = false) {
     // Handle incoming calls (Voice Chat)
     newPeer.on('call', (call) => {
       console.log('Incoming call from:', call.peer);
-      call.answer(); // Answer without stream initially or with local stream if mic is on
+      // Answer with local stream if mic is on, otherwise answer empty
+      call.answer(isMicOnRef.current && localStreamRef.current ? localStreamRef.current : undefined); 
       call.on('stream', (remoteStream) => {
         console.log('Received remote stream from:', call.peer);
         setRemoteStreams(prev => ({ ...prev, [call.peer]: remoteStream }));

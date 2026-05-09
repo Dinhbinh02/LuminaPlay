@@ -83,7 +83,7 @@ export default function WatchCatchAll({ params }: { params: Promise<{ paths: str
 import { useSearchParams } from 'next/navigation';
 import Header from "@/components/layout/Header";
 import { ArrowLeft, Star, Calendar, Info, Server } from 'lucide-react';
-import { useTMDBDetails, useOphimMapping, useMovieDetail } from "@/hooks/useMovie";
+import { useTMDBDetails, useOphimMapping, useMovieDetail, useTMDBSeason } from "@/hooks/useMovie";
 import VideoPlayer from "@/components/player/VideoPlayer";
 import Link from 'next/link';
 import styles from './WatchPage.module.css';
@@ -106,6 +106,7 @@ function WatchPageWrapper({ paths }: { paths: string[] }) {
   const { syncItemToCloud } = useSyncHistory();
   
   const { data: detail, isLoading } = useTMDBDetails(isNumeric ? id : '', type);
+  const { data: seasonData } = useTMDBSeason(type === 'tv' && isNumeric ? id : '', parseInt(season));
   const titleTMDB = detail?.title || detail?.name || '';
   const originalTitleTMDB = detail?.original_title || detail?.original_name || '';
   const yearTMDB = (detail?.release_date || detail?.first_air_date || '').split('-')[0];
@@ -157,35 +158,45 @@ function WatchPageWrapper({ paths }: { paths: string[] }) {
     return () => setPageLoading(false);
   }, [isLoadingTotal, setPageLoading]);
 
-  // Save to History
+  // Progress Handler
+  const handleProgress = (currentTime: number, duration: number, forceSync: boolean = false) => {
+    if (!detail && !ophimDetail?.data?.item) return;
+    
+    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+    const movieTitle = detail?.title || 
+                      detail?.name || 
+                      ophimDetail?.data?.item?.origin_name || 
+                      ophimDetail?.data?.item?.name;
+
+    // Find episode thumbnail if it's a TV show
+    const epDetail = seasonData?.episodes?.find((e: any) => e.episode_number.toString() === episode);
+    const epImage = epDetail?.still_path;
+
+    const historyItem = {
+      id: isNumeric ? id : (ophimDetail?.data?.item?._id || id),
+      title: movieTitle,
+      poster: epImage || detail?.poster_path || (ophimDetail?.data?.item ? ophimDetail.data.item.thumb_url : ''),
+      progress,
+      currentTime,
+      episodeNum: type === 'tv' ? parseInt(episode) : undefined,
+      seasonNum: type === 'tv' ? parseInt(season) : undefined,
+      slug: paths.join('/'),
+      watched_at: new Date().toISOString()
+    };
+
+    if (movieTitle) {
+      addToHistory(historyItem);
+      syncItemToCloud(historyItem, forceSync);
+    }
+  };
+
+  // Initial Save to History
   useEffect(() => {
     if (detail || ophimDetail?.data?.item) {
-      // Priority: TMDB Original Title > TMDB Translated Title > Ophim Origin Name > Ophim Name
-      const movieTitle = detail?.original_title || detail?.original_name || 
-                        detail?.title || detail?.name || 
-                        ophimDetail?.data?.item?.origin_name || 
-                        ophimDetail?.data?.item?.name;
-
-      const historyItem = {
-        id: isNumeric ? id : (ophimDetail?.data?.item?._id || id),
-        title: movieTitle,
-        poster: detail 
-          ? tmdb.getImageUrl(detail.poster_path, 'w342')
-          : (ophimDetail?.data?.item ? ophim.getImageUrl(ophimDetail.data.item.thumb_url, ophimDetail.data.APP_DOMAIN_CDN_IMAGE) : ''),
-        progress: 0,
-        slug: paths.join('/'),
-        backdrop: detail?.backdrop_path ? tmdb.getImageUrl(detail.backdrop_path, 'original') : (ophimDetail?.data?.item?.poster_url || ''),
-        currentTime: 0,
-        duration: 0,
-        lastUpdated: Date.now()
-      };
-      
-      if (movieTitle) {
-        addToHistory(historyItem);
-        syncItemToCloud(historyItem);
-      }
+      handleProgress(0, 100); // Initial entry
     }
-  }, [detail, ophimDetail, addToHistory, syncItemToCloud, paths, isNumeric, id]);
+  }, [detail, ophimDetail]); // Initial save only when data is ready
+
 
   if (isLoadingTotal) return null;
 
@@ -213,6 +224,11 @@ function WatchPageWrapper({ paths }: { paths: string[] }) {
                 subTitle={subTitle}
                 poster={tmdb.getImageUrl(detail.backdrop_path, 'original')}
                 partyId={searchParams.get('partyId') || undefined}
+                onProgress={(ct, d, f) => handleProgress(ct, d, f)}
+                onClose={(finalTime, finalDuration) => {
+                  handleProgress(finalTime, finalDuration, true); // Force sync on exit
+                  router.back();
+                }}
               />
             ) : (
               <div className={styles.iframeWrapper}>

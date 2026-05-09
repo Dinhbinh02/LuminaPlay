@@ -85,10 +85,6 @@ export default function TopTrendingSection({ movies, title = "TOP 10" }: TopTren
               <motion.div
                 key={movie.id}
                 className={styles.cardWrapper}
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ delay: index * 0.1 }}
               >
                 <div className={`${styles.rankNumber} ${index === 9 ? styles.doubleDigit : ''}`}>
                   {index + 1}

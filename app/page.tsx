@@ -19,6 +19,7 @@ import {
 import { ophim } from "@/lib/ophim";
 import { tmdb } from "@/lib/tmdb";
 import styles from './page.module.css';
+import { useStore } from "@/store/useStore";
 import LazySection from "@/components/layout/LazySection";
 
 function HistorySkeleton() {
@@ -49,13 +50,37 @@ export default function Home() {
   const { data: animationMovies } = useTMDBByGenre(16); // Animation
   const { data: docMovies } = useTMDBByGenre(99); // Documentary
 
-  const [history, setHistory] = useState<any[]>([]);
+  const { history: globalHistory } = useStore();
   const [isHistoryChecked, setIsHistoryChecked] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Handle Zustand hydration
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  // Sync global history to local state for internal logic
+  useEffect(() => {
+    if (isHydrated) {
+      // Group by show ID and take only the latest one per show for the homepage list
+      const uniqueHistory = globalHistory.reduce((acc: any[], current: any) => {
+        const existing = acc.find(item => item.id === current.id);
+        if (!existing) {
+          return [...acc, current];
+        }
+        return acc;
+      }, []);
+
+      setHistory(uniqueHistory.slice(0, 10));
+      setIsHistoryChecked(true);
+    }
+  }, [globalHistory, isHydrated]);
 
   // Recommendations logic
   const lastWatched = history[0];
-  const lastWatchedId = lastWatched?.slug?.split('/')[1] || lastWatched?.id;
-  const lastWatchedType = lastWatched?.slug?.split('/')[0] === 'tv' ? 'tv' : 'movie';
+  const lastWatchedId = lastWatched?.id;
+  const lastWatchedType = lastWatched?.seasonNum ? 'tv' : 'movie';
   
   const { data: recData, isLoading: isRecLoading } = useTMDBRecommendations(
     lastWatchedId || '', 
@@ -91,31 +116,6 @@ export default function Home() {
     };
   }) || [];
 
-  useEffect(() => {
-    const loadHistory = () => {
-      const watchHistory = localStorage.getItem('watch_history');
-      if (watchHistory) {
-        try {
-          const parsed = JSON.parse(watchHistory);
-          const sorted = parsed.sort((a: any, b: any) => {
-            const timeA = a.lastUpdated || (a.lastWatched ? new Date(a.lastWatched).getTime() : 0);
-            const timeB = b.lastUpdated || (b.lastWatched ? new Date(b.lastWatched).getTime() : 0);
-            return timeB - timeA;
-          });
-          setHistory(sorted.slice(0, 10));
-        } catch (e) {
-          console.error("Failed to parse watch history", e);
-        }
-      }
-    };
-
-    loadHistory();
-    setIsHistoryChecked(true);
-
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'watch_history') loadHistory();
-    });
-  }, []);
 
 
   return (

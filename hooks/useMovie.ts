@@ -23,6 +23,7 @@ export function useMovieDetail(slug: string) {
     queryFn: () => ophim.getMovieDetail(slug),
     enabled: !!slug,
     staleTime: 1000 * 60 * 5,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -247,6 +248,7 @@ export function useTMDBSeason(tvId: string | number, seasonNumber: number) {
     queryKey: ['tmdb', 'tv', tvId, 'season', seasonNumber],
     queryFn: () => tmdb.getTVSeasonDetails(tvId, seasonNumber),
     enabled: !!tvId && typeof seasonNumber === 'number',
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -255,6 +257,7 @@ export function useOphimMapping(title: string, year: string | number, originalTi
   return useQuery({
     queryKey: ['ophim-mapping', title, year, originalTitle, season],
     queryFn: async () => {
+      // ... (rest of the logic remains the same)
       if (!title) return null;
       
       const isTV = !!season;
@@ -347,5 +350,6 @@ export function useOphimMapping(title: string, year: string | number, originalTi
     },
     enabled: !!title,
     staleTime: 1000 * 60 * 60 * 24, // Cache for 24 hours
+    placeholderData: keepPreviousData,
   });
 }

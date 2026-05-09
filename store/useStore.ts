@@ -42,8 +42,11 @@ export const useStore = create<AppState>()(
       setPin: (pin) => set({ pin }),
       setPinLocked: (isLocked) => set({ isPinLocked: isLocked }),
       addToHistory: (item) => set((state) => {
-        const filtered = state.history.filter((i) => i.id !== item.id);
-        return { history: [item, ...filtered].slice(0, 20) };
+        // Filter out the EXACT SAME episode (same show ID, season, and episode)
+        const filtered = state.history.filter((i) => 
+          !(i.id === item.id && i.seasonNum === item.seasonNum && i.episodeNum === item.episodeNum)
+        );
+        return { history: [item, ...filtered].slice(0, 50) }; // Increased limit to 50 to accommodate more episodes
       }),
       removeFromHistory: (id) => set((state) => ({
         history: state.history.filter((i) => i.id !== id)

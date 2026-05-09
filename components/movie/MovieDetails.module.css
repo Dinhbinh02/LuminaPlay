@@ -311,8 +311,8 @@
   border: none;
   padding: 8px 0;
   color: #fff;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 18px;
+  font-weight: 700;
   cursor: pointer;
   transition: opacity 0.2s ease;
 }
@@ -590,22 +590,58 @@
 }
 
 .similarCard {
-  position: relative;
-  aspect-ratio: 2/3;
-  border-radius: 8px;
-  overflow: hidden;
-  transition: all 0.3s ease;
+  text-decoration: none;
+  display: block;
+  transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .similarCard:hover {
-  transform: scale(1.05);
-  z-index: 2;
+  transform: translateY(-8px);
+}
+
+.similarPosterWrapper {
+  position: relative;
+  aspect-ratio: 2/3;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  background: #111;
 }
 
 .similarPoster {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.similarCard:hover .similarPoster {
+  transform: scale(1.1);
+}
+
+.similarInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 4px;
+}
+
+.similarTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.similarYear {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
 }
 
 @media (max-width: 1024px) {
@@ -715,3 +751,58 @@
   height: 100%;
   border: none;
 }
+
+/* Watching Indicator Styles */
+.episodeProgressContainer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  z-index: 5;
+}
+
+.episodeProgressBar {
+  height: 100%;
+  background-color: #e50914;
+}
+
+.watchingBadge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: #e50914;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 5;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.watchingCard {
+  border-left: 3px solid #e50914 !important;
+  padding-left: 13px !important;
+  background: rgba(229, 9, 20, 0.05) !important;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.fetching {
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+

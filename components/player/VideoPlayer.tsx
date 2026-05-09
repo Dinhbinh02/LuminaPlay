@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Hls from 'hls.js';
-import { Play, Pause, RotateCcw, RotateCw, ChevronLeft, SlidersHorizontal, List, SkipForward, PictureInPicture2, Maximize, Minimize, Volume2, VolumeX, Settings, Layers, Lock, Unlock, Cast, Scan } from 'lucide-react';
+import { Play, Pause, RotateCcw, RotateCw, ChevronLeft, SlidersHorizontal, List, SkipForward, PictureInPicture2, Maximize, Minimize, Volume2, VolumeX, Settings, Layers, Lock, Unlock, Cast, Scan, Mic, MicOff, Gauge } from 'lucide-react';
 import styles from './VideoPlayer.module.css';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useWatchParty, WatchPartyMessage } from '@/hooks/useWatchParty';
@@ -16,7 +16,7 @@ interface VideoPlayerProps {
   subTitle?: string;
   startTime?: number;
   autoPlay?: boolean;
-  onProgress?: (currentTime: number, duration: number) => void;
+  onProgress?: (currentTime: number, duration: number, force?: boolean) => void;
   onNext?: () => void;
   onClose?: (currentTime: number, duration: number) => void;
   partyId?: string;
@@ -24,6 +24,16 @@ interface VideoPlayerProps {
   currentEpisode?: number;
   onEpisodeSelect?: (episodeNum: string) => void;
 }
+
+const RemoteAudio = ({ stream }: { stream: MediaStream }) => {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  useEffect(() => {
+    if (audioRef.current && stream) {
+      audioRef.current.srcObject = stream;
+    }
+  }, [stream]);
+  return <audio ref={audioRef} autoPlay />;
+};
 
 const formatTime = (seconds: number) => {
   if (isNaN(seconds)) return "00:00";
@@ -36,8 +46,8 @@ const formatTime = (seconds: number) => {
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };
 
-const VideoPlayer = ({ 
-  src, poster, title, subTitle, startTime, autoPlay = false, 
+const VideoPlayer = ({
+  src, poster, title, subTitle, startTime, autoPlay = false,
   onProgress, onNext, onClose, partyId, episodes, currentEpisode, onEpisodeSelect
 }: VideoPlayerProps) => {
   const router = useRouter();
@@ -58,6 +68,7 @@ const VideoPlayer = ({
   const [isHoveringProgress, setIsHoveringProgress] = useState(false);
   const [hoverProgress, setHoverProgress] = useState(0);
   const lastSyncTime = useRef(0);
+  const speedMenuRef = useRef<HTMLDivElement>(null);
   const onProgressRef = useRef(onProgress);
   useEffect(() => { onProgressRef.current = onProgress; }, [onProgress]);
 
@@ -70,9 +81,9 @@ const VideoPlayer = ({
 
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isExternalUpdate = useRef(false);
-  
+
   // Watch Party
-  const { broadcastSync, onSyncRef } = useWatchParty(partyId, !partyId?.includes('-guest'));
+  const { broadcastSync, onSyncRef, isMicOn, toggleMic, remoteStreams } = useWatchParty(partyId, !partyId?.includes('-guest'));
 
   useEffect(() => {
     onSyncRef.current = (msg: WatchPartyMessage) => {
@@ -88,10 +99,16 @@ const VideoPlayer = ({
   const resetControlsTimeout = useCallback(() => {
     setShowControls(true);
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    if (isPlaying && !isLocked) {
-      controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 1500);
+    // Only auto-hide if playing, not locked, and IN FULLSCREEN
+    if (isPlaying && !isLocked && isFullscreen) {
+      controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 2500);
     }
-  }, [isPlaying, isLocked]);
+  }, [isPlaying, isLocked, isFullscreen]);
+
+  // Trigger timeout when states change
+  useEffect(() => {
+    resetControlsTimeout();
+  }, [isPlaying, isFullscreen, isLocked, resetControlsTimeout]);
 
   const togglePlay = useCallback(() => {
     if (!videoRef.current || isLocked) return;
@@ -118,10 +135,10 @@ const VideoPlayer = ({
 
   const toggleFullscreen = useCallback(async () => {
     if (!containerRef.current || !videoRef.current) return;
-    
+
     // Check for iOS
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
+
     if (isIOS) {
       if ((videoRef.current as any).webkitEnterFullscreen) {
         (videoRef.current as any).webkitEnterFullscreen();
@@ -131,11 +148,11 @@ const VideoPlayer = ({
 
     try {
       if (!document.fullscreenElement) {
-        const req = containerRef.current.requestFullscreen || 
-                    (containerRef.current as any).webkitRequestFullscreen || 
-                    (containerRef.current as any).mozRequestFullScreen || 
-                    (containerRef.current as any).msRequestFullscreen;
-        
+        const req = containerRef.current.requestFullscreen ||
+          (containerRef.current as any).webkitRequestFullscreen ||
+          (containerRef.current as any).mozRequestFullScreen ||
+          (containerRef.current as any).msRequestFullscreen;
+
         if (req) {
           await req.call(containerRef.current);
           setIsFullscreen(true);
@@ -148,11 +165,11 @@ const VideoPlayer = ({
           }
         }
       } else {
-        const exit = document.exitFullscreen || 
-                     (document as any).webkitExitFullscreen || 
-                     (document as any).mozCancelFullScreen || 
-                     (document as any).msExitFullscreen;
-        
+        const exit = document.exitFullscreen ||
+          (document as any).webkitExitFullscreen ||
+          (document as any).mozCancelFullScreen ||
+          (document as any).msExitFullscreen;
+
         if (exit) {
           await exit.call(document);
           setIsFullscreen(false);
@@ -225,6 +242,22 @@ const VideoPlayer = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [togglePlay, toggleFullscreen, seek]);
 
+  // Click outside listener for speed menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (speedMenuRef.current && !speedMenuRef.current.contains(event.target as Node)) {
+        setShowSpeedMenu(false);
+      }
+    };
+
+    if (showSpeedMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSpeedMenu]);
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
@@ -268,11 +301,15 @@ const VideoPlayer = ({
     video.addEventListener('durationchange', handleDurationChange);
 
     return () => {
+      // Force one last sync on unmount/source change
+      if (video.currentTime > 0) {
+        onProgressRef.current?.(video.currentTime, video.duration, true);
+      }
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('durationchange', handleDurationChange);
       if (hls) hls.destroy();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, startTime]); // onProgress intentionally excluded — handled via ref
 
   const togglePIP = async () => {
@@ -288,7 +325,7 @@ const VideoPlayer = ({
   };
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className={`${styles.netflixContainer} ${!showControls ? styles.hideCursor : ''}`}
       onMouseMove={resetControlsTimeout}
@@ -304,14 +341,18 @@ const VideoPlayer = ({
         onClick={togglePlay}
       />
 
+      {/* Voice Chat Streams */}
+      {Object.entries(remoteStreams).map(([peerId, stream]) => (
+        <RemoteAudio key={peerId} stream={stream} />
+      ))}
+
       <AnimatePresence>
         {showControls && (
-          <motion.div 
+          <motion.div
             className={styles.netflixOverlay}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={togglePlay}
           >
             {/* Top Bar */}
             <div className={styles.netflixTop} onClick={(e) => e.stopPropagation()}>
@@ -335,7 +376,7 @@ const VideoPlayer = ({
                 <div className={styles.timeLabel}>
                   {formatTime(currentTime)}
                 </div>
-                <div 
+                <div
                   className={styles.netflixProgressBar}
                   onPointerDown={(e) => {
                     const rect = e.currentTarget.getBoundingClientRect();
@@ -356,22 +397,22 @@ const VideoPlayer = ({
                   }}
                 >
                   {isHoveringProgress && (
-                    <div 
+                    <div
                       className={styles.progressTooltip}
                       style={{ left: `${hoverProgress}%` }}
                     >
                       {formatTime((hoverProgress / 100) * duration)}
                     </div>
                   )}
-                  <div 
-                    className={styles.netflixProgressHover} 
+                  <div
+                    className={styles.netflixProgressHover}
                     style={{ width: `${hoverProgress}%` }}
                   />
-                  <div 
-                    className={styles.netflixProgressFill} 
+                  <div
+                    className={styles.netflixProgressFill}
                     style={{ width: `${(currentTime / duration) * 100}%` }}
                   />
-                  <div 
+                  <div
                     className={styles.netflixProgressHandle}
                     style={{ left: `${(currentTime / duration) * 100}%` }}
                   />
@@ -406,18 +447,28 @@ const VideoPlayer = ({
 
                 {/* Right side (Actions) */}
                 <div className={styles.controlsRight}>
-                  <div className={styles.speedMenuContainer}>
-                    <button 
-                      className={styles.actionBtn} 
+                  {partyId && (
+                    <button
+                      className={`${styles.actionBtn} ${isMicOn ? styles.activeAction : ''}`}
+                      onClick={toggleMic}
+                    >
+                      {isMicOn ? <Mic size={24} color="#e50914" /> : <MicOff size={24} />}
+                      <span className={styles.btnLabel}>{isMicOn ? 'Mic On' : 'Mic Off'}</span>
+                    </button>
+                  )}
+
+                  <div className={styles.speedMenuContainer} ref={speedMenuRef}>
+                    <button
+                      className={styles.actionBtn}
                       onClick={() => setShowSpeedMenu(!showSpeedMenu)}
                     >
-                      <SlidersHorizontal size={24} />
+                      <Gauge size={24} />
                       <span className={styles.btnLabel}>Speed ({playbackRate}x)</span>
                     </button>
-                    
+
                     <AnimatePresence>
                       {showSpeedMenu && (
-                        <motion.div 
+                        <motion.div
                           className={styles.speedMenu}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -425,7 +476,7 @@ const VideoPlayer = ({
                           transition={{ duration: 0.15 }}
                         >
                           {[0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map(speed => (
-                            <button 
+                            <button
                               key={speed}
                               className={`${styles.speedOption} ${playbackRate === speed ? styles.activeSpeed : ''}`}
                               onClick={() => {
@@ -441,16 +492,18 @@ const VideoPlayer = ({
                     </AnimatePresence>
                   </div>
 
-                  <button 
-                    className={styles.actionBtn} 
-                    onClick={() => setShowEpisodeSelector(true)}
-                  >
-                    <List size={24} />
-                    <span className={styles.btnLabel}>Episodes</span>
-                  </button>
+                  {episodes && episodes.length > 1 && (
+                    <button
+                      className={styles.actionBtn}
+                      onClick={() => setShowEpisodeSelector(true)}
+                    >
+                      <List size={24} />
+                      <span className={styles.btnLabel}>Episodes</span>
+                    </button>
+                  )}
 
-                  <button 
-                    className={`${styles.actionBtn} ${isFullscreen ? styles.activeAction : ''}`} 
+                  <button
+                    className={`${styles.actionBtn} ${isFullscreen ? styles.activeAction : ''}`}
                     onClick={toggleFullscreen}
                   >
                     {isFullscreen ? (
@@ -469,21 +522,26 @@ const VideoPlayer = ({
             {/* Episode Selector Overlay */}
             <AnimatePresence>
               {showEpisodeSelector && (
-                <motion.div 
+                <motion.div
                   className={styles.episodeSelector}
                   initial={{ x: '100%' }}
                   animate={{ x: 0 }}
                   exit={{ x: '100%' }}
                   transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                 >
-                  <div className={styles.episodeHeader}>
-                    <h3>Episodes</h3>
-                    <button onClick={() => setShowEpisodeSelector(false)}>✕</button>
-                  </div>
+                    <div className={styles.episodeHeader}>
+                      <h3>Episodes</h3>
+                      <button 
+                        className={styles.closeSelectorBtn}
+                        onClick={() => setShowEpisodeSelector(false)}
+                      >
+                        ✕
+                      </button>
+                    </div>
                   <div className={styles.episodeScroll}>
                     {episodes?.map((ep) => (
-                      <div 
-                        key={ep.id} 
+                      <div
+                        key={ep.id}
                         className={`${styles.episodeItem} ${currentEpisode === ep.episode_number ? styles.activeEpisode : ''}`}
                         onClick={() => {
                           if (onEpisodeSelect) onEpisodeSelect(ep.episode_number.toString());
@@ -491,19 +549,17 @@ const VideoPlayer = ({
                         }}
                       >
                         <div className={styles.episodeThumb}>
-                          <img 
-                            src={tmdb.getEpisodeImage(ep.still_path) || (poster || '')} 
-                            alt={ep.name} 
+                          <img
+                            src={tmdb.getEpisodeImage(ep.still_path) || (poster || '')}
+                            alt={ep.name}
                           />
                           <div className={styles.epPlayOverlay}>
                             <Play size={20} fill="white" />
                           </div>
                         </div>
                         <div className={styles.episodeText}>
-                          <div className={styles.epNumTitle}>
-                            <span>{ep.episode_number}. </span>
-                            {ep.name}
-                          </div>
+                          <div className={styles.epNumber}>Episode {ep.episode_number}</div>
+                          <div className={styles.epTitle}>{ep.name}</div>
                         </div>
                       </div>
                     ))}

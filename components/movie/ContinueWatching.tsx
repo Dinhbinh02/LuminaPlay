@@ -9,16 +9,14 @@ import styles from './ContinueWatching.module.css';
 
 interface WatchHistoryItem {
   id: string;
-  slug: string;
   title: string;
-  backdrop: string;
+  poster: string;
+  progress: number;
   currentTime: number;
-  duration: number;
-  lastUpdated: number;
-  thumbnail?: string;
-  episodeIndex?: number;
-  episodeName?: string;
-  totalEpisodes?: number;
+  episodeNum?: number;
+  seasonNum?: number;
+  slug?: string;
+  watched_at?: string;
 }
 
 interface ContinueWatchingProps {
@@ -44,29 +42,37 @@ export default function ContinueWatching({ movies }: ContinueWatchingProps) {
     }
   };
 
-  const calculateProgress = (current: number, duration: number) => {
-    if (!duration) return 0;
-    return Math.min((current / duration) * 100, 100);
+  const getWatchLink = (movie: WatchHistoryItem) => {
+    // If it's a TMDB ID (numeric), use type/id format
+    const isNumeric = /^\d+$/.test(movie.id);
+    if (isNumeric) {
+      const type = movie.seasonNum ? 'tv' : 'movie';
+      return `/${type}/${movie.id}`;
+    }
+    // If it's an Ophim slug or ID
+    return `/movie/${movie.id}`;
   };
 
-  const formatTimeLeft = (current: number, duration: number) => {
-    const left = duration - current;
-    if (left <= 0) return 'Finished';
-    const mins = Math.ceil(left / 60);
-    return `${mins}m left`;
+  const formatSubTitle = (movie: WatchHistoryItem) => {
+    if (movie.seasonNum && movie.episodeNum) {
+      return `S${movie.seasonNum} : E${movie.episodeNum}`;
+    }
+    if (movie.progress > 95) return 'Finished';
+    return `${Math.round(movie.progress)}% watched`;
   };
 
-  const cleanImageUrl = (url: string) => {
-    if (!url) return '';
-    return url.replace(/https:\/\/i\d\.wp\.com\//, 'https://');
+  const getImageUrl = (path: string) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    return `https://image.tmdb.org/t/p/w500${path}`;
   };
 
   return (
     <section className={styles.section}>
       <div className={styles.header}>
-        <Link href="/search?mode=history" className={styles.titleWrapper}>
+        <div className={styles.titleWrapper}>
           <h2 className={styles.title}>Continue Watching</h2>
-        </Link>
+        </div>
         {movies.length > 3 && (
           <div className={styles.controls}>
             <button className={styles.controlBtn} onClick={() => scroll('left')}>
@@ -80,15 +86,15 @@ export default function ContinueWatching({ movies }: ContinueWatchingProps) {
       </div>
 
       <div className={styles.sliderContainer} ref={scrollContainerRef}>
-        {movies.map((movie, index) => (
+        {movies.map((movie) => (
           <motion.div
             key={movie.id}
             className={styles.cardWrapper}
           >
-            <Link href={`/watch/${movie.slug}`} className={styles.card}>
+            <Link href={getWatchLink(movie)} className={styles.card}>
               <div className={styles.thumbnailWrapper}>
                 <Image
-                  src={movie.thumbnail || cleanImageUrl(movie.backdrop)}
+                  src={getImageUrl(movie.poster)}
                   alt={movie.title}
                   fill
                   className={styles.thumbnail}
@@ -101,7 +107,7 @@ export default function ContinueWatching({ movies }: ContinueWatchingProps) {
                 <div className={styles.progressBar}>
                   <div
                     className={styles.progressFill}
-                    style={{ width: `${calculateProgress(movie.currentTime, movie.duration)}%` }}
+                    style={{ width: `${movie.progress}%` }}
                   />
                 </div>
               </div>
@@ -109,14 +115,8 @@ export default function ContinueWatching({ movies }: ContinueWatchingProps) {
                 <h3 className={styles.movieTitle}>{movie.title}</h3>
                 <div className={styles.metaRow}>
                   <p className={styles.meta}>
-                    {formatTimeLeft(movie.currentTime, movie.duration)}
+                    {formatSubTitle(movie)}
                   </p>
-                  {movie.totalEpisodes && movie.totalEpisodes > 1 && movie.episodeName && 
-                   !['full', 'trailer'].includes(movie.episodeName.toLowerCase()) && (
-                    <span className={styles.epBadge}>
-                      {movie.episodeName.includes('Tập') ? movie.episodeName : `Ep ${movie.episodeName}`}
-                    </span>
-                  )}
                 </div>
               </div>
             </Link>
@@ -126,3 +126,4 @@ export default function ContinueWatching({ movies }: ContinueWatchingProps) {
     </section>
   );
 }
+

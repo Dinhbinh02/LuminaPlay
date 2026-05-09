@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Play, Users, Plus, Star, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Play, Users, Plus, Star, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { tmdb } from '@/lib/tmdb';
@@ -33,7 +33,24 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
   const isNumeric = /^\d+$/.test(id);
   
   const { data: detail, isLoading } = useTMDBDetails(isNumeric ? id : '', type);
+  const { history, addToHistory } = useStore();
+  const { syncItemToCloud } = useSyncHistory();
+
+  // Find all history entries for this movie/show
+  const showHistory = history.filter((h: any) => h.id === id);
+  // The most recent one for resume button
+  const latestHistory = showHistory[0];
+  const hasHistory = showHistory.length > 0;
+
   const [selectedSeason, setSelectedSeason] = useState(1);
+
+  // Auto-set season from history on mount
+  useEffect(() => {
+    if (latestHistory?.seasonNum) {
+      setSelectedSeason(latestHistory.seasonNum);
+    }
+  }, [latestHistory?.seasonNum]);
+
   const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -80,16 +97,13 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
 
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isPartyModalOpen, setIsPartyModalOpen] = useState(false);
-  const { data: seasonData } = useTMDBSeason(type === 'tv' && isNumeric ? id : '', selectedSeason);
-  const { history, addToHistory } = useStore();
-  const { syncItemToCloud } = useSyncHistory();
+  const { data: seasonData, isFetching: isFetchingSeason } = useTMDBSeason(type === 'tv' && isNumeric ? id : '', selectedSeason);
 
-  // Find history for this movie/show
-  const existingHistory = history.find((h: any) => h.id === id);
-  const hasHistory = !!existingHistory;
-
-  const handlePlay = (episodeNum: string = '1', startTime?: number) => {
+  const handlePlay = (episodeNum: string = '1', startTime?: number, seasonNum?: number) => {
+    const playSeason = seasonNum || selectedSeason;
     setCurrentEpisodeNum(episodeNum);
+    if (seasonNum) setSelectedSeason(seasonNum); // Sync UI if needed
+
     const movieData = ophimRes?.data?.item;
     const server = movieData?.episodes?.[0];
     
@@ -107,13 +121,17 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
             server.server_data.find((e: any) => e.name === episodeNum) ||
             server.server_data.find((e: any) => e.slug?.includes(`tap-${episodeNum}`)) ||
             server.server_data.find((e: any) => e.name?.includes(`(${episodeNum})`)) ||
-            (parseInt(episodeNum) < server.server_data.length ? server.server_data[parseInt(episodeNum) - 1] : server.server_data[0])
+            (parseInt(episodeNum) <= server.server_data.length ? server.server_data[parseInt(episodeNum) - 1] : null)
           )
         : server.server_data[0];
       
       if (epData?.link_m3u8) {
         m3u8Url = epData.link_m3u8;
       }
+    }
+
+    if (!m3u8Url && type === 'tv') {
+      return;
     }
 
     if (m3u8Url) {
@@ -125,11 +143,13 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
         startTime: startTime // Pass saved time
       });
       setShowPlayer(true);
+      // Save initial history entry
+      handleProgress(startTime || 0, 100, episodeNum);
     } else {
       // Fallback to iframe overlay (e.g. Vidsrc)
       const embedUrl = type === 'movie' 
         ? `https://vidsrc.me/embed/movie?tmdb=${id}`
-        : `https://vidsrc.me/embed/tv?tmdb=${id}&season=${selectedSeason}&episode=${episodeNum}`;
+        : `https://vidsrc.me/embed/tv?tmdb=${id}&season=${playSeason}&episode=${episodeNum}`;
       
       setPlayerConfig({
         src: embedUrl,
@@ -141,22 +161,29 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
     }
   };
 
-  const handleProgress = (currentTime: number, duration: number) => {
-    const progress = (currentTime / duration) * 100;
+  const handleProgress = (currentTime: number, duration: number, explicitEpisodeNum?: string, forceSync: boolean = false) => {
+    if (!detail) return;
+    const epToSave = explicitEpisodeNum || currentEpisodeNum;
+    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+    
+    // Find episode thumbnail if it's a TV show
+    const epDetail = seasonData?.episodes?.find((e: any) => e.episode_number.toString() === epToSave);
+    const epImage = epDetail?.still_path;
+
     const historyItem = {
-      id,
-      title: detail?.title || detail?.name || '',
-      poster: detail?.backdrop_path || '',
+      id: isNumeric ? id : (ophimRes?.data?.item?._id || id),
+      title: detail?.title || detail?.name || ophimRes?.data?.item?.name || '',
+      poster: epImage || detail?.backdrop_path || ophimRes?.data?.item?.thumb_url || '',
       progress,
       currentTime,
-      episodeNum: type === 'tv' ? parseInt(currentEpisodeNum) : undefined,
+      episodeNum: type === 'tv' ? parseInt(epToSave) : undefined,
       seasonNum: type === 'tv' ? selectedSeason : undefined,
       slug: isNumeric ? undefined : id,
       watched_at: new Date().toISOString()
     };
     
     addToHistory(historyItem);
-    syncItemToCloud(historyItem);
+    syncItemToCloud(historyItem, forceSync);
   };
 
   // Synchronize with global loader
@@ -166,7 +193,9 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
     const isRedirecting = !isNumeric && !isOphimLoading && ophimRes?.data?.item?.tmdb?.id;
     
     // We stay loading until TMDB details ARE HERE AND (if numeric) mapping is done AND ophim detail is fetched
-    const shouldShowLoading = isLoading || (isNumeric && !isMappingReady) || isOphimLoading || isRedirecting;
+    // Optimization: ONLY show full page loading on INITIAL load (when detail is not yet available)
+    const isInitialLoad = !detail;
+    const shouldShowLoading = isInitialLoad && (isLoading || (isNumeric && !isMappingReady) || isOphimLoading || isRedirecting);
     
     setPageLoading(shouldShowLoading);
     return () => {
@@ -241,9 +270,9 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
                 subTitle={playerConfig.subTitle}
                 poster={detail?.backdrop_path ? tmdb.getImageUrl(detail.backdrop_path, 'w1280') : undefined}
                 startTime={playerConfig.startTime}
-                onProgress={handleProgress}
+                onProgress={(ct, d, f) => handleProgress(ct, d, undefined, f)}
                 onClose={(finalTime, finalDuration) => {
-                  handleProgress(finalTime, finalDuration); // Save final position
+                  handleProgress(finalTime, finalDuration, undefined, true); // Force sync on exit
                   setShowPlayer(false);
                 }}
                 autoPlay
@@ -310,20 +339,42 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
               <button 
                 className={styles.btnPlay}
                 onClick={() => {
-                  if (hasHistory) {
-                    handlePlay(existingHistory.episodeNum?.toString() || '1', existingHistory.currentTime);
-                  } else {
-                    handlePlay('1');
+                  const trailer = detail?.videos?.results?.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube');
+                  if (ophimRes?.data?.item) {
+                    if (hasHistory) {
+                      handlePlay(
+                        latestHistory.episodeNum?.toString() || '1', 
+                        latestHistory.currentTime, 
+                        latestHistory.seasonNum
+                      );
+                    } else {
+                      handlePlay('1');
+                    }
+                  } else if (trailer) {
+                    setPlayerConfig({
+                      src: `https://www.youtube.com/embed/${trailer.key}?autoplay=1`,
+                      title: detail?.title || detail?.name || '',
+                      subTitle: 'Official Trailer',
+                      isIframe: true
+                    });
+                    setShowPlayer(true);
                   }
                 }}
-                disabled={!ophimRes?.data?.item}
-                style={{ opacity: !ophimRes?.data?.item ? 0.6 : 1, cursor: !ophimRes?.data?.item ? 'wait' : 'pointer' }}
+                disabled={!ophimRes?.data?.item && !detail?.videos?.results?.some((v: any) => v.type === 'Trailer')}
+                style={{ 
+                  opacity: (!ophimRes?.data?.item && (isOphimLoading || (isNumeric && !mappingSlug))) ? 0.6 : 1, 
+                  cursor: (!ophimRes?.data?.item && (isOphimLoading || (isNumeric && !mappingSlug))) ? 'wait' : 'pointer' 
+                }}
               >
                 <Play size={24} fill="currentColor" />
                 <span>
                   {(!ophimRes?.data?.item && (isOphimLoading || (isNumeric && !mappingSlug))) 
                     ? 'Loading...' 
-                    : hasHistory ? 'Continue Watching' : 'Play'}
+                    : ophimRes?.data?.item 
+                      ? (hasHistory ? 'Continue Watching' : 'Play')
+                      : detail?.videos?.results?.some((v: any) => v.type === 'Trailer') 
+                        ? 'Play Trailer' 
+                        : 'Not Available'}
                 </span>
               </button>
               <button 
@@ -362,9 +413,16 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
                   <button 
                     className={styles.seasonDropdownToggle}
                     onClick={() => setIsSeasonDropdownOpen(!isSeasonDropdownOpen)}
+                    disabled={isFetchingSeason}
                   >
                     Season {selectedSeason}
-                    {isSeasonDropdownOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    {isFetchingSeason ? (
+                      <Loader2 size={20} className={styles.spinner} />
+                    ) : isSeasonDropdownOpen ? (
+                      <ChevronUp size={20} />
+                    ) : (
+                      <ChevronDown size={20} />
+                    )}
                   </button>
                   
                   <AnimatePresence>
@@ -393,34 +451,56 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
                 </div>
               )}
 
-              <div className={styles.episodesList}>
-                {seasonData?.episodes?.map((ep: any) => (
-                  <div 
-                    key={ep.id} 
-                    className={styles.episodeCard}
-                    onClick={() => {
-                      const isResuming = hasHistory && existingHistory.episodeNum === ep.episode_number;
-                      handlePlay(ep.episode_number.toString(), isResuming ? existingHistory.currentTime : 0);
-                    }}
-                  >
-                    <div className={styles.episodeThumbWrapper}>
-                      <img 
-                        src={tmdb.getEpisodeImage(ep.still_path) || (detail?.backdrop_path ? tmdb.getImageUrl(detail.backdrop_path, 'w300') : undefined)} 
-                        alt={ep.name}
-                        className={styles.episodeThumb}
-                      />
-                      <div className={styles.playOverlay}>
-                        <Play size={32} fill="#fff" />
+              <div className={`${styles.episodesList} ${isFetchingSeason ? styles.fetching : ''}`}>
+                {seasonData?.episodes?.map((ep: any) => {
+                  const epHistory = showHistory.find((h: any) => 
+                    h.episodeNum === ep.episode_number && 
+                    h.seasonNum === selectedSeason
+                  );
+                  // Only highlight the ABSOLUTE LATEST watched episode as "Watching"
+                  const isCurrentWatching = latestHistory && 
+                    latestHistory.episodeNum === ep.episode_number && 
+                    latestHistory.seasonNum === selectedSeason &&
+                    latestHistory.progress < 95;
+                  
+                  return (
+                    <div 
+                      key={ep.id} 
+                      className={`${styles.episodeCard} ${isCurrentWatching ? styles.watchingCard : ''}`}
+                      onClick={() => {
+                        handlePlay(ep.episode_number.toString(), epHistory ? epHistory.currentTime : 0, selectedSeason);
+                      }}
+                    >
+                      <div className={styles.episodeThumbWrapper}>
+                        <img 
+                          src={tmdb.getEpisodeImage(ep.still_path) || (detail?.backdrop_path ? tmdb.getImageUrl(detail.backdrop_path, 'w300') : undefined)} 
+                          alt={ep.name}
+                          className={styles.episodeThumb}
+                        />
+                        <div className={styles.playOverlay}>
+                          <Play size={32} fill="#fff" />
+                        </div>
+                        {epHistory && epHistory.progress > 0 && (
+                          <div className={styles.episodeProgressContainer}>
+                            <div 
+                              className={styles.episodeProgressBar} 
+                              style={{ width: `${epHistory.progress}%` }} 
+                            />
+                          </div>
+                        )}
+                        {isCurrentWatching && (
+                          <div className={styles.watchingBadge}>Watching</div>
+                        )}
+                      </div>
+                      <div className={styles.episodeInfo}>
+                        <div className={styles.episodeHeader}>Episode {ep.episode_number}</div>
+                        <h4 className={styles.episodeTitle}>{ep.name}</h4>
+                        {ep.runtime && <p className={styles.episodeRuntime}>{ep.runtime}m</p>}
+                        <p className={styles.episodeDesc}>{ep.overview || 'No description available.'}</p>
                       </div>
                     </div>
-                    <div className={styles.episodeInfo}>
-                      <div className={styles.episodeHeader}>Episode {ep.episode_number}</div>
-                      <h4 className={styles.episodeTitle}>{ep.name}</h4>
-                      {ep.runtime && <p className={styles.episodeRuntime}>{ep.runtime}m</p>}
-                      <p className={styles.episodeDesc}>{ep.overview || 'No description available.'}</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           )}
@@ -462,11 +542,17 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
                     href={type === 'tv' ? `/tv/${item.id}` : `/movie/${item.id}`}
                     className={styles.similarCard}
                   >
-                    <img 
-                      src={tmdb.getImageUrl(item.poster_path, 'w342')} 
-                      alt={item.title || item.name}
-                      className={styles.similarPoster}
-                    />
+                    <div className={styles.similarPosterWrapper}>
+                      <img 
+                        src={tmdb.getImageUrl(item.poster_path, 'w342')} 
+                        alt={item.title || item.name}
+                        className={styles.similarPoster}
+                      />
+                    </div>
+                    <div className={styles.similarInfo}>
+                      <div className={styles.similarTitle}>{item.title || item.name}</div>
+                      <div className={styles.similarYear}>{(item.release_date || item.first_air_date || '').split('-')[0]}</div>
+                    </div>
                   </Link>
                 ))}
               </div>

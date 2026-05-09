@@ -10,10 +10,11 @@
 }
 
 .netflixVideo {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  transition: object-fit 0.3s ease;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  transition: all 0.3s ease;
 }
 
 .zoomed {
@@ -29,8 +30,13 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 40px 60px;
+  padding: 40px 4%;
   color: #fff;
+  pointer-events: none;
+}
+
+.netflixTop, .netflixBottom, .netflixCenter, .episodeSelector {
+  pointer-events: auto;
 }
 
 .netflixTop {
@@ -337,105 +343,118 @@
   top: 0;
   right: 0;
   bottom: 0;
-  width: 400px;
-  background: rgba(0, 0, 0, 0.95);
-  backdrop-filter: blur(20px);
+  width: 420px;
+  background: rgba(10, 10, 10, 0.8);
+  backdrop-filter: blur(30px) saturate(180%);
   z-index: 2000;
   display: flex;
   flex-direction: column;
-  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+  box-shadow: -15px 0 50px rgba(0, 0, 0, 0.8);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .episodeHeader {
-  padding: 30px;
+  padding: 40px 30px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .episodeHeader h3 {
   margin: 0;
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #fff;
 }
 
 .episodeHeader button {
-  background: none;
+  background: rgba(255, 255, 255, 0.1);
   border: none;
   color: white;
-  font-size: 24px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  opacity: 0.6;
-  transition: opacity 0.2s;
+  transition: all 0.2s;
 }
 
 .episodeHeader button:hover {
-  opacity: 1;
+  background: #e50914;
+  transform: rotate(90deg);
 }
 
 .episodeScroll {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 10px 20px 40px;
+  mask-image: linear-gradient(to bottom, transparent, black 5%, black 95%, transparent);
 }
 
 .episodeScroll::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 .episodeScroll::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
+  border-radius: 10px;
 }
 
 .episodeItem {
   display: flex;
-  gap: 15px;
-  padding: 15px;
-  border-radius: 12px;
+  gap: 20px;
+  padding: 12px;
+  border-radius: 16px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-bottom: 10px;
+  transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  margin-bottom: 8px;
+  border: 1px solid transparent;
 }
 
 .episodeItem:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateX(-5px);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(-10px);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .activeEpisode {
-  background: rgba(229, 9, 20, 0.2) !important;
-  border: 1px solid rgba(229, 9, 20, 0.3);
+  background: rgba(229, 9, 20, 0.15) !important;
+  border-color: rgba(229, 9, 20, 0.4) !important;
 }
 
 .episodeThumb {
   position: relative;
-  width: 140px;
+  width: 160px;
   aspect-ratio: 16/9;
-  border-radius: 6px;
+  border-radius: 10px;
   overflow: hidden;
   flex-shrink: 0;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
 }
 
 .episodeThumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.episodeItem:hover .episodeThumb img {
+  transform: scale(1.15);
 }
 
 .epPlayOverlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  inset: 0;
+  background: rgba(229, 9, 20, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: all 0.3s;
 }
 
 .episodeItem:hover .epPlayOverlay {
@@ -447,11 +466,22 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  gap: 4px;
 }
 
-.epNumTitle {
-  font-size: 16px;
-  font-weight: 600;
+.epNumber {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #e50914;
+  margin-bottom: 2px;
+}
+
+.epTitle {
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -460,35 +490,40 @@
   overflow: hidden;
 }
 
-.activeEpisode .epNumTitle {
-  color: #e50914;
+.activeEpisode .epTitle {
+  color: #fff;
+  font-weight: 700;
 }
 
 @media (max-width: 768px) {
+  .netflixOverlay {
+    padding: 24px 4% 40px;
+  }
+
   .episodeSelector {
     width: 100%;
+    background: #000;
   }
-  .netflixOverlay {
-    padding: 20px 24px 40px; /* More padding at bottom for notch/safe area */
+  
+  .episodeHeader {
+    padding: 30px 20px 10px;
   }
-  .netflixCenter {
-    gap: 40px;
+
+  .episodeHeader h3 {
+    font-size: 24px;
   }
-  .centerBtn svg {
-    width: 40px;
-    height: 40px;
+
+  .episodeItem {
+    gap: 15px;
+    padding: 10px;
+    border-radius: 12px;
   }
-  .playBtnLarge svg {
-    width: 60px;
-    height: 60px;
+
+  .episodeThumb {
+    width: 130px;
   }
-  .actionGroupSingle {
-    gap: 30px;
-  }
-  .netflixMainTitle {
+
+  .epNumTitle {
     font-size: 14px;
-  }
-  .netflixSubTitle {
-    font-size: 16px;
   }
 }

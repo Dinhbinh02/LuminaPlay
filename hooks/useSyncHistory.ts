@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useStore } from '@/store/useStore';
 
@@ -41,13 +41,14 @@ export function useSyncHistory() {
 
     if (data) {
       const cloudHistory = data.map(item => ({
-        id: item.movie_id,
+        id: item.movie_id.includes('_S') ? item.movie_id.split('_S')[0] : item.movie_id,
         title: item.title,
         poster: item.poster,
         progress: Number(item.progress),
         slug: item.slug,
         watched_at: item.watched_at,
         episodeNum: item.episode_num,
+        season_num: item.season_num, // Map correctly to seasonNum below
         seasonNum: item.season_num,
         currentTime: Number(item.playback_time)
       }));
@@ -62,14 +63,27 @@ export function useSyncHistory() {
     fetchHistoryFromCloud();
   }, [fetchHistoryFromCloud]);
 
-  // Sync from Local to Supabase
-  const syncItemToCloud = useCallback(async (item: any) => {
+  const lastSyncRef = useRef<number>(0);
+
+  // Sync from Local to Supabase (Throttled)
+  const syncItemToCloud = useCallback(async (item: any, force: boolean = false) => {
     if (!user) return;
 
+    const now = Date.now();
+    // Ultra-efficient sync: only update cloud every 5 minutes (300,000ms)
+    // or when forced (on close/exit)
+    if (!force && now - lastSyncRef.current < 300000) {
+      return;
+    }
+
     try {
+      lastSyncRef.current = now;
+      // Generate a unique ID for episodes to avoid overwriting show-level history in cloud
+      const cloudMovieId = item.seasonNum ? `${item.id}_S${item.seasonNum}_E${item.episodeNum}` : item.id;
+
       const { error } = await supabase.from('watch_history').upsert({
         user_id: user.id,
-        movie_id: item.id,
+        movie_id: cloudMovieId,
         title: item.title,
         poster: item.poster,
         slug: item.slug || '',
