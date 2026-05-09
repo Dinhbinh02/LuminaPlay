@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Hls from 'hls.js';
-import { Play, Pause, RotateCcw, RotateCw, ChevronLeft, SlidersHorizontal, List, SkipForward, PictureInPicture2, Maximize, Minimize, Volume2, VolumeX, Settings, Layers, Lock, Unlock, Cast } from 'lucide-react';
+import { Play, Pause, RotateCcw, RotateCw, ChevronLeft, SlidersHorizontal, List, SkipForward, PictureInPicture2, Maximize, Minimize, Volume2, VolumeX, Settings, Layers, Lock, Unlock, Cast, Scan } from 'lucide-react';
 import styles from './VideoPlayer.module.css';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useWatchParty, WatchPartyMessage } from '@/hooks/useWatchParty';
@@ -117,23 +117,48 @@ const VideoPlayer = ({
   }, [isLocked, broadcastSync, resetControlsTimeout]);
 
   const toggleFullscreen = useCallback(async () => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !videoRef.current) return;
+    
+    // Check for iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    if (isIOS) {
+      if ((videoRef.current as any).webkitEnterFullscreen) {
+        (videoRef.current as any).webkitEnterFullscreen();
+        return;
+      }
+    }
+
     try {
       if (!document.fullscreenElement) {
-        await containerRef.current.requestFullscreen();
-        setIsFullscreen(true);
-        if ((window.screen?.orientation as any)?.lock) {
-          try {
-            await (window.screen.orientation as any).lock('landscape');
-          } catch (e) {
-            console.warn('Orientation lock failed:', e);
+        const req = containerRef.current.requestFullscreen || 
+                    (containerRef.current as any).webkitRequestFullscreen || 
+                    (containerRef.current as any).mozRequestFullScreen || 
+                    (containerRef.current as any).msRequestFullscreen;
+        
+        if (req) {
+          await req.call(containerRef.current);
+          setIsFullscreen(true);
+          if ((window.screen?.orientation as any)?.lock) {
+            try {
+              await (window.screen.orientation as any).lock('landscape');
+            } catch (e) {
+              console.warn('Orientation lock failed:', e);
+            }
           }
         }
       } else {
-        await document.exitFullscreen();
-        setIsFullscreen(false);
-        if ((window.screen?.orientation as any)?.unlock) {
-          (window.screen.orientation as any).unlock();
+        const exit = document.exitFullscreen || 
+                     (document as any).webkitExitFullscreen || 
+                     (document as any).mozCancelFullScreen || 
+                     (document as any).msExitFullscreen;
+        
+        if (exit) {
+          await exit.call(document);
+          setIsFullscreen(false);
+          if ((window.screen?.orientation as any)?.unlock) {
+            (window.screen.orientation as any).unlock();
+          }
         }
       }
     } catch (err) {
@@ -160,25 +185,6 @@ const VideoPlayer = ({
   // Keyboard shortcuts
   useEffect(() => {
     // Auto-fullscreen on mount
-    const enterFullscreen = async () => {
-      if (containerRef.current && !document.fullscreenElement) {
-        try {
-          await containerRef.current.requestFullscreen();
-          setIsFullscreen(true);
-          if ((window.screen?.orientation as any)?.lock) {
-            try {
-              await (window.screen.orientation as any).lock('landscape');
-            } catch (e) {
-              console.warn('Orientation lock failed:', e);
-            }
-          }
-        } catch (err) {
-          console.warn("Fullscreen auto-play blocked by browser gesture rules.");
-        }
-      }
-    };
-    enterFullscreen();
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
 
@@ -321,11 +327,14 @@ const VideoPlayer = ({
               </button>
             </div>
 
-            {/* Center Controls Removed - Moved to Bottom */}
+            {/* Center Controls Removed */}
 
             {/* Bottom Bar */}
             <div className={styles.netflixBottom} onClick={(e) => e.stopPropagation()}>
               <div className={styles.progressSection}>
+                <div className={styles.timeLabel}>
+                  {formatTime(currentTime)}
+                </div>
                 <div 
                   className={styles.netflixProgressBar}
                   onPointerDown={(e) => {
@@ -333,7 +342,7 @@ const VideoPlayer = ({
                     const pos = (e.clientX - rect.left) / rect.width;
                     const newTime = pos * duration;
                     videoRef.current!.currentTime = newTime;
-                    setCurrentTime(newTime); // Update state instantly
+                    setCurrentTime(newTime);
                   }}
                   onMouseMove={(e) => {
                     const rect = e.currentTarget.getBoundingClientRect();
@@ -368,25 +377,31 @@ const VideoPlayer = ({
                   />
                 </div>
                 <div className={styles.timeLabel}>
-                  {formatTime(duration - currentTime)}
+                  {formatTime(duration)}
                 </div>
               </div>
 
               <div className={styles.controlsRow}>
-                {/* Left side (empty for now, could be volume later) */}
-                <div className={styles.controlsLeft} />
-
-                {/* Center side (Play Controls) */}
-                <div className={styles.controlsCenter}>
+                {/* Left side (Play Controls) */}
+                <div className={styles.controlsLeft}>
                   <button className={styles.iconBtn} onClick={() => seek(-10)}>
-                    <RotateCcw size={32} />
+                    <RotateCcw size={28} />
                   </button>
                   <button className={styles.iconBtn} onClick={togglePlay}>
-                    {isPlaying ? <Pause size={40} fill="white" /> : <Play size={40} fill="white" />}
+                    {isPlaying ? <Pause size={32} fill="white" /> : <Play size={32} fill="white" />}
                   </button>
                   <button className={styles.iconBtn} onClick={() => seek(10)}>
-                    <RotateCw size={32} />
+                    <RotateCw size={28} />
                   </button>
+                  {onNext && (
+                    <button className={styles.iconBtn} onClick={onNext}>
+                      <SkipForward size={24} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Center side (Empty) */}
+                <div className={styles.controlsCenter}>
                 </div>
 
                 {/* Right side (Actions) */}
@@ -396,8 +411,8 @@ const VideoPlayer = ({
                       className={styles.actionBtn} 
                       onClick={() => setShowSpeedMenu(!showSpeedMenu)}
                     >
-                      <SlidersHorizontal size={20} />
-                      <span>Speed ({playbackRate}x)</span>
+                      <SlidersHorizontal size={24} />
+                      <span className={styles.btnLabel}>Speed ({playbackRate}x)</span>
                     </button>
                     
                     <AnimatePresence>
@@ -427,19 +442,26 @@ const VideoPlayer = ({
                   </div>
 
                   <button 
-
                     className={styles.actionBtn} 
                     onClick={() => setShowEpisodeSelector(true)}
                   >
-                    <List size={20} />
-                    <span>Episodes</span>
+                    <List size={24} />
+                    <span className={styles.btnLabel}>Episodes</span>
                   </button>
-                  {onNext && (
-                    <button className={styles.actionBtn} onClick={onNext}>
-                      <SkipForward size={20} />
-                      <span>Next Episode</span>
-                    </button>
-                  )}
+
+                  <button 
+                    className={`${styles.actionBtn} ${isFullscreen ? styles.activeAction : ''}`} 
+                    onClick={toggleFullscreen}
+                  >
+                    {isFullscreen ? (
+                      <Minimize size={24} color="#e50914" />
+                    ) : (
+                      <Maximize size={24} />
+                    )}
+                    <span className={styles.btnLabel}>{isFullscreen ? 'Exit' : 'Full'}</span>
+                  </button>
+
+                  {/* onNext moved to controlsLeft for better grouping */}
                 </div>
               </div>
             </div>
