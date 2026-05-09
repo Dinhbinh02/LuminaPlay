@@ -33,9 +33,11 @@
 
 .title {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 800;
   color: white;
   margin: 0;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.5px;
   transition: color 0.3s ease;
 }
 
@@ -45,8 +47,7 @@
 }
 
 .controls {
-  display: flex;
-  gap: 8px;
+  display: none;
 }
 
 .controlBtn {
@@ -191,6 +192,10 @@
 }
 
 @media (max-width: 768px) {
+  .title {
+    font-size: 20px;
+  }
+
   .cardWrapper {
     flex: 0 0 240px;
   }

@@ -4,10 +4,22 @@ import React, { useEffect, useState } from 'react';
 import Header from "@/components/layout/Header";
 import Hero from "@/components/movie/Hero";
 import MovieSection from "@/components/movie/MovieSection";
+import TopTrendingSection from "@/components/movie/TopTrendingSection";
 import ContinueWatching from "@/components/movie/ContinueWatching";
-import { useMovieList } from "@/hooks/useMovie";
+import { 
+  useMovieList, 
+  useRegionalTrending, 
+  useTrendingWithLogos, 
+  useTMDBRecommendations, 
+  useGeoLocation,
+  useTMDBPopular,
+  useTMDBUpcoming,
+  useTMDBByGenre
+} from "@/hooks/useMovie";
 import { ophim } from "@/lib/ophim";
+import { tmdb } from "@/lib/tmdb";
 import styles from './page.module.css';
+import LazySection from "@/components/layout/LazySection";
 
 function HistorySkeleton() {
   return (
@@ -23,10 +35,61 @@ function HistorySkeleton() {
 }
 
 export default function Home() {
-  const { data: heroData, isLoading: isHeroLoading } = useMovieList('phim-moi', 1, 20);
+  const { data: geo } = useGeoLocation();
+  const { data: regionalTrending, isLoading: isRegionalLoading } = useRegionalTrending('movie');
+  const { data: heroData, isLoading: isHeroLoading } = useTrendingWithLogos('all', 6, geo?.countryCode);
+  
+  // New TMDB Hooks for restructured home
+  const { data: popularTV } = useTMDBPopular('tv');
+  const { data: upcomingMovies } = useTMDBUpcoming();
+  const { data: actionMovies } = useTMDBByGenre(28); // Action
+  const { data: romanceMovies } = useTMDBByGenre(10749); // Romance
+  const { data: horrorMovies } = useTMDBByGenre(27); // Horror
+  const { data: sciFiMovies } = useTMDBByGenre(878); // Sci-Fi
+  const { data: animationMovies } = useTMDBByGenre(16); // Animation
+  const { data: docMovies } = useTMDBByGenre(99); // Documentary
 
   const [history, setHistory] = useState<any[]>([]);
   const [isHistoryChecked, setIsHistoryChecked] = useState(false);
+
+  // Recommendations logic
+  const lastWatched = history[0];
+  const lastWatchedId = lastWatched?.slug?.split('/')[1] || lastWatched?.id;
+  const lastWatchedType = lastWatched?.slug?.split('/')[0] === 'tv' ? 'tv' : 'movie';
+  
+  const { data: recData, isLoading: isRecLoading } = useTMDBRecommendations(
+    lastWatchedId || '', 
+    lastWatchedType
+  );
+
+  // Simple static mapping for TMDB genre IDs
+  const tmdbGenres: Record<number, string> = {
+    28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy", 80: "Crime", 99: "Documentary", 18: "Drama", 10751: "Family", 14: "Fantasy", 36: "History", 27: "Horror", 10402: "Music", 9648: "Mystery", 10749: "Romance", 878: "Sci-Fi", 10770: "TV Movie", 53: "Thriller", 10752: "War", 37: "Western",
+    10759: "Action & Adventure", 10762: "Kids", 10763: "News", 10764: "Reality", 10765: "Sci-Fi & Fantasy", 10766: "Soap", 10767: "Talk", 10768: "Politics"
+  };
+
+  // Hero movies from TMDB trending with logos
+  const heroMovies = heroData?.map((item: any, index: number) => {
+    // Map genre IDs to names
+    const mappedGenres = (item.genre_ids || []).map((id: number) => ({
+      name: tmdbGenres[id] || "Unknown",
+      slug: id.toString()
+    })).filter((g: any) => g.name !== "Unknown");
+
+    return {
+      id: item.id,
+      title: item.title || item.name,
+      description: item.overview,
+      backdrop: tmdb.getImageUrl(item.backdrop_path, 'original'),
+      poster: tmdb.getImageUrl(item.poster_path, 'original'), // High-res for mobile hero
+      logo: item.logo,
+      media_type: item.media_type || (item.title ? 'movie' : 'tv'),
+      year: new Date(item.release_date || item.first_air_date).getFullYear(),
+      rating: item.vote_average,
+      rank: index + 1,
+      genres: mappedGenres
+    };
+  }) || [];
 
   useEffect(() => {
     const loadHistory = () => {
@@ -34,7 +97,6 @@ export default function Home() {
       if (watchHistory) {
         try {
           const parsed = JSON.parse(watchHistory);
-          // Sort by lastUpdated descending to ensure newest is first
           const sorted = parsed.sort((a: any, b: any) => {
             const timeA = a.lastUpdated || (a.lastWatched ? new Date(a.lastWatched).getTime() : 0);
             const timeB = b.lastUpdated || (b.lastWatched ? new Date(b.lastWatched).getTime() : 0);
@@ -50,43 +112,11 @@ export default function Home() {
     loadHistory();
     setIsHistoryChecked(true);
 
-    // Listen for storage changes from other tabs
     window.addEventListener('storage', (e) => {
-      if (e.key === 'watch_history') {
-        loadHistory();
-      }
+      if (e.key === 'watch_history') loadHistory();
     });
-
-    // Also poll occasionally or use a custom event if needed
-    // But for now, storage event is enough for cross-tab
   }, []);
 
-  // Filter and sort for best hero movies: High rating (> 7) and both image assets
-  const heroMovies = heroData?.data?.items
-    ?.filter((item: any) => {
-      const rating = item.tmdb?.vote_average || item.imdb?.vote_average || 0;
-      return item.poster_url && item.thumb_url && rating >= 7;
-    })
-    ?.sort((a: any, b: any) => {
-      const ratingA = a.tmdb?.vote_average || a.imdb?.vote_average || 0;
-      const ratingB = b.tmdb?.vote_average || b.imdb?.vote_average || 0;
-      return ratingB - ratingA; // Highest rating first
-    })
-    ?.slice(0, 6)
-    ?.map((item: any, index: number) => ({
-      title: item.name,
-      description: item.origin_name,
-      backdrop: ophim.getImageUrl(item.poster_url, heroData?.data?.APP_DOMAIN_CDN_IMAGE),
-      poster: ophim.getImageUrl(item.thumb_url, heroData?.data?.APP_DOMAIN_CDN_IMAGE),
-      slug: item.slug,
-      quality: item.quality,
-      year: item.year,
-      lang: item.lang,
-      genres: item.category?.map((c: any) => ({ name: c.name, slug: c.slug })) || [],
-      rating: item.tmdb?.vote_average || item.imdb?.vote_average,
-      rank: index + 1,
-      episode: ophim.formatEpisode(item.episode_current, item.episode_total)
-    })) || [];
 
   return (
     <main style={{ minHeight: '100vh', backgroundColor: '#000000' }}>
@@ -108,40 +138,131 @@ export default function Home() {
           <HistorySkeleton />
         )}
 
-        {/* Dynamic Sections with Infinite Scroll */}
-        <MovieSection title="Trending Now" type="danh-sach" slug="phim-moi" />
-        <MovieSection title="Cinema Movies" type="danh-sach" slug="phim-chieu-rap" />
+        {/* 1. Regional Trending (TMDB) */}
+        {!isRegionalLoading && regionalTrending?.results && (
+          <LazySection height="450px">
+            <TopTrendingSection 
+              movies={regionalTrending.results} 
+              title={`Top 10 in ${regionalTrending.countryName} Today`} 
+            />
+          </LazySection>
+        )}
 
-        <MovieSection title="TV Series" type="danh-sach" slug="phim-bo" />
+        {/* 3. Anime (Ophim) */}
+        <LazySection height="350px">
+          <MovieSection title="Anime" type="danh-sach" slug="hoat-hinh" params={{ country: 'nhat-ban' }} />
+        </LazySection>
 
-        <MovieSection title="Movies" type="danh-sach" slug="phim-le" />
+        {/* 4. K-Drama (Ophim) */}
+        <LazySection height="350px">
+          <MovieSection title="K-Drama" type="quoc-gia" slug="han-quoc" />
+        </LazySection>
 
-        <MovieSection title="Korean TV Dramas" type="quoc-gia" slug="han-quoc" />
+        {/* 4. Global Popular TV (TMDB) */}
+        {popularTV?.results && (
+          <LazySection height="350px">
+            <MovieSection 
+              title="Global Popular Series" 
+              movies={popularTV.results} 
+            />
+          </LazySection>
+        )}
+        
+        {/* 5. Recently Added (Ophim) */}
+        <LazySection height="350px">
+          <MovieSection title="New on LuminaPlay" type="danh-sach" slug="phim-moi" />
+        </LazySection>
 
-        <MovieSection title="Anime" type="danh-sach" slug="hoat-hinh" params={{ country: 'nhat-ban' }} />
+        {/* 6. Action Blockbusters (TMDB Genre) */}
+        {actionMovies?.results && (
+          <LazySection height="350px">
+            <MovieSection 
+              title="Action & Adventure Hits" 
+              movies={actionMovies.results} 
+            />
+          </LazySection>
+        )}
 
-        <MovieSection title="Chinese Dramas" type="quoc-gia" slug="trung-quoc" />
+        {/* 7. Personalized Recommendations (TMDB) */}
+        {!isRecLoading && recData?.results?.length > 0 && lastWatched && (
+          <LazySection height="400px">
+            <MovieSection 
+              title={`Because you watched ${lastWatched.title}`}
+              movies={recData.results} 
+            />
+          </LazySection>
+        )}
 
-        <MovieSection title="Hollywood Hits" type="quoc-gia" slug="au-my" />
+        {/* 8. Romance Stories (TMDB Genre) */}
+        {romanceMovies?.results && (
+          <LazySection height="350px">
+            <MovieSection 
+              title="Romantic Stories" 
+              movies={romanceMovies.results} 
+            />
+          </LazySection>
+        )}
 
-        <MovieSection title="Thai Dramas" type="quoc-gia" slug="thai-lan" />
+        {/* 9. Horror & Thriller (TMDB) */}
+        {horrorMovies?.results && (
+          <LazySection height="350px">
+            <MovieSection 
+              title="Horror & Thriller" 
+              movies={horrorMovies.results} 
+            />
+          </LazySection>
+        )}
 
-        <MovieSection title="Action & Adventure" type="the-loai" slug="hanh-dong" />
+        {/* 10. Sci-Fi & Fantasy (TMDB) */}
+        {sciFiMovies?.results && (
+          <LazySection height="350px">
+            <MovieSection 
+              title="Sci-Fi & Fantasy" 
+              movies={sciFiMovies.results} 
+            />
+          </LazySection>
+        )}
 
-        <MovieSection title="Sci-Fi & Fantasy" type="the-loai" slug="vien-tuong" />
+        {/* 11. International Animation (TMDB) */}
+        {animationMovies?.results && (
+          <LazySection height="350px">
+            <MovieSection 
+              title="International Animation" 
+              movies={animationMovies.results} 
+            />
+          </LazySection>
+        )}
 
-        <MovieSection title="Horror & Thriller" type="the-loai" slug="kinh-di" />
+        {/* 12. Documentaries (TMDB) */}
+        {docMovies?.results && (
+          <LazySection height="350px">
+            <MovieSection 
+              title="Real Life Stories & Docs" 
+              movies={docMovies.results} 
+            />
+          </LazySection>
+        )}
 
-        <MovieSection title="Romance" type="the-loai" slug="tinh-cam" />
+        {/* 13. Chinese Dramas (Ophim) */}
+        <LazySection height="350px">
+          <MovieSection title="Chinese Dramas" type="quoc-gia" slug="trung-quoc" />
+        </LazySection>
 
-        <MovieSection title="Comedy" type="the-loai" slug="hai-huoc" />
+        {/* 14. Reality & Variety TV (Ophim) */}
+        <LazySection height="350px">
+          <MovieSection title="Reality & Variety TV" type="danh-sach" slug="tv-shows" />
+        </LazySection>
 
-        <MovieSection title="Reality & Variety TV" type="danh-sach" slug="tv-shows" />
-
-        <MovieSection title="Coming Soon" type="danh-sach" slug="phim-sap-chieu" />
+        {/* 15. Coming Soon (TMDB Upcoming) */}
+        {upcomingMovies?.results && (
+          <LazySection height="350px">
+            <MovieSection 
+              title="Coming Soon to Theaters" 
+              movies={upcomingMovies.results} 
+            />
+          </LazySection>
+        )}
       </div>
-
-
     </main>
   );
 }

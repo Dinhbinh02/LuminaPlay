@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { ophim } from '@/lib/ophim';
+import { tmdb } from '@/lib/tmdb';
 import styles from './SearchOverlay.module.css';
 
 interface SearchOverlayProps {
@@ -19,7 +19,6 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   const [isMoreLoading, setIsMoreLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [cdnDomain, setCdnDomain] = useState('');
   
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -58,13 +57,12 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
         else setIsMoreLoading(true);
 
         try {
-          const res = await ophim.search(query, page);
-          const items = res.data?.items || [];
-          
-          setCdnDomain(res.data?.APP_DOMAIN_CDN_IMAGE || '');
+          const res = await tmdb.search(query, 'multi', page);
+          // Filter out people from multi-search results
+          const items = res?.results?.filter((item: any) => item.media_type === 'movie' || item.media_type === 'tv') || [];
           
           setResults(prev => page === 1 ? items : [...prev, ...items]);
-          setHasMore(items.length > 0);
+          setHasMore(page < (res?.total_pages || 1));
         } catch (error) {
           console.error('Search error:', error);
         } finally {
@@ -80,8 +78,9 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
     return () => clearTimeout(timer);
   }, [query, page]);
 
-  const handleSelect = (slug: string) => {
-    router.push(`/watch/${slug}`);
+  const handleSelect = (movie: any) => {
+    const type = movie.media_type || 'movie';
+    router.push(`/${type}/${movie.id}`);
     onClose();
     setQuery('');
   };
@@ -135,38 +134,50 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                 <div className={styles.loader}>Searching...</div>
               ) : results.length > 0 ? (
                 <div className={styles.resultsList}>
-                  {results.map((movie, index) => (
-                    <motion.div 
-                      key={`${movie._id}-${index}`}
-                      ref={index === results.length - 1 ? lastElementRef : null}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={styles.resultItem}
-                      onClick={() => handleSelect(movie.slug)}
-                    >
-                      <div className={styles.posterWrapper}>
-                        <img 
-                          src={ophim.getImageUrl(movie.thumb_url, cdnDomain)} 
-                          alt={movie.name} 
-                          className={styles.poster} 
-                          loading="lazy"
-                        />
-                      </div>
-                      <div className={styles.info}>
-                        <h4 className={styles.title}>{movie.name}</h4>
-                        <div className={styles.meta}>
-                          <span>{movie.year}</span>
-                          <span className={styles.dot}>•</span>
-                          <span>{movie.quality}</span>
-                          <span className={styles.dot}>•</span>
-                          <span>{movie.lang}</span>
+                  {results.map((movie, index) => {
+                    const title = movie.title || movie.name;
+                    const year = (movie.release_date || movie.first_air_date || '').split('-')[0];
+                    const poster = movie.poster_path || movie.backdrop_path;
+                    
+                    return (
+                      <motion.div 
+                        key={`${movie.id}-${index}`}
+                        ref={index === results.length - 1 ? lastElementRef : null}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={styles.resultItem}
+                        onClick={() => handleSelect(movie)}
+                      >
+                        <div className={styles.posterWrapper}>
+                          {poster ? (
+                            <img 
+                              src={tmdb.getImageUrl(poster, 'w342')} 
+                              alt={title} 
+                              className={styles.poster} 
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className={styles.posterPlaceholder}>
+                              <Search size={24} opacity={0.3} />
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      <div className={styles.playIcon}>
-                        <Play size={20} fill="white" />
-                      </div>
-                    </motion.div>
-                  ))}
+                        <div className={styles.info}>
+                          <h4 className={styles.title}>{title}</h4>
+                          <div className={styles.meta}>
+                            {year && <span>{year}</span>}
+                            {year && <span className={styles.dot}>•</span>}
+                            <span>{movie.media_type === 'tv' ? 'TV Show' : 'Movie'}</span>
+                            <span className={styles.dot}>•</span>
+                            <span>⭐ {movie.vote_average?.toFixed(1) || 'N/A'}</span>
+                          </div>
+                        </div>
+                        <div className={styles.playIcon}>
+                          <Play size={20} fill="white" />
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                   {isMoreLoading && (
                     <div className={styles.moreLoader}>Loading more...</div>
                   )}

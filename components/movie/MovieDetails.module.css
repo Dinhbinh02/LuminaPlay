@@ -1,0 +1,715 @@
+.main {
+  min-height: 100vh;
+  background-color: #000;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  transition: opacity 0.8s ease;
+}
+
+/* Loading Overlay */
+.loadingOverlay {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loadingContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.loadingLogo {
+  font-family: 'Outfit', sans-serif;
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.luminaText {
+  color: #fff;
+}
+
+.playText {
+  color: var(--primary);
+  margin-left: 2px;
+}
+
+.loadingBarContainer {
+  width: 200px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.loadingBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  animation: shimmer 1.5s infinite linear;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Hero Section */
+.hero {
+  position: relative;
+  width: 100%;
+  height: 90vh;
+  min-height: 600px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.backdropWrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.videoBackground {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300%;
+  height: 300%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+}
+
+.videoVisible {
+  opacity: 0.6; /* Slight transparency to blend with background */
+}
+
+.backdrop {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 1s ease-in-out;
+}
+
+.backdropHidden {
+  opacity: 0;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.8) 0%,
+    rgba(0, 0, 0, 0.4) 30%,
+    transparent 100%
+  ),
+  linear-gradient(
+    to top,
+    #000 0%,
+    rgba(0, 0, 0, 0.5) 20%,
+    transparent 50%
+  );
+  z-index: 1;
+}
+
+.heroContent {
+  max-width: 800px;
+  position: relative;
+  z-index: 10;
+  padding: 280px 4% 20px;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 100%;
+  width: 100%;
+}
+
+.topActions {
+  position: absolute;
+  top: 30px;
+  right: 30px;
+  display: flex;
+  gap: 12px;
+  z-index: 10;
+}
+
+.actionBtn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.actionBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.logoWrapper {
+  margin-bottom: 30px;
+  max-width: 450px;
+  height: 180px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  object-fit: contain;
+  width: auto !important;
+  max-width: 100%;
+  height: auto !important;
+  max-height: 100%;
+  filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.5));
+}
+
+.title {
+  font-size: clamp(32px, 6vw, 72px);
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 24px;
+  color: #fff;
+  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.8);
+  letter-spacing: -1px;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  font-size: 16px;
+  color: #ccc;
+  font-weight: 500;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ffcc00;
+}
+
+.genreTags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.genreTag {
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  backdrop-filter: blur(10px);
+}
+
+.description {
+  font-size: 18px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 40px;
+  max-width: 650px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.mainActions {
+  display: flex;
+  gap: 16px;
+}
+
+.btnPlay {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  background-color: #fff;
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btnPlay:hover {
+  background-color: rgba(255, 255, 255, 0.8);
+  transform: translateY(-2px);
+}
+
+.btnWatchParty {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background-color: rgba(147, 51, 234, 0.4);
+  color: #fff;
+  border: 1px solid rgba(147, 51, 234, 0.5);
+  border-radius: 6px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.btnWatchParty:hover {
+  background-color: rgba(147, 51, 234, 0.6);
+}
+
+.seasonDropdownWrapper {
+  position: relative;
+  width: fit-content;
+  margin-bottom: 24px;
+}
+
+.seasonDropdownToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 8px 0;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.seasonDropdownToggle:hover {
+  opacity: 0.7;
+}
+
+.seasonDropdownMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background: rgba(20, 20, 20, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 100%;
+  z-index: 50;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  max-height: 250px;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.seasonDropdownItem {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 10px 16px;
+  border-radius: 6px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.seasonDropdownItem:hover, .active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.btnAdd {
+  width: 50px;
+  height: 50px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.btnAdd:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Sections */
+.sections {
+  padding: 40px 4%;
+  background: linear-gradient(to bottom, #000 0%, #050505 100%);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.sectionBar {
+  width: 4px;
+  height: 24px;
+  background-color: #e50914;
+  border-radius: 2px;
+}
+
+.sectionTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* Episodes */
+.episodesSection {
+  margin-bottom: 60px;
+}
+
+.seasonSelect {
+  margin-bottom: 24px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.episodesList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.episodeCard {
+  display: flex;
+  gap: 16px;
+  padding: 16px 0;
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  align-items: center;
+}
+
+.episodeCard:last-child {
+  border-bottom: none;
+}
+
+.episodeCard:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.episodeThumbWrapper {
+  position: relative;
+  width: 140px;
+  min-width: 140px;
+  aspect-ratio: 16/9;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #222;
+}
+
+.episodeThumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.playOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.episodeCard:hover .playOverlay {
+  opacity: 1;
+}
+
+.episodeCard:hover .episodeThumb {
+  transform: scale(1.05);
+}
+
+.episodeInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.episodeHeader {
+  font-size: 15px;
+  color: #fff;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.episodeTitle {
+  font-size: 14px;
+  color: #ccc;
+  font-weight: 400;
+  margin: 0;
+}
+
+.episodeRuntime {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+}
+
+.episodeDesc {
+  display: none;
+}
+
+/* Cast */
+.castSection {
+  margin-bottom: 60px;
+}
+
+.castGrid {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none; /* Hide scrollbar for Firefox */
+  -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
+}
+
+.castGrid::-webkit-scrollbar {
+  display: none; /* Hide scrollbar for Chrome/Safari */
+}
+
+.castCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 100px;
+  gap: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease;
+}
+
+.castCard:hover {
+  transform: translateY(-4px);
+}
+
+.castAvatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.castInfo h4 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+  color: #fff;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.castInfo p {
+  font-size: 11px;
+  color: #888;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Similar */
+.similarGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 20px;
+}
+
+.similarCard {
+  position: relative;
+  aspect-ratio: 2/3;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.similarCard:hover {
+  transform: scale(1.05);
+  z-index: 2;
+}
+
+.similarPoster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 1024px) {
+  .title { font-size: 48px; }
+}
+
+@media (max-width: 768px) {
+  .hero { height: 75vh; min-height: auto; }
+  .heroContent { padding: 0 6% 30px; }
+  .title { font-size: 36px; }
+  
+  .mainActions { 
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+  }
+  
+  .btnPlay { 
+    grid-column: 1 / -1;
+    width: 100%; 
+    justify-content: center; 
+  }
+  
+  .btnWatchParty { 
+    grid-column: 1 / 2;
+    width: 100%; 
+    justify-content: center; 
+  }
+  
+  .btnAdd {
+    grid-column: 2 / 3;
+    width: auto;
+    height: 100%;
+    aspect-ratio: 1 / 1;
+    padding: 0;
+  }
+  
+  .castGrid { grid-template-columns: 1fr; }
+}
+
+.playerOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iframeContainer {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  background: #000;
+}
+
+.iframeTopBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
+  display: flex;
+  align-items: center;
+  padding: 0 4%;
+  z-index: 10;
+  gap: 20px;
+}
+
+.iframeBackBtn {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  border-radius: 50%;
+  transition: background 0.3s;
+}
+
+.iframeBackBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.iframeInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.iframeTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.iframeSubTitle {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}

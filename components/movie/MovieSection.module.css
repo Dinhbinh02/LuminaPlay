@@ -1,5 +1,6 @@
 .section {
-  padding: 20px 4%;
+  padding: 0 4% 20px;
+  margin-bottom: 10px;
 }
 
 .header {
@@ -31,20 +32,51 @@
 }
 
 .title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.2;
+  font-family: 'Outfit', sans-serif;
   font-size: 24px;
-  font-weight: 700;
-  color: white;
-  transition: color 0.3s ease;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+  margin: 0;
 }
 
-.titleChevron {
-  color: rgba(255, 255, 255, 0.4);
-  transition: color 0.3s ease;
+.titlePrefix {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+
+.titleHighlight {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+
+@media (max-width: 768px) {
+  .controls {
+    display: none;
+  }
+  
+  .header {
+    margin-bottom: 16px;
+    padding-right: 4%;
+  }
+
+  .title, .titleHighlight {
+    font-size: 20px;
+  }
 }
 
 .controls {
-  display: flex;
-  gap: 8px;
+  display: none;
 }
 
 .controlBtn {
@@ -69,12 +101,14 @@
 
 .sliderContainer {
   display: flex;
+  align-items: flex-start; /* Prevent cards from stretching vertically */
   gap: 20px;
   overflow-x: auto;
-  scroll-behavior: smooth;
   padding: 10px 0;
   scrollbar-width: none;
   /* Firefox */
+  contain: content;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sliderContainer::-webkit-scrollbar {
@@ -83,7 +117,14 @@
 }
 
 .cardWrapper {
-  flex: 0 0 200px;
+  flex: 0 0 200px; /* Fixed width */
+  width: 200px;
+  min-width: 200px;
+  transition: transform 0.3s ease;
+}
+
+.cardWrapper:hover {
+  transform: translateY(-8px);
 }
 
 .card {
@@ -92,10 +133,16 @@
   border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
-  background: transparent;
-  transition: transform 0.4s var(--transition-smooth);
+  background: #111;
+  transition: box-shadow 0.3s ease;
   will-change: transform;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+}
+
+.cardWrapper:hover .card {
+  box-shadow: 0 10px 30px rgba(229, 9, 20, 0.2);
 }
 
 .card:hover {
@@ -106,23 +153,35 @@
   position: relative;
   width: 100%;
   height: 100%;
+  background: #0a0a0a;
+}
+
+.cardLoader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.cardSpinner {
+  width: 30px;
+  height: 30px;
+  border: 2px solid rgba(229, 9, 20, 0.2);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: card-spin 0.8s linear infinite;
+}
+
+@keyframes card-spin {
+  to { transform: rotate(360deg); }
 }
 
 .poster {
   object-fit: cover;
-}
-
-.overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.45) 0%, transparent 60%);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 16px;
-  opacity: 1;
-  transition: transform 0.3s ease;
-  z-index: 5;
+  z-index: 2;
+  transition: opacity 0.3s ease;
 }
 
 .badge {
@@ -152,24 +211,41 @@
   border: none;
 }
 
-.movieTitle {
-  font-size: 16px;
-  font-weight: 700;
-  color: white;
-  margin-bottom: 4px;
+.movieInfo {
+  padding: 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.meta {
+.movieTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.3s ease;
+}
+
+.cardWrapper:hover .movieTitle {
+  color: var(--primary);
+}
+
+.movieMeta {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
 }
 
 @media (max-width: 768px) {
   .cardWrapper {
     flex: 0 0 160px;
+    width: 160px;
+    min-width: 160px;
   }
 }
 

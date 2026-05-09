@@ -66,7 +66,6 @@ export default function ContinueWatching({ movies }: ContinueWatchingProps) {
       <div className={styles.header}>
         <Link href="/search?mode=history" className={styles.titleWrapper}>
           <h2 className={styles.title}>Continue Watching</h2>
-          <ChevronRight className={styles.titleChevron} size={20} />
         </Link>
         {movies.length > 3 && (
           <div className={styles.controls}>

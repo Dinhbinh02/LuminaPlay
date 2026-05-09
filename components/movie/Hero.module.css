@@ -1,8 +1,7 @@
-.hero,
-.heroLoading,
-.slideContainer {
+.hero {
   position: relative;
   height: 90vh;
+  min-height: 600px;
   width: 100%;
   display: flex;
   align-items: flex-end;
@@ -11,69 +10,207 @@
   background-color: #000;
 }
 
-.slideContainer {
+.slide {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  will-change: opacity, transform;
+  transform: translateZ(0);
 }
 
-.titleLink {
-  text-decoration: none;
-  display: inline-block;
-}
-
-.titleLink:hover .title {
-  color: var(--primary);
+.heroLink {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
 }
 
 .heroBg {
-  position: absolute;
-  top: 0;
-  left: 0;
+  position: relative;
   width: 100%;
   height: 100%;
-  z-index: 1;
   cursor: grab;
   user-select: none;
-  -webkit-user-drag: none;
-}
-
-.heroBg:active {
-  cursor: grabbing;
 }
 
 .heroImg {
   object-fit: cover;
-  object-position: center;
-  animation: fadeIn 1.2s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+  object-position: center 20%;
 }
 
 .heroOverlay {
   position: absolute;
   inset: 0;
   z-index: 2;
+  /* Cleaner dark gradient for minimalist look */
   background: linear-gradient(to right,
-      rgba(0, 0, 0, 0.9) 0%,
-      rgba(0, 0, 0, 0.4) 40%,
-      transparent 100%),
+      rgba(0, 0, 0, 0.8) 0%,
+      rgba(0, 0, 0, 0.4) 30%,
+      rgba(0, 0, 0, 0) 70%),
     linear-gradient(to top,
       #000000 0%,
-      rgba(0, 0, 0, 0.8) 15%,
-      rgba(0, 0, 0, 0.4) 30%,
-      rgba(0, 0, 0, 0) 60%);
+      rgba(0, 0, 0, 0.5) 20%,
+      rgba(0, 0, 0, 0) 50%);
 }
 
-.desktopOnly {
+.heroContent {
+  max-width: 800px;
+  position: relative;
+  z-index: 10;
+  padding: 280px 4% 20px;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 100%;
+}
+
+
+
+.title {
+  font-size: clamp(32px, 6vw, 72px);
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 24px;
+  color: #fff;
+  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.8);
+  letter-spacing: -1px;
+}
+
+.titleLink {
+  text-decoration: none;
   display: block;
+  margin-bottom: 20px;
+}
+
+.logoWrapper {
+  margin-bottom: 30px;
+  max-width: 450px;
+  height: 180px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.logoImg {
+  object-fit: contain;
+  width: auto !important;
+  max-width: 100%;
+  height: auto !important;
+  max-height: 100%;
+  filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.5));
+}
+
+.watchNowDesktop {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.ratingBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fbbf24;
+  color: #000;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.infoBadge {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.description {
+  font-size: 18px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 40px;
+  max-width: 650px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 48px;
+}
+
+.btnPlay,
+.btnInfo,
+.btnMyList {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 18px;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+}
+
+.btnPlay {
+  background: #fff;
+  color: #000;
+}
+
+.btnPlay:hover {
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.btnInfo,
+.btnMyList {
+  background: rgba(109, 109, 110, 0.7);
+  color: #fff;
+}
+
+.btnInfo:hover,
+.btnMyList:hover {
+  background: rgba(109, 109, 110, 0.4);
+}
+
+.playIcon,
+.infoIcon,
+.myListIcon,
+.actionIcon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.genresList {
+  display: none;
+}
+
+
+
+.desktopOnly {
   width: 100%;
   height: 100%;
   position: relative;
@@ -81,221 +218,12 @@
 
 .mobileOnly {
   display: none;
-  position: relative;
 }
-
-.heroLink {
-  position: absolute;
-  inset: 0;
-  text-decoration: none;
-  z-index: 5;
-  transition: all 0.5s ease;
-  overflow: hidden;
-}
-
-.heroContent {
-  max-width: 750px;
-  position: relative;
-  z-index: 10;
-  padding: 0 4% 120px; /* Adjusted padding for desktop */
-  pointer-events: auto;
-}
-
-.rankBadge {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.rankNumber {
-  font-size: 28px;
-  font-weight: 900;
-  color: var(--primary);
-  font-style: italic;
-  line-height: 1;
-}
-
-.rankText {
-  font-size: 14px;
-  font-weight: 700;
-  color: white;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-}
-
-.title {
-  font-size: clamp(48px, 6vw, 84px);
-  font-weight: 900;
-  line-height: 1.05;
-  margin-bottom: 20px;
-  color: #fff;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
-  letter-spacing: -2px;
-}
-
-.metaInfo {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
-  font-weight: 600;
-  font-size: 15px;
-}
-
-.rating {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #fbbf24;
-}
-
-.metaItem {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.qualityBadge {
-  padding: 2px 6px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 3px;
-  font-size: 12px;
-  color: #fff;
-}
-
-.langBadge {
-  color: #10b981;
-}
-
-.description {
-  font-size: 18px;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.85);
-  margin-bottom: 32px;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
-  max-width: 600px;
-}
-
-.genres {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.genreTag {
-  font-size: 13px;
-  color: #fff;
-  padding: 6px 16px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  transition: all 0.3s ease;
-}
-
-.genreTag:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: #fff;
-}
-
-.watchHint {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 40px;
-  color: white;
-  font-weight: 700;
-  font-size: 16px;
-  opacity: 0.8;
-  transition: all 0.3s ease;
-}
-
-.heroLink:hover .watchHint {
-  opacity: 1;
-  transform: translateX(10px);
-}
-
-.playCircle {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 20px var(--primary-glow);
-}
-
-.playIconInner {
-  width: 0;
-  height: 0;
-  border-top: 8px solid transparent;
-  border-bottom: 8px solid transparent;
-  border-left: 14px solid white;
-  margin-left: 4px;
-}
-
-
-
-.dots {
-  display: flex;
-  gap: 12px;
-  margin-top: 40px; /* Increased gap from genres */
-  z-index: 20;
-}
-
-.dot {
-  width: 40px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.dotActive {
-  background: var(--primary);
-  width: 70px;
-}
-
-.reflection {
-  position: absolute;
-  bottom: -150px;
-  left: 0;
-  width: 100%;
-  height: 200px;
-  z-index: 1;
-  transform: scaleY(-1);
-  opacity: 0.4;
-  filter: blur(50px);
-  pointer-events: none;
-}
-
-.reflectionImg {
-  object-fit: cover;
-  mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%);
-  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%);
-}
-
-
 
 @media (max-width: 768px) {
   .hero {
-    height: auto;
-    min-height: 75vh;
-    padding: 100px 20px 60px;
-    align-items: flex-end;
-  }
-
-  .slideContainer {
-    height: auto;
-    min-height: 75vh;
-    padding: 100px 0 60px; /* Removed horizontal padding */
-    align-items: flex-end;
+    height: 75vh;
+    min-height: auto;
   }
 
   .desktopOnly {
@@ -310,42 +238,97 @@
   }
 
   .heroOverlay {
-    background: linear-gradient(to top,
-        #000000 0%,
-        rgba(0, 0, 0, 0.9) 15%,
-        rgba(0, 0, 0, 0.3) 50%,
-        rgba(0, 0, 0, 0.5) 100%);
+    background: linear-gradient(to top, 
+      #000000 0%, 
+      rgba(0,0,0,0.8) 15%, 
+      rgba(0,0,0,0) 60%);
   }
 
-  .heroLink,
   .heroContent {
-    padding: 100px 20px 40px; /* Reduced bottom padding on mobile to bring dots into view */
-    align-items: flex-end;
+    width: 100%;
+    padding: 0 4% 30px;
+    align-items: center;
+    text-align: center;
   }
 
-  .dots {
-    margin-top: 40px; /* Consistent gap with desktop */
-    margin-bottom: 20px;
+  .logoWrapper {
+    margin: 0 auto 15px;
+    justify-content: center;
+    max-width: 80%;
+  }
+
+  .logoImg {
+    object-position: center bottom;
   }
 
   .title {
-    font-size: 38px;
-    margin-bottom: 12px;
+    font-size: 42px;
+    text-align: center;
+    margin-bottom: 15px;
   }
 
-  .watchHint {
-    margin-top: 20px;
+  .description, .watchNowDesktop {
+    display: none;
+  }
+
+  .genresList {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+    color: white;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .genreDot {
+    color: var(--primary, #e50914);
     font-size: 14px;
   }
 
-  .playCircle {
-    width: 36px;
-    height: 36px;
+  .actions {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+    margin-bottom: 0;
   }
 
-  .playIconInner {
-    border-top: 6px solid transparent;
-    border-bottom: 6px solid transparent;
-    border-left: 10px solid white;
+  .btnMyList, .btnInfo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: transparent !important;
+    padding: 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7) !important;
+  }
+  
+  .btnMyList span, .btnInfo span {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .btnPlay {
+    flex: 2;
+    margin: 0 15px;
+    justify-content: center;
+    padding: 10px 0;
+    border-radius: 4px;
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 16px;
+    font-weight: 800;
+  }
+  
+  .btnPlay .actionIcon {
+    width: 20px;
+    height: 20px;
   }
 }

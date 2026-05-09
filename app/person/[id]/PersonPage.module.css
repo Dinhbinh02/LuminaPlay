@@ -1,0 +1,137 @@
+.container {
+  min-height: 100vh;
+  background-color: #000;
+  color: #fff;
+  padding-bottom: 50px;
+}
+
+.content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 120px 20px 40px;
+  display: flex;
+  gap: 40px;
+}
+
+@media (max-width: 768px) {
+  .content {
+    flex-direction: column;
+    padding-top: 80px;
+    align-items: center;
+  }
+}
+
+.leftCol {
+  flex: 0 0 300px;
+}
+
+.profileImage {
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  display: block;
+}
+
+.infoList {
+  margin-top: 30px;
+}
+
+.infoItem {
+  margin-bottom: 20px;
+}
+
+.infoItem h4 {
+  color: #999;
+  font-size: 0.9rem;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.infoItem p {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.rightCol {
+  flex: 1;
+}
+
+.name {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  background: linear-gradient(to bottom, #fff, #999);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.biography {
+  line-height: 1.6;
+  font-size: 1.1rem;
+  color: #ccc;
+  margin-bottom: 40px;
+  white-space: pre-wrap;
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sectionBar {
+  width: 4px;
+  height: 24px;
+  background-color: #e50914;
+  border-radius: 2px;
+}
+
+.creditsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 20px;
+}
+
+.creditCard {
+  transition: transform 0.3s ease;
+}
+
+.creditCard:hover {
+  transform: translateY(-10px);
+}
+
+.posterWrapper {
+  aspect-ratio: 2/3;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #1a1a1a;
+  margin-bottom: 10px;
+}
+
+.poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.creditTitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.creditRole {
+  font-size: 0.8rem;
+  color: #999;
+}

@@ -1,32 +1,28 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Hls from 'hls.js';
-import { Play, Pause, Zap, ChevronRight, ChevronLeft, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, RectangleHorizontal, Minus, Plus } from 'lucide-react';
-import Image from 'next/image';
+import { Play, Pause, RotateCcw, RotateCw, ChevronLeft, SlidersHorizontal, List, SkipForward, PictureInPicture2, Maximize, Minimize, Volume2, VolumeX, Settings, Layers, Lock, Unlock, Cast } from 'lucide-react';
 import styles from './VideoPlayer.module.css';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useWatchParty, WatchPartyMessage } from '@/hooks/useWatchParty';
+import { useRouter } from 'next/navigation';
+import { tmdb } from '@/lib/tmdb';
 
 interface VideoPlayerProps {
   src: string;
   poster?: string;
+  title?: string;
+  subTitle?: string;
   startTime?: number;
   autoPlay?: boolean;
   onProgress?: (currentTime: number, duration: number) => void;
-  onCapture?: (thumbnail: string) => void;
-  onPrev?: () => void;
   onNext?: () => void;
-  onTheaterToggle?: () => void;
-  isTheaterMode?: boolean;
-}
-
-export interface VideoPlayerRef {
-  captureThumbnail: () => string | null;
-  seek: (amount: number) => void;
-  changePlaybackRate: (delta: number) => void;
-  getPlaybackRate: () => number;
-  togglePlay: (showIndicatorFlag?: boolean) => void;
-  toggleFullscreen: () => void;
+  onClose?: (currentTime: number, duration: number) => void;
+  partyId?: string;
+  episodes?: any[];
+  currentEpisode?: number;
+  onEpisodeSelect?: (episodeNum: string) => void;
 }
 
 const formatTime = (seconds: number) => {
@@ -40,662 +36,464 @@ const formatTime = (seconds: number) => {
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };
 
-const VideoPlayer = React.forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src, poster, startTime, autoPlay = false, onProgress, onCapture, onPrev, onNext, onTheaterToggle, isTheaterMode }, ref) => {
+const VideoPlayer = ({ 
+  src, poster, title, subTitle, startTime, autoPlay = false, 
+  onProgress, onNext, onClose, partyId, episodes, currentEpisode, onEpisodeSelect
+}: VideoPlayerProps) => {
+  const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(autoPlay);
-  const [hlsInstance, setHlsInstance] = useState<Hls | null>(null);
-  const [indicator, setIndicator] = useState<{ type: 'speed' | 'seek' | 'play' | 'pause', value: string } | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [hoverTime, setHoverTime] = useState<number | null>(null);
-  const [hoverX, setHoverX] = useState(0);
-  const [hoverWidth, setHoverWidth] = useState(0);
-  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
-  const [playbackRate, setPlaybackRate] = useState(1);
   const [showControls, setShowControls] = useState(true);
+  const [isLocked, setIsLocked] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
   const [isSeeking, setIsSeeking] = useState(false);
-  const loadedSrcRef = useRef<string>('');
-  const speedMenuRef = useRef<HTMLDivElement>(null);
-  const indicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const progressContainerRef = useRef<HTMLDivElement>(null);
-  const cumulativeSeekRef = useRef(0);
-  const cumulativeSeekTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [showEpisodeSelector, setShowEpisodeSelector] = useState(false);
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [isHoveringProgress, setIsHoveringProgress] = useState(false);
+  const [hoverProgress, setHoverProgress] = useState(0);
+  const lastSyncTime = useRef(0);
+  const onProgressRef = useRef(onProgress);
+  useEffect(() => { onProgressRef.current = onProgress; }, [onProgress]);
 
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragTime, setDragTime] = useState<number | null>(null);
-  const dragStartX = useRef(0);
-  const dragStartTime = useRef(0);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (speedMenuRef.current && !speedMenuRef.current.contains(event.target as Node)) {
-        setShowSpeedMenu(false);
-      }
-    };
-    if (showSpeedMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showSpeedMenu]);
-
-  const [lastActivity, setLastActivity] = useState(Date.now());
-
-  useEffect(() => {
-    if (!showControls) {
-      setShowSpeedMenu(false);
-    }
-  }, [showControls]);
-
-  const isPlayingRef = useRef(isPlaying);
-  const showSpeedMenuRef = useRef(showSpeedMenu);
-
-  useEffect(() => {
-    isPlayingRef.current = isPlaying;
-  }, [isPlaying]);
-
-  useEffect(() => {
-    showSpeedMenuRef.current = showSpeedMenu;
-  }, [showSpeedMenu]);
-
+  // Sync playbackRate to video element
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.muted = isMuted;
+      videoRef.current.playbackRate = playbackRate;
     }
-  }, [isMuted]);
+  }, [playbackRate]);
 
-  // Auto-hide controls effect
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isExternalUpdate = useRef(false);
+  
+  // Watch Party
+  const { broadcastSync, onSyncRef } = useWatchParty(partyId, !partyId?.includes('-guest'));
+
   useEffect(() => {
-    if (showControls && isPlaying && !showSpeedMenu) {
-      const timer = setTimeout(() => {
-        setShowControls(false);
-      }, 3000);
-      return () => clearTimeout(timer);
+    onSyncRef.current = (msg: WatchPartyMessage) => {
+      if (!videoRef.current) return;
+      isExternalUpdate.current = true;
+      if (msg.type === 'PLAY') { videoRef.current.play(); setIsPlaying(true); }
+      else if (msg.type === 'PAUSE') { videoRef.current.pause(); setIsPlaying(false); }
+      else if (msg.type === 'SEEK' && msg.currentTime !== undefined) { videoRef.current.currentTime = msg.currentTime; setCurrentTime(msg.currentTime); }
+      setTimeout(() => { isExternalUpdate.current = false; }, 50);
+    };
+  }, [onSyncRef]);
+
+  const resetControlsTimeout = useCallback(() => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    if (isPlaying && !isLocked) {
+      controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 1500);
     }
-  }, [showControls, isPlaying, showSpeedMenu, lastActivity]);
+  }, [isPlaying, isLocked]);
 
-  const showIndicator = (type: 'speed' | 'seek' | 'play' | 'pause', value: string) => {
-    setIndicator({ type, value });
-    if (indicatorTimeoutRef.current) clearTimeout(indicatorTimeoutRef.current);
-    indicatorTimeoutRef.current = setTimeout(() => {
-      setIndicator(null);
-    }, 1000);
-  };
-
-  const togglePlay = (showIndicatorFlag = true) => {
-    if (!videoRef.current) return;
-    if (isPlayingRef.current) {
+  const togglePlay = useCallback(() => {
+    if (!videoRef.current || isLocked) return;
+    if (videoRef.current.paused) {
+      videoRef.current.play();
+      setIsPlaying(true);
+      if (!isExternalUpdate.current) broadcastSync(videoRef.current.currentTime, 'PLAY');
+    } else {
       videoRef.current.pause();
       setIsPlaying(false);
-      if (showIndicatorFlag) showIndicator('pause', '');
-    } else {
-      videoRef.current.play().catch(e => {
-        if (e.name !== 'AbortError') console.error(e);
-      });
-      setIsPlaying(true);
-      if (showIndicatorFlag) showIndicator('play', '');
+      if (!isExternalUpdate.current) broadcastSync(videoRef.current.currentTime, 'PAUSE');
     }
-  };
+    resetControlsTimeout();
+  }, [isLocked, broadcastSync]);
 
-  useEffect(() => {
-    const handleFsChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener('fullscreenchange', handleFsChange);
-    document.addEventListener('webkitfullscreenchange', handleFsChange);
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFsChange);
-      document.removeEventListener('webkitfullscreenchange', handleFsChange);
-    };
+  const seek = useCallback((amount: number) => {
+    if (!videoRef.current || isLocked) return;
+    const newTime = videoRef.current.currentTime + amount;
+    videoRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+    if (!isExternalUpdate.current) broadcastSync(newTime, 'SEEK');
+    resetControlsTimeout();
+  }, [isLocked, broadcastSync, resetControlsTimeout]);
+
+  const toggleFullscreen = useCallback(async () => {
+    if (!containerRef.current) return;
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current.requestFullscreen();
+        setIsFullscreen(true);
+        if ((window.screen?.orientation as any)?.lock) {
+          try {
+            await (window.screen.orientation as any).lock('landscape');
+          } catch (e) {
+            console.warn('Orientation lock failed:', e);
+          }
+        }
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+        if ((window.screen?.orientation as any)?.unlock) {
+          (window.screen.orientation as any).unlock();
+        }
+      }
+    } catch (err) {
+      console.warn('Fullscreen toggle failed', err);
+    }
   }, []);
 
-  const toggleFullscreen = () => {
-    if (!containerRef.current || !videoRef.current) return;
-    const container = containerRef.current;
-    const video = videoRef.current;
-    
-    const isFs = !!(document.fullscreenElement || (document as any).webkitFullscreenElement);
-
-    if (!isFs) {
-      if (container.requestFullscreen) {
-        container.requestFullscreen();
-      } else if ((container as any).webkitRequestFullscreen) {
-        (container as any).webkitRequestFullscreen();
-      } else if ((video as any).webkitEnterFullscreen) {
-        // Essential fallback for iPhone/iOS
-        (video as any).webkitEnterFullscreen();
-      } else if ((container as any).msRequestFullscreen) {
-        (container as any).msRequestFullscreen();
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen();
-      }
-    }
-  };
-
-  const handleGlobalMouseMove = () => {
-    if (!showControls) setShowControls(true);
-    setLastActivity(Date.now());
-  };
-
-  React.useImperativeHandle(ref, () => ({
-    captureThumbnail: () => {
-      const video = videoRef.current;
-      if (!video) return null;
-
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 360;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          return canvas.toDataURL('image/jpeg', 0.7);
+  // Listen to external fullscreen changes (like Esc key) to unlock orientation
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        setIsFullscreen(false);
+        if ((window.screen?.orientation as any)?.unlock) {
+          (window.screen.orientation as any).unlock();
         }
-      } catch (e) {
-        console.error("Failed to capture thumbnail", e);
+      } else {
+        setIsFullscreen(true);
       }
-      return null;
-    },
-    seek: (amount: number) => {
-      if (videoRef.current) {
-        videoRef.current.currentTime += amount;
-        
-        // Accumulate seek amount
-        cumulativeSeekRef.current += amount;
-        const total = cumulativeSeekRef.current;
-        
-        // Show indicator with accumulated amount
-        showIndicator('seek', `${total > 0 ? '+' : ''}${total}s`);
-        
-        // Reset cumulative total after 1 second of inactivity
-        if (cumulativeSeekTimeoutRef.current) clearTimeout(cumulativeSeekTimeoutRef.current);
-        cumulativeSeekTimeoutRef.current = setTimeout(() => {
-          cumulativeSeekRef.current = 0;
-        }, 1000);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    // Auto-fullscreen on mount
+    const enterFullscreen = async () => {
+      if (containerRef.current && !document.fullscreenElement) {
+        try {
+          await containerRef.current.requestFullscreen();
+          setIsFullscreen(true);
+          if ((window.screen?.orientation as any)?.lock) {
+            try {
+              await (window.screen.orientation as any).lock('landscape');
+            } catch (e) {
+              console.warn('Orientation lock failed:', e);
+            }
+          }
+        } catch (err) {
+          console.warn("Fullscreen auto-play blocked by browser gesture rules.");
+        }
       }
-    },
-    changePlaybackRate: (delta: number) => {
-      if (videoRef.current) {
-        const newRate = Math.round((videoRef.current.playbackRate + delta) * 10) / 10;
-        const finalRate = Math.max(0.1, Math.min(4, newRate));
-        videoRef.current.playbackRate = finalRate;
-        setPlaybackRate(finalRate);
-        showIndicator('speed', `${finalRate}x`);
+    };
+    enterFullscreen();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+
+      if ([' ', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
       }
-    },
-    getPlaybackRate: () => {
-      return videoRef.current?.playbackRate || 1;
-    },
-    togglePlay: (showIndicatorFlag = true) => {
-      togglePlay(showIndicatorFlag);
-    },
-    toggleFullscreen: () => {
-      toggleFullscreen();
-    }
-  }));
+
+      switch (e.key.toLowerCase()) {
+        case ' ':
+        case 'k':
+          togglePlay();
+          break;
+        case 'f':
+          toggleFullscreen();
+          break;
+        case 'arrowleft':
+          seek(-10);
+          break;
+        case 'arrowright':
+          seek(10);
+          break;
+        case '<':
+        case ',':
+          if (e.shiftKey) {
+            setPlaybackRate(r => Math.max(0.1, Number((r - 0.1).toFixed(1))));
+          }
+          break;
+        case '>':
+        case '.':
+          if (e.shiftKey) {
+            setPlaybackRate(r => Math.min(4.0, Number((r + 0.1).toFixed(1))));
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [togglePlay, toggleFullscreen, seek]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
 
-    // Reset source ref for new src
-    loadedSrcRef.current = src;
+    // Reset sync tracker when src changes
+    lastSyncTime.current = 0;
 
     let hls: Hls | null = null;
-
-    const seekWhenReady = (targetTime: number, maxRetries = 20) => {
-      if (targetTime <= 0) return;
-      let attempts = 0;
-      const trySeek = () => {
-        attempts++;
-        if (video.seekable && video.seekable.length > 0 && video.seekable.end(0) >= targetTime) {
-          video.currentTime = targetTime;
-        } else if (attempts < maxRetries) {
-          setTimeout(trySeek, 300);
-        }
-      };
-      trySeek();
-    };
-
-    if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = src;
-      const handleCanPlay = () => {
-        seekWhenReady(startTime || 0);
-        if (isPlaying) {
-          video.play().catch(e => {
-            if (e.name !== 'AbortError') console.log('Autoplay blocked', e);
-          });
-        }
-      };
-      video.addEventListener('canplay', handleCanPlay, { once: true });
-    } else if (Hls.isSupported()) {
+    if (Hls.isSupported()) {
       hls = new Hls();
       hls.loadSource(src);
       hls.attachMedia(video);
-      setHlsInstance(hls);
 
+      // Seek ONCE after HLS manifest is ready — this is the only correct place
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        seekWhenReady(startTime || 0);
-        if (isPlaying) {
-          video.play().catch(e => {
-            if (e.name !== 'AbortError') console.log('Autoplay blocked', e);
-          });
+        if (startTime && startTime > 0) {
+          video.currentTime = startTime;
         }
       });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS (Safari): seek after metadata loads
+      video.src = src;
+      const handleNativeSeek = () => {
+        if (startTime && startTime > 0) video.currentTime = startTime;
+      };
+      video.addEventListener('loadedmetadata', handleNativeSeek, { once: true });
     }
-
-    return () => {
-      if (hls) {
-        hls.destroy();
-        setHlsInstance(null);
-      }
-    };
-  }, [src]); // Only re-run when src changes
-
-  // Handle play/pause sync with state
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (isPlaying) {
-      if (video.paused) {
-        video.play().catch(e => {
-          if (e.name !== 'AbortError') console.log('Play error', e);
-        });
-      }
-    } else {
-      if (!video.paused) {
-        video.pause();
-      }
-    }
-  }, [isPlaying]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
 
     const handleTimeUpdate = () => {
-      if (isDragging || isSeeking) return;
       setCurrentTime(video.currentTime);
-      if (onProgress && video.duration) {
-        onProgress(video.currentTime, video.duration);
+      // Report progress every 5 seconds via ref (avoids dependency array churn)
+      const now = Math.floor(video.currentTime);
+      if (now !== lastSyncTime.current && now % 5 === 0 && now > 0) {
+        lastSyncTime.current = now;
+        onProgressRef.current?.(video.currentTime, video.duration);
       }
     };
-
-    const handleLoadedMetadata = () => {
-      setDuration(video.duration);
-    };
-
-    const handleSeeked = () => {
-      setIsSeeking(false);
-    };
+    const handleDurationChange = () => setDuration(video.duration);
 
     video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    video.addEventListener('seeked', handleSeeked);
+    video.addEventListener('durationchange', handleDurationChange);
+
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      video.removeEventListener('seeked', handleSeeked);
+      video.removeEventListener('durationchange', handleDurationChange);
+      if (hls) hls.destroy();
     };
-  }, [onProgress]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src, startTime]); // onProgress intentionally excluded — handled via ref
 
-  // Removed togglePlay from here as it is hoisted
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!videoRef.current) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pos = (e.clientX - rect.left) / rect.width;
-    const newTime = pos * duration;
-    setIsSeeking(true);
-    videoRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
-  };
-
-  const handleProgressHover = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const pos = x / rect.width;
-    setHoverTime(pos * duration);
-    setHoverX(x);
-    setHoverWidth(rect.width);
-  };
-
-  // Removed toggleFullscreen from here as it is hoisted
-  const handleVolumeChange = (e: React.FormEvent<HTMLInputElement>) => {
-    const val = parseFloat(e.currentTarget.value);
-    setVolume(val);
-    if (videoRef.current) {
-      videoRef.current.volume = val;
-    }
-    if (val === 0) setIsMuted(true);
-    else setIsMuted(false);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length !== 1) return;
-    dragStartX.current = e.touches[0].clientX;
-    dragStartTime.current = videoRef.current?.currentTime || 0;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length !== 1 || !videoRef.current) return;
-    
-    const currentX = e.touches[0].clientX;
-    const deltaX = currentX - dragStartX.current;
-    
-    if (!isDragging && Math.abs(deltaX) > 10) {
-      setIsDragging(true);
-      setShowControls(true);
-    }
-
-    if (isDragging) {
-      // Sensitivity: 1.5px = 1 second of video
-      const sensitivity = 0.8; 
-      const seekAmount = deltaX * sensitivity;
-      let newTime = dragStartTime.current + seekAmount;
-      newTime = Math.max(0, Math.min(newTime, duration));
-      
-      setDragTime(newTime);
-      setHoverTime(newTime);
-      
-      if (progressContainerRef.current) {
-        const rect = progressContainerRef.current.getBoundingClientRect();
-        setHoverWidth(rect.width);
-        setHoverX((newTime / duration) * rect.width);
+  const togglePIP = async () => {
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else if (videoRef.current) {
+        await videoRef.current.requestPictureInPicture();
       }
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (isDragging && dragTime !== null) {
-      if (videoRef.current) {
-        setIsSeeking(true);
-        videoRef.current.currentTime = dragTime;
-        setCurrentTime(dragTime);
-      }
-      // Briefly keep isDragging true to prevent accidental click-to-pause
-      setTimeout(() => setIsDragging(false), 50);
-    } else {
-      setIsDragging(false);
-    }
-    setDragTime(null);
-    setHoverTime(null);
-  };
-
-  const handleSpeedChange = (rate: number) => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = rate;
-      setPlaybackRate(rate);
-
-      if (!showSpeedMenu) {
-        const displayRate = rate.toFixed(rate % 1 === 0 ? 1 : 2);
-        showIndicator('speed', `${displayRate}x`);
-      }
+    } catch (error) {
+      console.error("PIP failed:", error);
     }
   };
 
   return (
-    <div
+    <div 
       ref={containerRef}
-      className={`${styles.container} ${isTheaterMode ? styles.theaterContainer : ''} ${!showControls && isPlaying ? styles.hideCursor : ''}`}
-      onMouseMove={handleGlobalMouseMove}
-      onMouseLeave={() => isPlaying && setShowControls(false)}
+      className={`${styles.netflixContainer} ${!showControls ? styles.hideCursor : ''}`}
+      onMouseMove={resetControlsTimeout}
+      onClick={resetControlsTimeout}
     >
-      <AnimatePresence>
-        {indicator && indicator.type === 'speed' && (
-          <motion.div
-            initial={{ opacity: 0, x: '-50%' }}
-            animate={{ opacity: 1, x: '-50%' }}
-            exit={{ opacity: 0, x: '-50%' }}
-            className={styles.topIndicator}
-          >
-            {indicator.value}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {indicator && indicator.type === 'seek' && (
-          <motion.div
-            key={indicator.type + (indicator.value.startsWith('-') ? 'left' : 'right')}
-            initial={{ opacity: 0, scale: 0.8, y: '-50%' }}
-            animate={{ opacity: 1, scale: 1, y: '-50%' }}
-            exit={{ opacity: 0, scale: 1.2, y: '-50%' }}
-            transition={{ duration: 0.2 }}
-            className={indicator.value.startsWith('-') ? styles.leftIndicator : styles.rightIndicator}
-          >
-            <div className={styles.sideIndicatorCircle}>
-              <div className={styles.arrowGroup}>
-                {indicator.value.startsWith('-') ? (
-                  <>
-                    <ChevronLeft size={32} />
-                    <ChevronLeft size={32} />
-                    <ChevronLeft size={32} />
-                  </>
-                ) : (
-                  <>
-                    <ChevronRight size={32} />
-                    <ChevronRight size={32} />
-                    <ChevronRight size={32} />
-                  </>
-                )}
-              </div>
-              <span className={styles.indicatorText}>
-                {indicator.value.replace('s', '')}
-              </span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {indicator && (indicator.type === 'play' || indicator.type === 'pause') && (
-          <motion.div
-            key={indicator.type}
-            initial={{ opacity: 0, scale: 0.5, x: '-50%', y: '-50%' }}
-            animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
-            exit={{ opacity: 0, scale: 1.2, x: '-50%', y: '-50%' }}
-            transition={{ duration: 0.3 }}
-            className={styles.centerIndicator}
-          >
-            {indicator.type === 'play' && <Play fill="white" size={40} />}
-            {indicator.type === 'pause' && <Pause fill="white" size={40} />}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {!isPlaying && !videoRef.current?.currentTime && (
-        <div className={styles.posterOverlay} onClick={() => togglePlay(false)}>
-          {poster && (
-            <Image
-              src={poster}
-              alt="Movie Poster"
-              fill
-              className={styles.posterImg}
-              priority
-              quality={50}
-              sizes="100vw"
-            />
-          )}
-          <div className={styles.overlayColor} />
-          <button className={styles.playBtn}>
-            <div className={styles.playIconWrapper}>
-              <Play size={40} fill="white" color="white" />
-            </div>
-          </button>
-        </div>
-      )}
-
       <video
         ref={videoRef}
-        className={styles.video}
+        className={styles.netflixVideo}
         playsInline
-        crossOrigin="anonymous"
+        autoPlay={autoPlay}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
+        onClick={togglePlay}
       />
 
-      {isPlaying || (videoRef.current && videoRef.current.currentTime > 0) ? (
-        <div
-          className={`${styles.controls} ${showControls ? styles.controlsActive : ''}`}
-          onClick={() => !isDragging && togglePlay()}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          <div 
-            className={styles.bottomControls} 
-            onClick={(e) => e.stopPropagation()}
-            onTouchStart={(e) => e.stopPropagation()}
-            onTouchMove={(e) => e.stopPropagation()}
-            onTouchEnd={(e) => e.stopPropagation()}
+      <AnimatePresence>
+        {showControls && (
+          <motion.div 
+            className={styles.netflixOverlay}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={togglePlay}
           >
-            <div
-              ref={progressContainerRef}
-              className={styles.progressContainer}
-              onClick={handleProgressClick}
-              onMouseMove={handleProgressHover}
-              onMouseLeave={() => setHoverTime(null)}
-            >
-              <div
-                className={styles.progressBar}
-                style={{ width: `${((dragTime ?? currentTime) / duration) * 100}%` }}
-              />
-              {hoverTime !== null && (
-                <>
-                  <div
-                    className={styles.progressHover}
-                    style={{ width: `${(hoverTime / duration) * 100}%` }}
-                  />
-                  <div
-                    className={styles.previewTooltip}
-                    style={{ left: `${Math.max(35, Math.min(hoverWidth - 35, hoverX))}px` }}
-                  >
-                    <span>{formatTime(hoverTime)}</span>
-                  </div>
-                </>
-              )}
+            {/* Top Bar */}
+            <div className={styles.netflixTop} onClick={(e) => e.stopPropagation()}>
+              <button className={styles.iconBtn} onClick={() => onClose ? onClose(videoRef.current?.currentTime || 0, videoRef.current?.duration || 0) : router.back()}>
+                <ChevronLeft size={32} />
+              </button>
+              <div className={styles.netflixTitleGroup}>
+                <span className={styles.netflixMainTitle}>{title}</span>
+                <span className={styles.netflixSubTitle}>{subTitle}</span>
+              </div>
+              <button className={styles.iconBtn} onClick={togglePIP}>
+                <PictureInPicture2 size={24} />
+              </button>
             </div>
 
-            <div className={styles.controlButtons}>
-              <div className={styles.leftBtns}>
-                {onPrev && (
-                  <button className={styles.btn} onClick={onPrev} title="Previous episode">
-                    <SkipBack size={20} fill="white" />
-                  </button>
-                )}
-                <button className={styles.btn} onClick={() => togglePlay()}>
-                  {isPlaying ? <Pause size={24} fill="white" /> : <Play size={24} fill="white" />}
-                </button>
-                {onNext && (
-                  <button className={styles.btn} onClick={onNext} title="Next episode">
-                    <SkipForward size={20} fill="white" />
-                  </button>
-                )}
+            {/* Center Controls Removed - Moved to Bottom */}
 
-                <div className={styles.volumeContainer}>
-                  <button className={styles.btn} onClick={() => setIsMuted(!isMuted)}>
-                    {isMuted || volume === 0 ? <VolumeX size={24} /> : <Volume2 size={24} />}
-                  </button>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={isMuted ? 0 : volume}
-                    onChange={handleVolumeChange}
-                    onInput={handleVolumeChange}
-                    onClick={(e) => e.stopPropagation()}
-                    className={styles.volumeSlider}
-                  />
-                </div>
-
-                <div className={styles.timeDisplay}>
-                  {formatTime(currentTime)} / {formatTime(duration)}
-                </div>
-              </div>
-
-              <div className={styles.rightBtns}>
-                <div className={styles.speedWrapper} ref={speedMenuRef}>
-                  {showSpeedMenu && (
-                    <div className={styles.speedMenu}>
-                      <div className={styles.speedCurrent}>
-                        {playbackRate.toFixed(playbackRate % 1 === 0 ? 1 : 2)}x
-                      </div>
-
-                      <div className={styles.speedSliderWrapper}>
-                        <button
-                          className={styles.speedAdjustBtn}
-                          onClick={() => handleSpeedChange(Math.max(0.1, playbackRate - 0.05))}
-                        >
-                          <Minus size={14} />
-                        </button>
-                        <input
-                          type="range"
-                          min="0.1"
-                          max="4"
-                          step="0.05"
-                          value={playbackRate}
-                          onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
-                          className={styles.speedSlider}
-                        />
-                        <button
-                          className={styles.speedAdjustBtn}
-                          onClick={() => handleSpeedChange(Math.min(4, playbackRate + 0.05))}
-                        >
-                          <Plus size={14} />
-                        </button>
-                      </div>
-
-                      <div className={styles.speedPresets}>
-                        {[1.0, 1.25, 1.5, 1.75, 2.0, 3.0].map((rate) => (
-                          <button
-                            key={rate}
-                            className={`${styles.speedPresetBtn} ${playbackRate === rate ? styles.active : ''}`}
-                            onClick={() => {
-                              handleSpeedChange(rate);
-                              setShowSpeedMenu(false);
-                            }}
-                          >
-                            {rate.toFixed(rate === 1.0 || rate === 2.0 || rate === 3.0 ? 1 : 2)}x
-                          </button>
-                        ))}
-                      </div>
+            {/* Bottom Bar */}
+            <div className={styles.netflixBottom} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.progressSection}>
+                <div 
+                  className={styles.netflixProgressBar}
+                  onPointerDown={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const pos = (e.clientX - rect.left) / rect.width;
+                    const newTime = pos * duration;
+                    videoRef.current!.currentTime = newTime;
+                    setCurrentTime(newTime); // Update state instantly
+                  }}
+                  onMouseMove={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const pos = (e.clientX - rect.left) / rect.width;
+                    setHoverProgress(pos * 100);
+                  }}
+                  onMouseEnter={() => setIsHoveringProgress(true)}
+                  onMouseLeave={() => {
+                    setHoverProgress(0);
+                    setIsHoveringProgress(false);
+                  }}
+                >
+                  {isHoveringProgress && (
+                    <div 
+                      className={styles.progressTooltip}
+                      style={{ left: `${hoverProgress}%` }}
+                    >
+                      {formatTime((hoverProgress / 100) * duration)}
                     </div>
                   )}
-                  <button
-                    className={`${styles.btn} ${showSpeedMenu ? styles.activeBtn : ''}`}
-                    onClick={() => setShowSpeedMenu(!showSpeedMenu)}
-                  >
-                    <Zap size={24} />
+                  <div 
+                    className={styles.netflixProgressHover} 
+                    style={{ width: `${hoverProgress}%` }}
+                  />
+                  <div 
+                    className={styles.netflixProgressFill} 
+                    style={{ width: `${(currentTime / duration) * 100}%` }}
+                  />
+                  <div 
+                    className={styles.netflixProgressHandle}
+                    style={{ left: `${(currentTime / duration) * 100}%` }}
+                  />
+                </div>
+                <div className={styles.timeLabel}>
+                  {formatTime(duration - currentTime)}
+                </div>
+              </div>
+
+              <div className={styles.controlsRow}>
+                {/* Left side (empty for now, could be volume later) */}
+                <div className={styles.controlsLeft} />
+
+                {/* Center side (Play Controls) */}
+                <div className={styles.controlsCenter}>
+                  <button className={styles.iconBtn} onClick={() => seek(-10)}>
+                    <RotateCcw size={32} />
+                  </button>
+                  <button className={styles.iconBtn} onClick={togglePlay}>
+                    {isPlaying ? <Pause size={40} fill="white" /> : <Play size={40} fill="white" />}
+                  </button>
+                  <button className={styles.iconBtn} onClick={() => seek(10)}>
+                    <RotateCw size={32} />
                   </button>
                 </div>
-                {onTheaterToggle && (
-                  <button className={`${styles.btn} ${styles.theaterBtn}`} onClick={onTheaterToggle} title="Theater mode (t)">
-                    <RectangleHorizontal size={22} color={isTheaterMode ? "#ef4444" : "white"} />
+
+                {/* Right side (Actions) */}
+                <div className={styles.controlsRight}>
+                  <div className={styles.speedMenuContainer}>
+                    <button 
+                      className={styles.actionBtn} 
+                      onClick={() => setShowSpeedMenu(!showSpeedMenu)}
+                    >
+                      <SlidersHorizontal size={20} />
+                      <span>Speed ({playbackRate}x)</span>
+                    </button>
+                    
+                    <AnimatePresence>
+                      {showSpeedMenu && (
+                        <motion.div 
+                          className={styles.speedMenu}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          {[0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map(speed => (
+                            <button 
+                              key={speed}
+                              className={`${styles.speedOption} ${playbackRate === speed ? styles.activeSpeed : ''}`}
+                              onClick={() => {
+                                setPlaybackRate(speed);
+                                setShowSpeedMenu(false);
+                              }}
+                            >
+                              {speed === 1 ? 'Normal' : `${speed}x`}
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  <button 
+
+                    className={styles.actionBtn} 
+                    onClick={() => setShowEpisodeSelector(true)}
+                  >
+                    <List size={20} />
+                    <span>Episodes</span>
                   </button>
-                )}
-                <button className={styles.btn} onClick={toggleFullscreen}>
-                  {isFullscreen ? <Minimize size={24} /> : <Maximize size={24} />}
-                </button>
+                  {onNext && (
+                    <button className={styles.actionBtn} onClick={onNext}>
+                      <SkipForward size={20} />
+                      <span>Next Episode</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      ) : null}
+
+            {/* Episode Selector Overlay */}
+            <AnimatePresence>
+              {showEpisodeSelector && (
+                <motion.div 
+                  className={styles.episodeSelector}
+                  initial={{ x: '100%' }}
+                  animate={{ x: 0 }}
+                  exit={{ x: '100%' }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                >
+                  <div className={styles.episodeHeader}>
+                    <h3>Episodes</h3>
+                    <button onClick={() => setShowEpisodeSelector(false)}>✕</button>
+                  </div>
+                  <div className={styles.episodeScroll}>
+                    {episodes?.map((ep) => (
+                      <div 
+                        key={ep.id} 
+                        className={`${styles.episodeItem} ${currentEpisode === ep.episode_number ? styles.activeEpisode : ''}`}
+                        onClick={() => {
+                          if (onEpisodeSelect) onEpisodeSelect(ep.episode_number.toString());
+                          setShowEpisodeSelector(false);
+                        }}
+                      >
+                        <div className={styles.episodeThumb}>
+                          <img 
+                            src={tmdb.getEpisodeImage(ep.still_path) || (poster || '')} 
+                            alt={ep.name} 
+                          />
+                          <div className={styles.epPlayOverlay}>
+                            <Play size={20} fill="white" />
+                          </div>
+                        </div>
+                        <div className={styles.episodeText}>
+                          <div className={styles.epNumTitle}>
+                            <span>{ep.episode_number}. </span>
+                            {ep.name}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
-}
-);
+};
 
 export default VideoPlayer;

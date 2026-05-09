@@ -225,3 +225,79 @@ a.secondary {
   50% { opacity: 0.4; }
   100% { opacity: 1; }
 }
+
+.trendsBar {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  padding: 24px 6%;
+  background: linear-gradient(to bottom, #000, #050505);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.trendsBar::-webkit-scrollbar {
+  display: none;
+}
+
+.trendItem, .trendItemActive {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.trendItemActive {
+  color: #fff;
+}
+
+.trendItemActive svg {
+  color: #e50914;
+}
+
+.trendItem:hover {
+  color: #fff;
+}
+
+.genreBar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 30px 6%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.genreBar::-webkit-scrollbar {
+  display: none;
+}
+
+.genrePill, .genrePillActive {
+  padding: 8px 24px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.genrePill {
+  color: #fff;
+  background: transparent;
+}
+
+.genrePillActive {
+  background: #e50914;
+  color: #fff;
+}
+
+.genrePill:hover {
+  color: #e50914;
+}

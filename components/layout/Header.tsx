@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { Search, Bell, User, Sliders, Play } from 'lucide-react';
+import { Search, Bell, User, Sliders } from 'lucide-react';
 import styles from './Header.module.css';
 import SearchOverlay from './SearchOverlay';
 import FilterOverlay from './FilterOverlay';
+
+import UserMenu from './UserMenu';
 
 export default function Header({ isSolid = false }: { isSolid?: boolean }) {
   const [isScrolled, setIsScrolled] = useState(isSolid);
@@ -40,9 +42,7 @@ export default function Header({ isSolid = false }: { isSolid?: boolean }) {
       <header className={`${styles.header} ${isScrolled ? styles.headerScrolled : styles.headerTransparent} ${isSolid ? styles.headerSolid : ''}`}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <Link href="/" className={styles.logo}>
-            <div className={styles.logoIcon}>
-              <Play size={16} color="white" fill="white" />
-            </div>
+            <img src="/icons/logo_square_v4.png" alt="Lumina Play Logo" className={styles.logoIcon} />
             <span className={styles.logoText}>LUMINA</span>
           </Link>
 
@@ -79,11 +79,7 @@ export default function Header({ isSolid = false }: { isSolid?: boolean }) {
             }}></span>
           </button>
 
-          <div className={styles.avatar}>
-            <div className={styles.avatarInner}>
-              <User size={22} color="white" />
-            </div>
-          </div>
+          <UserMenu />
         </div>
       </header>
 

@@ -1,0 +1,168 @@
+.section {
+  padding: 0 4% 20px;
+  margin-bottom: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 24px;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.5px;
+}
+
+.controls {
+  display: none;
+}
+
+.controlBtn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.controlBtn:hover {
+  background: #e50914;
+  transform: scale(1.1);
+}
+
+.sliderContainer {
+  display: flex;
+  gap: 20px; /* Reduced gap as requested */
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 20px 0 60px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  contain: content;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sliderContainer::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.cardWrapper {
+  position: relative;
+  flex: 0 0 350px; /* Base width */
+  height: 300px;
+  display: flex;
+  align-items: center;
+  transition: transform 0.4s ease;
+  contain: layout;
+}
+
+.rankNumber {
+  position: absolute;
+  left: -20px; /* Shifted left to be more visible */
+  bottom: 0;
+  height: 100%;
+  font-size: 320px;
+  font-weight: 400;
+  color: #000;
+  -webkit-text-stroke: 3px rgba(255, 255, 255, 0.4);
+  z-index: 1;
+  pointer-events: none;
+  line-height: 0.9;
+  font-family: 'Archivo Black', sans-serif;
+  letter-spacing: -25px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  transform: scaleY(1.05);
+}
+
+.doubleDigit {
+  letter-spacing: -50px;
+  left: -60px; /* More space for two digits */
+}
+
+.cardLink {
+  width: 200px;
+  height: 100%;
+  margin-left: 150px; /* Pushed right to show more of the number */
+  z-index: 2;
+  display: block;
+  position: relative;
+}
+
+.doubleDigit + .cardLink {
+  margin-left: 240px;
+}
+
+.card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.cardWrapper:hover .card {
+  transform: scale(1.05) translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
+.cardWrapper:hover .rankNumber {
+  -webkit-text-stroke: 4px #fff;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
+}
+
+.poster {
+  object-fit: cover;
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 20px;
+  }
+
+  .cardWrapper {
+    flex: 0 0 220px;
+    height: 200px;
+    margin-right: -20px;
+  }
+
+  .rankNumber {
+    font-size: 220px;
+    letter-spacing: -15px;
+    left: -15px;
+  }
+
+  .cardLink {
+    width: 130px;
+    margin-left: 90px;
+  }
+
+  .doubleDigit + .cardLink {
+    margin-left: 140px;
+  }
+}

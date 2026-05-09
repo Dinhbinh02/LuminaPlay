@@ -4,23 +4,25 @@
   left: 0;
   right: 0;
   z-index: 1000;
-  transition: all 0.5s var(--transition-smooth);
   display: flex;
   align-items: center;
   padding: 0 4%;
   justify-content: space-between;
-  height: var(--nav-height);
+  height: 64px; /* Fixed height to prevent jumps */
+  background: rgba(0, 0, 0, 0.9);
+  transition: background-color 0.3s ease;
+  will-change: background-color, backdrop-filter;
+  transform: translateZ(0); /* Force GPU layer */
 }
 
 .headerScrolled {
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  height: 64px;
+  background: rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .headerTransparent {
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9) 0%, transparent 100%);
 }
 
 .headerSolid {
@@ -41,12 +43,15 @@
 .logoIcon {
   width: 28px;
   height: 28px;
-  background: var(--primary);
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-radius: 8px;
+  overflow: hidden;
+  object-fit: cover;
   transition: transform 0.3s ease;
+  will-change: transform;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  outline: 1px solid transparent;
 }
 
 .logo:hover .logoIcon {
@@ -172,5 +177,33 @@
   .searchBoxFocused {
     width: 140px;
     padding: 6px 12px;
+  }
+}
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.navLink, .navLinkActive {
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.3s ease;
+}
+
+.navLink:hover {
+  color: white;
+}
+
+.navLinkActive {
+  color: white;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .nav {
+    display: none;
   }
 }
