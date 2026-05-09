@@ -67,7 +67,10 @@ const VideoPlayer = ({
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [isHoveringProgress, setIsHoveringProgress] = useState(false);
   const [hoverProgress, setHoverProgress] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const lastSyncTime = useRef(0);
+  const dragStartX = useRef(0);
+  const dragStartTime = useRef(0);
   const speedMenuRef = useRef<HTMLDivElement>(null);
   const onProgressRef = useRef(onProgress);
   useEffect(() => { onProgressRef.current = onProgress; }, [onProgress]);
@@ -99,11 +102,11 @@ const VideoPlayer = ({
   const resetControlsTimeout = useCallback(() => {
     setShowControls(true);
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    // Only auto-hide if playing, not locked, and IN FULLSCREEN
-    if (isPlaying && !isLocked && isFullscreen) {
+    // Auto-hide if playing, not locked, and NOT dragging
+    if (isPlaying && !isLocked && !isDragging) {
       controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 2500);
     }
-  }, [isPlaying, isLocked, isFullscreen]);
+  }, [isPlaying, isLocked, isDragging]);
 
   // Trigger timeout when states change
   useEffect(() => {
@@ -330,6 +333,45 @@ const VideoPlayer = ({
       className={`${styles.netflixContainer} ${!showControls ? styles.hideCursor : ''}`}
       onMouseMove={resetControlsTimeout}
       onClick={resetControlsTimeout}
+      onPointerDown={(e) => {
+        resetControlsTimeout();
+        // Don't seek if clicking a button
+        if ((e.target as HTMLElement).closest('button')) return;
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        const isBottomThird = e.clientY > rect.top + (rect.height * 2 / 3);
+
+        if (isBottomThird) {
+          setIsDragging(true);
+          dragStartX.current = e.clientX;
+          dragStartTime.current = videoRef.current?.currentTime || 0;
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }
+      }}
+      onPointerMove={(e) => {
+        if (isDragging && duration) {
+          const deltaX = e.clientX - dragStartX.current;
+          const containerWidth = containerRef.current?.clientWidth || window.innerWidth;
+
+          // Relative seek: full screen drag = full duration
+          const deltaTime = (deltaX / containerWidth) * duration;
+          const newTime = Math.max(0, Math.min(duration, dragStartTime.current + deltaTime));
+
+          if (videoRef.current) {
+            videoRef.current.currentTime = newTime;
+            setCurrentTime(newTime);
+          }
+          resetControlsTimeout(); // Keep controls visible during drag
+        } else {
+          resetControlsTimeout();
+        }
+      }}
+      onPointerUp={(e) => {
+        if (isDragging) {
+          setIsDragging(false);
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+      }}
     >
       <video
         ref={videoRef}
@@ -371,20 +413,16 @@ const VideoPlayer = ({
             {/* Center Controls Removed */}
 
             {/* Bottom Bar */}
-            <div className={styles.netflixBottom} onClick={(e) => e.stopPropagation()}>
+            <div
+              className={styles.netflixBottom}
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className={styles.progressSection}>
                 <div className={styles.timeLabel}>
                   {formatTime(currentTime)}
                 </div>
                 <div
                   className={styles.netflixProgressBar}
-                  onPointerDown={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const pos = (e.clientX - rect.left) / rect.width;
-                    const newTime = pos * duration;
-                    videoRef.current!.currentTime = newTime;
-                    setCurrentTime(newTime);
-                  }}
                   onMouseMove={(e) => {
                     const rect = e.currentTarget.getBoundingClientRect();
                     const pos = (e.clientX - rect.left) / rect.width;
@@ -396,12 +434,12 @@ const VideoPlayer = ({
                     setIsHoveringProgress(false);
                   }}
                 >
-                  {isHoveringProgress && (
+                  {(isHoveringProgress || isDragging) && (
                     <div
                       className={styles.progressTooltip}
-                      style={{ left: `${hoverProgress}%` }}
+                      style={{ left: `${isDragging ? (currentTime / duration) * 100 : hoverProgress}%` }}
                     >
-                      {formatTime((hoverProgress / 100) * duration)}
+                      {formatTime(isDragging ? currentTime : (hoverProgress / 100) * duration)}
                     </div>
                   )}
                   <div
@@ -414,7 +452,11 @@ const VideoPlayer = ({
                   />
                   <div
                     className={styles.netflixProgressHandle}
-                    style={{ left: `${(currentTime / duration) * 100}%` }}
+                    style={{
+                      left: `${(currentTime / duration) * 100}%`,
+                      opacity: isDragging ? 1 : undefined,
+                      transform: isDragging ? 'translate(-50%, -50%) scale(1.5)' : undefined
+                    }}
                   />
                 </div>
                 <div className={styles.timeLabel}>
@@ -463,7 +505,6 @@ const VideoPlayer = ({
                       onClick={() => setShowSpeedMenu(!showSpeedMenu)}
                     >
                       <Gauge size={24} />
-                      <span className={styles.btnLabel}>Speed ({playbackRate}x)</span>
                     </button>
 
                     <AnimatePresence>
@@ -498,7 +539,7 @@ const VideoPlayer = ({
                       onClick={() => setShowEpisodeSelector(true)}
                     >
                       <List size={24} />
-                      <span className={styles.btnLabel}>Episodes</span>
+                      {/* Label removed for minimalism */}
                     </button>
                   )}
 
@@ -511,7 +552,7 @@ const VideoPlayer = ({
                     ) : (
                       <Maximize size={24} />
                     )}
-                    <span className={styles.btnLabel}>{isFullscreen ? 'Exit' : 'Full'}</span>
+                    {/* Label removed for minimalism */}
                   </button>
 
                   {/* onNext moved to controlsLeft for better grouping */}
@@ -529,15 +570,15 @@ const VideoPlayer = ({
                   exit={{ x: '100%' }}
                   transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                 >
-                    <div className={styles.episodeHeader}>
-                      <h3>Episodes</h3>
-                      <button 
-                        className={styles.closeSelectorBtn}
-                        onClick={() => setShowEpisodeSelector(false)}
-                      >
-                        ✕
-                      </button>
-                    </div>
+                  <div className={styles.episodeHeader}>
+                    <h3>Episodes</h3>
+                    <button
+                      className={styles.closeSelectorBtn}
+                      onClick={() => setShowEpisodeSelector(false)}
+                    >
+                      ✕
+                    </button>
+                  </div>
                   <div className={styles.episodeScroll}>
                     {episodes?.map((ep) => (
                       <div

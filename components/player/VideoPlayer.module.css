@@ -26,7 +26,7 @@
   inset: 0;
   z-index: 10;
   background: radial-gradient(circle, transparent 20%, rgba(0, 0, 0, 0.4) 100%),
-              linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 20%, transparent 80%, rgba(0, 0, 0, 0.6) 100%);
+    linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 20%, transparent 80%, rgba(0, 0, 0, 0.6) 100%);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -35,7 +35,10 @@
   pointer-events: none;
 }
 
-.netflixTop, .netflixBottom, .netflixCenter, .episodeSelector {
+.netflixTop,
+.netflixBottom,
+.netflixCenter,
+.episodeSelector {
   pointer-events: auto;
 }
 
@@ -84,7 +87,8 @@
   align-items: center;
   gap: 4px;
   transition: transform 0.2s;
-  position: relative; /* Fixed: anchor the skipValue inside this button */
+  position: relative;
+  /* Fixed: anchor the skipValue inside this button */
 }
 
 .centerBtn:hover {
@@ -117,6 +121,10 @@
   flex-direction: column;
   gap: 24px;
   width: 100%;
+  padding-top: 60px;
+  margin-top: auto;
+  touch-action: none;
+  user-select: none;
 }
 
 .progressSection {
@@ -204,7 +212,8 @@
   width: 100%;
 }
 
-.controlsLeft, .controlsRight {
+.controlsLeft,
+.controlsRight {
   display: flex;
   align-items: center;
   gap: 24px;
@@ -220,11 +229,13 @@
     justify-content: space-between;
     padding: 0 4px;
   }
+
   .controlsLeft {
     display: flex;
     gap: 16px;
     flex: none;
   }
+
   .controlsRight {
     justify-content: flex-end;
     flex: none;
@@ -233,7 +244,8 @@
 }
 
 .controlsCenter {
-  display: none; /* Hidden because we use netflixCenter now */
+  display: none;
+  /* Hidden because we use netflixCenter now */
 }
 
 .speedMenuContainer {
@@ -309,11 +321,14 @@
 
 @media (max-width: 600px) {
   .btnLabel {
-    display: none; /* Hide labels on small phones to save space */
+    display: none;
+    /* Hide labels on small phones to save space */
   }
+
   .actionBtn {
     gap: 0;
   }
+
   .controlsRight {
     gap: 16px;
   }
@@ -504,7 +519,7 @@
     width: 100%;
     background: #000;
   }
-  
+
   .episodeHeader {
     padding: 30px 20px 10px;
   }
