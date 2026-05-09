@@ -117,6 +117,8 @@ function WatchPageWrapper({ paths }: { paths: string[] }) {
     titleTMDB, 
     yearTMDB, 
     originalTitleTMDB,
+    type,
+    id,
     type === 'tv' ? season : undefined
   );
   

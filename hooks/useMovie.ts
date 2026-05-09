@@ -253,14 +253,13 @@ export function useTMDBSeason(tvId: string | number, seasonNumber: number) {
 }
 
 // Hook to find Ophim slug for a TMDB ID
-export function useOphimMapping(title: string, year: string | number, originalTitle?: string, season?: string | number) {
+export function useOphimMapping(title: string, year: string | number, originalTitle?: string, type?: 'movie' | 'tv', tmdbId?: string | number, season?: string | number) {
   return useQuery({
-    queryKey: ['ophim-mapping', title, year, originalTitle, season],
+    queryKey: ['ophim-mapping', title, year, originalTitle, type, tmdbId, season],
     queryFn: async () => {
-      // ... (rest of the logic remains the same)
       if (!title) return null;
       
-      const isTV = !!season;
+      const isTV = !!season || type === 'tv';
       
       // 1. Search with main title only (Ophim search is sensitive)
       const searchRes = await ophim.search(title);
@@ -274,16 +273,27 @@ export function useOphimMapping(title: string, year: string | number, originalTi
       
       if (items.length === 0) return null;
 
-      // 3. Logic to pick the best match
+      // 3. Match Priority 1: Exact TMDB ID match
+      if (tmdbId) {
+        const exactMatch = items.find((item: any) => item.tmdb?.id?.toString() === tmdbId.toString());
+        if (exactMatch) return exactMatch.slug;
+      }
+
+      // 4. Logic to pick the best match
       if (isTV) {
-        const s = season.toString();
+        const s = (season || '1').toString();
         const targetYear = year?.toString();
 
         // 1.5 Special: If season > 1, try a specific search for "Title Phần N"
         if (parseInt(s) > 1) {
           const seasonSearchRes = await ophim.search(`${title} Phần ${s}`);
           if (seasonSearchRes.status === 'success' && seasonSearchRes.data?.items?.length > 0) {
-            // If we find a direct hit with "Phần N", use it!
+            // Check if this result also matches year or TMDB ID
+            const exactSeasonMatch = seasonSearchRes.data.items.find((item: any) => 
+              (tmdbId && item.tmdb?.id?.toString() === tmdbId.toString()) ||
+              (item.year?.toString() === targetYear)
+            );
+            if (exactSeasonMatch) return exactSeasonMatch.slug;
             return seasonSearchRes.data.items[0].slug;
           }
         }
@@ -322,17 +332,30 @@ export function useOphimMapping(title: string, year: string | number, originalTi
         }
       }
 
-      // 4. Default fallback: matching by original name or name with scoring
+      // 5. Default fallback: matching by original name or name with scoring
       const scoredItems = items.map((item: any) => {
         let score = 0;
         const itemName = (item.name || '').toLowerCase();
         const itemOrigin = (item.origin_name || '').toLowerCase();
+        const itemType = item.type; // 'single' or 'series'
         const lowTitle = title.toLowerCase();
         const lowOrig = originalTitle?.toLowerCase() || '';
 
+        // Year match is extremely important
+        if (item.year?.toString() === year?.toString()) {
+          score += 20;
+        } else {
+          // Penalty for different year (except if exact name match)
+          score -= 5;
+        }
+
+        // Type match
+        if (type === 'movie' && itemType === 'single') score += 10;
+        if (type === 'tv' && itemType === 'series') score += 10;
+
+        // Name match
         if (itemName === lowTitle || itemOrigin === lowOrig) score += 10;
         if (itemName.includes(lowTitle) || itemOrigin.includes(lowOrig)) score += 5;
-        if (item.year?.toString() === year?.toString()) score += 5;
         
         // For Season 1, prefer items without "Phần" or "Part"
         if (season?.toString() === '1') {
@@ -345,7 +368,9 @@ export function useOphimMapping(title: string, year: string | number, originalTi
 
       scoredItems.sort((a: { score: number }, b: { score: number }) => b.score - a.score);
       
-      // If scores are tied, prefer the one with more episodes (if available in future)
+      // Threshold: If the best match is still poor, don't return it
+      if (scoredItems[0].score < 10) return null;
+
       return scoredItems[0].item.slug;
     },
     enabled: !!title,

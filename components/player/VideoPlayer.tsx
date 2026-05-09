@@ -67,10 +67,13 @@ const VideoPlayer = ({
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [isHoveringProgress, setIsHoveringProgress] = useState(false);
   const [hoverProgress, setHoverProgress] = useState(0);
+  const [tooltipTime, setTooltipTime] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const lastSyncTime = useRef(0);
   const dragStartX = useRef(0);
   const dragStartTime = useRef(0);
+  const holdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isPointerDown = useRef(false);
   const speedMenuRef = useRef<HTMLDivElement>(null);
   const onProgressRef = useRef(onProgress);
   useEffect(() => { onProgressRef.current = onProgress; }, [onProgress]);
@@ -342,13 +345,37 @@ const VideoPlayer = ({
         const isBottomThird = e.clientY > rect.top + (rect.height * 2 / 3);
 
         if (isBottomThird) {
-          setIsDragging(true);
+          isPointerDown.current = true;
           dragStartX.current = e.clientX;
           dragStartTime.current = videoRef.current?.currentTime || 0;
-          e.currentTarget.setPointerCapture(e.pointerId);
+          
+          // Clear any existing timeout
+          if (holdTimeoutRef.current) clearTimeout(holdTimeoutRef.current);
+          
+          // Set a timeout for "hold" to activate dragging
+          holdTimeoutRef.current = setTimeout(() => {
+            if (isPointerDown.current) {
+              setIsDragging(true);
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }
+          }, 400); // 400ms hold threshold
         }
       }}
       onPointerMove={(e) => {
+        if (!isPointerDown.current) {
+          resetControlsTimeout();
+          return;
+        }
+
+        if (!isDragging && duration) {
+          const deltaX = Math.abs(e.clientX - dragStartX.current);
+          if (deltaX > 10) { // 10px movement threshold
+            if (holdTimeoutRef.current) clearTimeout(holdTimeoutRef.current);
+            setIsDragging(true);
+            e.currentTarget.setPointerCapture(e.pointerId);
+          }
+        }
+
         if (isDragging && duration) {
           const deltaX = e.clientX - dragStartX.current;
           const containerWidth = containerRef.current?.clientWidth || window.innerWidth;
@@ -360,6 +387,7 @@ const VideoPlayer = ({
           if (videoRef.current) {
             videoRef.current.currentTime = newTime;
             setCurrentTime(newTime);
+            setTooltipTime(newTime);
           }
           resetControlsTimeout(); // Keep controls visible during drag
         } else {
@@ -367,6 +395,28 @@ const VideoPlayer = ({
         }
       }}
       onPointerUp={(e) => {
+        isPointerDown.current = false;
+        if (holdTimeoutRef.current) {
+          clearTimeout(holdTimeoutRef.current);
+          holdTimeoutRef.current = null;
+        }
+        
+        if (isDragging) {
+          setIsDragging(false);
+          setTooltipTime(null);
+          e.currentTarget.releasePointerCapture(e.pointerId);
+          if (videoRef.current && !isExternalUpdate.current) {
+            broadcastSync(videoRef.current.currentTime, 'SEEK');
+          }
+        }
+      }}
+      onPointerCancel={(e) => {
+        isPointerDown.current = false;
+        setTooltipTime(null);
+        if (holdTimeoutRef.current) {
+          clearTimeout(holdTimeoutRef.current);
+          holdTimeoutRef.current = null;
+        }
         if (isDragging) {
           setIsDragging(false);
           e.currentTarget.releasePointerCapture(e.pointerId);
@@ -423,23 +473,45 @@ const VideoPlayer = ({
                 </div>
                 <div
                   className={styles.netflixProgressBar}
-                  onMouseMove={(e) => {
+                  onPointerMove={(e) => {
                     const rect = e.currentTarget.getBoundingClientRect();
                     const pos = (e.clientX - rect.left) / rect.width;
+                    const time = pos * duration;
                     setHoverProgress(pos * 100);
+                    setTooltipTime(time);
                   }}
-                  onMouseEnter={() => setIsHoveringProgress(true)}
-                  onMouseLeave={() => {
-                    setHoverProgress(0);
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    if (!videoRef.current || !duration) return;
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const pos = (e.clientX - rect.left) / rect.width;
+                    const newTime = Math.max(0, Math.min(duration, pos * duration));
+                    videoRef.current.currentTime = newTime;
+                    setCurrentTime(newTime);
+                    setTooltipTime(newTime);
+                    if (!isExternalUpdate.current) broadcastSync(newTime, 'SEEK');
+                    resetControlsTimeout();
+                  }}
+                  onPointerEnter={() => setIsHoveringProgress(true)}
+                  onPointerLeave={() => {
                     setIsHoveringProgress(false);
+                    if (!isDragging) setTooltipTime(null);
+                  }}
+                  onPointerUp={() => {
+                    setIsHoveringProgress(false);
+                    setTooltipTime(null);
+                  }}
+                  onPointerCancel={() => {
+                    setIsHoveringProgress(false);
+                    setTooltipTime(null);
                   }}
                 >
-                  {(isHoveringProgress || isDragging) && (
+                  {tooltipTime !== null && (
                     <div
                       className={styles.progressTooltip}
-                      style={{ left: `${isDragging ? (currentTime / duration) * 100 : hoverProgress}%` }}
+                      style={{ left: isDragging ? `${(currentTime / duration) * 100}%` : `${(tooltipTime / duration) * 100}%` }}
                     >
-                      {formatTime(isDragging ? currentTime : (hoverProgress / 100) * duration)}
+                      {formatTime(tooltipTime)}
                     </div>
                   )}
                   <div

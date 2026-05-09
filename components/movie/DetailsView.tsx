@@ -78,6 +78,8 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
     titleTMDB,
     yearTMDB,
     originalTitleTMDB,
+    type,
+    id,
     type === 'tv' ? selectedSeason.toString() : undefined
   );
 
