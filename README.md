@@ -1,38 +1,29 @@
-# 🎬 Lumina Play
+# 💠 Lumina Core
 
-![Lumina Play Banner](banner.png)
+**Lumina Core** is a sophisticated frontend architecture and UI component library built on **Next.js 15**. This project serves as a comprehensive research framework for modern web interaction patterns, optimized performance strategies, and advanced CSS module implementations.
 
-**Lumina Play** is a premium movie streaming web application built on **Next.js 15**, focusing on smooth user experience, modern interface, and exceptional optimization across all devices.
+## 🔬 Core Objectives
 
-## ✨ Key Features
-
-- 🎨 **Premium Netflix-style UI**: Strong red theme, minimalist yet luxurious design.
-- 📱 **Fully Mobile Optimized**: Dedicated Hero section for mobile using Portrait Posters, providing a perfect viewing experience.
-- 🔄 **Infinite Discovery**: Explore thousands of movies without page reloads thanks to horizontal infinite scroll technology.
-- 🎥 **Cinematic Video Player**: High-end video player with custom poster overlays and smooth transition effects.
-- ⚡ **Superior Performance**: Integrated React Query for data caching and instant Scroll Restoration.
-- 🔍 **Smart Search & Filter**: Fast and accurate movie search and filtering system.
+- 🧪 **Interaction Research**: Exploring complex user gesture patterns (touch, drag, and pointer capture) for next-generation web applications.
+- 📐 **Modular Design System**: Implementing a strict design token architecture using Vanilla CSS Modules for maximum performance and portability.
+- ⚡ **State Synchronization**: High-efficiency state management and cache synchronization patterns using TanStack Query and Zustand.
+- 📱 **Universal Responsiveness**: Adaptive layout strategies that dynamically reconfigure based on device orientation and viewport constraints.
 
 ## 🛠 Tech Stack
 
 - **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
-- **Styling**: Vanilla CSS Modules (Optimized for CSS performance)
+- **Styling**: Vanilla CSS Modules (Zero-runtime CSS-in-JS alternative)
 - **Animation**: [Framer Motion](https://www.framer.com/motion/)
 - **Data Fetching**: [TanStack Query v5](https://tanstack.com/query/latest)
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **State Management**: [Zustand](https://docs.pmnd.rs/zustand/getting-started/introduction)
 
-## ⚖️ Disclaimer
+## ⚖️ License & Disclaimer
 
-> [!IMPORTANT]
-> **This project is created strictly for educational, research, and open-source development purposes only.**
->
-> - All movie data and images are retrieved from public APIs available on the Internet.
-> - The project author does not own, store, or take responsibility for the movie content.
-> - This project is NOT intended for any commercial use.
-> - If you are the copyright owner of any content and wish to request removal, please contact the source API providers or notify us.
+> [!NOTE]
+> This repository is a personal research project dedicated to frontend engineering best practices. It does not provide any commercial services or host proprietary content.
 
-## 🚀 Getting Started
+## 🚀 Development
 
 1. Clone the repository:
    ```bash
@@ -42,10 +33,10 @@
    ```bash
    npm install
    ```
-3. Run the development server:
+3. Start research environment:
    ```bash
    npm run dev
    ```
 
 ---
-Developed with ❤️ by [Dinhbinh02](https://github.com/Dinhbinh02)
+Maintained for research purposes by [Dinhbinh02](https://github.com/Dinhbinh02)

@@ -13,7 +13,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Lumina Play - Premium Streaming Experience",
+  title: "Lumina Play",
   description: "Watch your favorite movies and shows with Lumina Play.",
 };
 
