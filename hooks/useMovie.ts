@@ -235,8 +235,19 @@ export function useTMDBByGenre(genreId: number, type: 'movie' | 'tv' = 'movie') 
 // Hook to get TMDB details (Movie or TV)
 export function useTMDBDetails(id: string | number, type: 'movie' | 'tv') {
   return useQuery({
-    queryKey: ['tmdb', type, id],
-    queryFn: () => type === 'movie' ? tmdb.getMovieDetails(id) : tmdb.getTVDetails(id),
+    queryKey: ['tmdb', 'details', id], // Remove 'type' from key to share cache across attempts
+    queryFn: async () => {
+      // 1. Try the preferred type first
+      const data = type === 'movie' ? await tmdb.getMovieDetails(id) : await tmdb.getTVDetails(id);
+      if (data) return { ...data, media_type: type };
+
+      // 2. If it fails, try the other type
+      const otherType = type === 'movie' ? 'tv' : 'movie';
+      const otherData = otherType === 'movie' ? await tmdb.getMovieDetails(id) : await tmdb.getTVDetails(id);
+      if (otherData) return { ...otherData, media_type: otherType };
+
+      return null;
+    },
     enabled: !!id,
     staleTime: 1000 * 60 * 60,
   });

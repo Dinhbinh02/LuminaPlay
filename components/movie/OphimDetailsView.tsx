@@ -33,7 +33,7 @@ export default function OphimDetailsView({ slug }: OphimDetailsViewProps) {
   if (!isLoading && (res?.status !== 'success' || !movie)) {
     return (
       <div className={styles.main}>
-        <div className={styles.error}>Không tìm thấy nội dung trên OPhim</div>
+        <div className={styles.error}>Content not found in our database</div>
       </div>
     );
   }
@@ -109,7 +109,7 @@ export default function OphimDetailsView({ slug }: OphimDetailsViewProps) {
           <div className={styles.mainActions}>
             <Link href={`/watch/${slug}`} className={styles.btnPlay}>
               <Play size={24} fill="currentColor" />
-              <span>Xem ngay</span>
+              <span>Watch Now</span>
             </Link>
           </div>
         </motion.div>
@@ -123,7 +123,7 @@ export default function OphimDetailsView({ slug }: OphimDetailsViewProps) {
           <section className={styles.episodesSection}>
             <div className={styles.sectionHeader}>
               <div className={styles.sectionBar} />
-              <h3 className={styles.sectionTitle}>Danh sách tập phim</h3>
+              <h3 className={styles.sectionTitle}>Episodes</h3>
             </div>
 
             {episodes.length > 1 && (
@@ -159,20 +159,20 @@ export default function OphimDetailsView({ slug }: OphimDetailsViewProps) {
         <section className={styles.castSection}>
           <div className={styles.sectionHeader}>
             <div className={styles.sectionBar} />
-            <h3 className={styles.sectionTitle}>Thông tin bổ sung</h3>
+            <h3 className={styles.sectionTitle}>Additional Information</h3>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', color: '#ccc' }}>
             <div>
-              <h4 style={{ color: '#fff', marginBottom: '8px' }}>Trạng thái</h4>
-              <p>{movie?.status === 'completed' ? 'Hoàn thành' : 'Đang cập nhật'}</p>
+              <h4 style={{ color: '#fff', marginBottom: '8px' }}>Status</h4>
+              <p>{movie?.status === 'completed' ? 'Completed' : 'Updating'}</p>
             </div>
             <div>
-              <h4 style={{ color: '#fff', marginBottom: '8px' }}>Số tập</h4>
+              <h4 style={{ color: '#fff', marginBottom: '8px' }}>Episodes</h4>
               <p>{movie?.episode_current} / {movie?.episode_total}</p>
             </div>
             <div>
-              <h4 style={{ color: '#fff', marginBottom: '8px' }}>Đạo diễn</h4>
-              <p>{movie?.director?.join(', ') || 'Đang cập nhật'}</p>
+              <h4 style={{ color: '#fff', marginBottom: '8px' }}>Director</h4>
+              <p>{movie?.director?.join(', ') || 'Updating'}</p>
             </div>
           </div>
         </section>

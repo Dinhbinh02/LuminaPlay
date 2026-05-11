@@ -1,4 +1,4 @@
-.netflixContainer {
+.playerContainer {
   width: 100%;
   height: 100%;
   background: #000;
@@ -9,7 +9,7 @@
   justify-content: center;
 }
 
-.netflixVideo {
+.playerVideo {
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -20,62 +20,64 @@
   object-fit: cover !important;
 }
 
-.netflixOverlay {
+.playerOverlay {
   position: absolute;
   inset: 0;
   z-index: 10;
-  background: radial-gradient(circle, transparent 20%, rgba(0, 0, 0, 0.4) 100%),
-    linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 20%, transparent 80%, rgba(0, 0, 0, 0.6) 100%);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 20px 4%;
-  padding-top: max(20px, env(safe-area-inset-top));
-  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  background: radial-gradient(circle, transparent 50%, rgba(0, 0, 0, 0.2) 100%),
+    linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, transparent 20%, transparent 80%, rgba(0, 0, 0, 0.4) 100%);
   color: #fff;
   pointer-events: none;
+  overscroll-behavior: contain;
 }
 
-.netflixTop,
-.netflixBottom,
-.netflixCenter,
+.playerTop,
+.playerBottom,
+.playerCenter,
 .episodeSelector {
   pointer-events: auto;
 }
 
-.netflixTop {
+.playerTop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
 }
 
-.netflixTitleGroup {
+.playerTitleGroup {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
 }
 
-.netflixMainTitle {
+.playerMainTitle {
   font-size: 18px;
   font-weight: 500;
   opacity: 0.8;
 }
 
-.netflixSubTitle {
+.playerSubTitle {
   font-size: 20px;
   font-weight: 700;
 }
 
-.netflixCenter {
+.playerCenter {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
-  gap: 80px;
+  justify-content: center;
+  gap: 18vw;
+  z-index: 20;
 }
 
 .centerBtn {
@@ -84,46 +86,48 @@
   color: #fff;
   cursor: pointer;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
-  transition: transform 0.2s;
-  position: relative;
-  /* Fixed: anchor the skipValue inside this button */
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0.8;
 }
 
 .centerBtn:hover {
-  transform: scale(1.1);
-}
-
-.skipValue {
-  font-size: 14px;
-  font-weight: 700;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  transform: scale(1.2);
+  opacity: 1;
 }
 
 .playBtnLarge {
-  background: none;
+  background: rgba(0, 0, 0, 0.3);
   border: none;
   color: #fff;
   cursor: pointer;
-  transition: transform 0.2s;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  backdrop-filter: blur(10px);
 }
 
 .playBtnLarge:hover {
   transform: scale(1.1);
+  background: rgba(0, 0, 0, 0.5);
 }
 
-.netflixBottom {
+.playerBottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: 16px;
   width: 100%;
-  padding-top: 40px;
-  margin-top: auto;
   touch-action: none;
   user-select: none;
 }
@@ -134,21 +138,22 @@
   gap: 20px;
 }
 
-.netflixProgressBar {
-  flex: 1;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.3);
+.playerProgressBar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.4);
   position: relative;
   cursor: pointer;
-  border-radius: 2px;
+  border-radius: 3px;
   transition: height 0.2s;
+  z-index: 50;
 }
 
-.netflixProgressBar:hover {
+.playerProgressBar:hover {
   height: 6px;
 }
 
-.netflixProgressFill {
+.playerProgressFill {
   position: absolute;
   left: 0;
   top: 0;
@@ -157,7 +162,7 @@
   border-radius: 2px;
 }
 
-.netflixProgressHover {
+.playerProgressHover {
   position: absolute;
   left: 0;
   top: 0;
@@ -183,7 +188,7 @@
   z-index: 10;
 }
 
-.netflixProgressHandle {
+.playerProgressHandle {
   position: absolute;
   top: 50%;
   width: 16px;
@@ -195,15 +200,28 @@
   transition: opacity 0.2s;
 }
 
-.netflixProgressBar:hover .netflixProgressHandle {
+.playerProgressBar:hover .playerProgressHandle {
   opacity: 1;
 }
 
-.timeLabel {
+.timeDisplay {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 14px;
   font-weight: 500;
+  color: #fff;
+  margin-left: 12px;
+}
+
+.timeDivider {
+  opacity: 0.5;
+  margin: 0 2px;
+}
+
+.currentTime, .totalTime {
   min-width: 45px;
-  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
 }
 
 .controlsRow {
@@ -246,7 +264,40 @@
 
 .controlsCenter {
   display: none;
-  /* Hidden because we use netflixCenter now */
+}
+
+.volumeContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.volumeSliderWrapper {
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.volumeSlider {
+  width: 80px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.volumeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .speedMenuContainer {
@@ -511,35 +562,200 @@
   font-weight: 700;
 }
 
-@media (max-width: 768px) {
-  .netflixOverlay {
-    padding: 24px 4% 40px;
+@media (max-width: 950px) {
+  .playerOverlay {
+    padding: 10px 4% 15px;
   }
 
-  .episodeSelector {
+  .playerTitleGroup {
+    display: none;
+  }
+
+  .playBtnLarge {
+    width: 70px;
+    height: 70px;
+  }
+
+  .playBtnLarge svg {
+    width: 35px;
+    height: 35px;
+  }
+
+
+  .volumeContainer {
+    display: none !important;
+  }
+
+  .centerBtn svg {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@media (max-height: 500px) {
+  .playerTop {
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+
+  .playerBottom {
+    padding-bottom: 2px;
+    gap: 2px;
+  }
+
+  .progressSection {
+    gap: 10px;
+  }
+
+  .controlsRow {
+    gap: 5px;
+    height: 32px;
+  }
+
+  .actionBtn {
+    padding: 2px;
+  }
+
+  .iconBtn {
+    padding: 2px;
+  }
+
+  .iconBtn svg,
+  .actionBtn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .btnLabel {
+    display: none;
+  }
+
+  .playerCenter {
+    gap: 20px;
+  }
+
+  .playBtnLarge {
+    width: 45px;
+    height: 45px;
+  }
+
+  .playBtnLarge svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.episodeThumb {
+  width: 130px;
+}
+
+.epNumTitle {
+  font-size: 14px;
+}
+
+@media (orientation: portrait) {
+  .playerOverlay {
+    aspect-ratio: 16/9;
+    height: auto !important;
+    max-height: 100%;
     width: 100%;
-    background: #000;
+    position: absolute;
+    top: 50% !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: auto !important;
+    transform: translateY(-50%);
   }
 
-  .episodeHeader {
-    padding: 30px 20px 10px;
+  .playerBottom .timeDisplay {
+    display: none !important;
   }
 
-  .episodeHeader h3 {
-    font-size: 24px;
+  .playerProgressBar {
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    border-radius: 0;
+    height: 4px;
+    margin: 0 !important;
+    z-index: 100;
   }
 
-  .episodeItem {
-    gap: 15px;
-    padding: 10px;
-    border-radius: 12px;
+  .playerBottom {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    padding: 0 15px 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+}
+
+@media (orientation: landscape) and (max-width: 950px) {
+  .playerContainer {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
-  .episodeThumb {
-    width: 130px;
+  .playerVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain !important;
+    position: relative;
   }
 
-  .epNumTitle {
-    font-size: 14px;
+  .playerTop {
+    padding: 20px !important;
   }
+
+  .playerBottom {
+    padding: 20px 20px max(20px, env(safe-area-inset-bottom)) !important;
+    gap: 8px;
+  }
+
+  .playerProgressBar {
+    height: 4px;
+    margin-bottom: 0;
+  }
+}
+
+@media (orientation: landscape) and (min-width: 951px) {
+  .playerTop {
+    padding: 20px !important;
+  }
+
+  .playerBottom {
+    padding: 20px 20px max(20px, env(safe-area-inset-bottom)) !important;
+    gap: 12px;
+  }
+
+  .playerProgressBar {
+    height: 6px;
+    margin-bottom: 4px;
+  }
+}
+
+.loaderContainer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.loaderIcon {
+  color: #fff;
+  animation: spin 1s linear infinite;
+  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.3));
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

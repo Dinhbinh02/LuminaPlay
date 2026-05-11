@@ -4,7 +4,7 @@ import { useSyncHistory } from '@/hooks/useSyncHistory';
 import { useFavorites } from '@/hooks/useFavorites';
 
 export default function HistoryInitializer() {
-  useSyncHistory();
-  useFavorites();
+  useSyncHistory({ init: true });
+  useFavorites({ init: true });
   return null;
 }

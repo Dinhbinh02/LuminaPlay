@@ -323,7 +323,9 @@
   }
 
   .btnPlay {
-    flex: 2.5;
+    flex: 2.5 1 0%;
+    display: flex !important;
+    align-items: center;
     justify-content: center;
     padding: 12px 0;
     border-radius: 8px;
@@ -337,5 +339,8 @@
   .btnPlay .actionIcon {
     width: 22px;
     height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }

@@ -41,7 +41,7 @@ export const tmdb = {
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      if (res.status !== 404) {
+      if (res.status !== 404 && res.status !== 502) {
         console.error(`TMDB API Error [${res.status}] for ${endpoint}:`, errorData);
       }
       return null; 
@@ -92,11 +92,17 @@ export const tmdb = {
   },
 
   getMovieDetails: async (id: number | string) => {
-    return tmdb.fetch(`/movie/${id}`, { append_to_response: 'images,videos,credits,external_ids,recommendations' });
+    return tmdb.fetch(`/movie/${id}`, { 
+      append_to_response: 'images,videos,credits,external_ids,recommendations',
+      include_video_language: 'vi,ja,en'
+    });
   },
 
   getTVDetails: async (id: number | string) => {
-    return tmdb.fetch(`/tv/${id}`, { append_to_response: 'images,videos,credits,external_ids,recommendations,content_ratings' });
+    return tmdb.fetch(`/tv/${id}`, { 
+      append_to_response: 'images,videos,credits,external_ids,recommendations,content_ratings',
+      include_video_language: 'vi,ja,en'
+    });
   },
 
   getTVSeasonDetails: async (tvId: number | string, seasonNumber: number) => {

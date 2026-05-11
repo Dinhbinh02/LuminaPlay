@@ -277,6 +277,27 @@
   transform: translateY(-2px);
 }
 
+.btnTrailer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  background-color: #f97316;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btnTrailer:hover {
+  background-color: #ea580c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4);
+}
+
 .btnWatchParty {
   display: flex;
   align-items: center;
@@ -686,17 +707,25 @@
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: #000;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 4dvh 4vw;
 }
 
 .iframeContainer {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  max-width: min(1280px, calc(92dvh * 16 / 9));
+  aspect-ratio: 16 / 9;
   position: relative;
   background: #000;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .iframeTopBar {
@@ -708,8 +737,22 @@
   background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 4%;
   z-index: 10;
+  gap: 20px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.iframeTopBar.hidden {
+  opacity: 0;
+  transform: translateY(-20px);
+  pointer-events: none;
+}
+
+.iframeTopLeft {
+  display: flex;
+  align-items: center;
   gap: 20px;
 }
 
@@ -739,17 +782,153 @@
   font-size: 24px;
   font-weight: 700;
   color: #fff;
+  line-height: 1.2;
 }
 
 .iframeSubTitle {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
 }
+
 
 .iframe {
   width: 100%;
   height: 100%;
   border: none;
+}
+
+/* Server Switcher Styles */
+.serverSwitcher {
+  position: relative;
+}
+
+.serverBtn {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px 16px;
+  border-radius: 12px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.serverBtn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.serverMenu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: rgba(20, 20, 20, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 8px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
+.serverMenuItem {
+  background: none;
+  border: none;
+  color: #ccc;
+  padding: 12px 16px;
+  text-align: left;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.iframeServerSwitcher {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  z-index: 200;
+}
+
+.serverMenuFloating {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  background: rgba(15, 15, 15, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 8px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  z-index: 300;
+}
+
+.serverMenuItem:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.serverMenuItem.activeServer {
+  background: #f97316 !important;
+  color: #fff !important;
+}
+
+@media (max-width: 768px) {
+  .playerOverlay {
+    padding: 0;
+  }
+  
+  .iframeContainer {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    max-width: 100%;
+  }
+
+  .iframeTopBar {
+    height: 70px;
+    padding: 0 15px;
+  }
+  
+  .iframeTitle {
+    display: none;
+  }
+
+  .iframeSubTitle {
+    display: none;
+  }
+
+  .iframeInfo {
+    display: none;
+  }
+
+  .iframeTopBar {
+    height: 60px;
+    padding: 0 10px;
+  }
+
+  .serverBtn {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+
+  .iframeBackBtn {
+    padding: 6px;
+  }
 }
 
 /* Watching Indicator Styles */
@@ -805,4 +984,18 @@
   transition: opacity 0.3s ease;
 }
 
+@media (orientation: landscape) and (max-width: 950px) {
+  .playerOverlay {
+    padding: 0 !important;
+    align-items: center;
+  }
 
+  .iframeContainer {
+    width: 100%;
+    max-width: min(100%, calc(100dvh * 16 / 9));
+    aspect-ratio: 16 / 9;
+    border-radius: 0;
+    border: none;
+    height: auto;
+  }
+}

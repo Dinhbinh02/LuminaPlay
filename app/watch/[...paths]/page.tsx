@@ -41,11 +41,11 @@ export default function WatchCatchAll({ params }: { params: Promise<{ paths: str
               return;
             }
           }
-          setError("Phim này không tồn tại trên hệ thống.");
+          setError("This movie does not exist in our system.");
           setIsRedirecting(false);
         } catch (err) {
           console.error("Redirect error:", err);
-          setError("Có lỗi xảy ra khi tìm kiếm thông tin phim.");
+          setError("An error occurred while fetching movie information.");
           setIsRedirecting(false);
         }
       }
@@ -70,7 +70,7 @@ export default function WatchCatchAll({ params }: { params: Promise<{ paths: str
       <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000', color: '#fff', flexDirection: 'column', gap: '20px' }}>
         <h2>{error}</h2>
         <button onClick={() => router.push('/')} style={{ padding: '10px 20px', background: '#e50914', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer' }}>
-          Quay lại trang chủ
+          Go back to Home
         </button>
       </div>
     );
@@ -89,6 +89,7 @@ import Link from 'next/link';
 import styles from './WatchPage.module.css';
 import { useStore } from '@/store/useStore';
 import { useSyncHistory } from '@/hooks/useSyncHistory';
+import { motion, AnimatePresence } from 'framer-motion';
 
 function WatchPageWrapper({ paths }: { paths: string[] }) {
   const searchParams = useSearchParams();
@@ -98,6 +99,22 @@ function WatchPageWrapper({ paths }: { paths: string[] }) {
   const type = paths[0] as 'movie' | 'tv';
   const id = paths[1] as string;
   const isNumeric = /^\d+$/.test(id);
+
+  const [selectedServer, setSelectedServer] = useState('vidlink');
+  const [showServerMenu, setShowServerMenu] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+
+  const SERVERS = [
+    { id: 'vidlink', name: 'VidLink (Clean)', url: (id: string, s: string, e: string, type: string) => 
+      type === 'movie' ? `https://vidlink.pro/embed/movie/${id}` : `https://vidlink.pro/embed/tv/${id}/${s}/${e}` 
+    },
+    { id: 'vidsrc_to', name: 'VidSrc (.to)', url: (id: string, s: string, e: string, type: string) => 
+      type === 'movie' ? `https://vidsrc.to/embed/movie/${id}` : `https://vidsrc.to/embed/tv/${id}/${s}/${e}` 
+    },
+    { id: 'vidsrc_xyz', name: 'VidSrc (.xyz)', url: (id: string, s: string, e: string, type: string) => 
+      type === 'movie' ? `https://vidsrc.xyz/embed/movie/${id}` : `https://vidsrc.xyz/embed/tv/${id}/${s}/${e}` 
+    },
+  ];
   
   const season = searchParams.get('season') || '1';
   const episode = searchParams.get('episode') || '1';
@@ -128,6 +145,36 @@ function WatchPageWrapper({ paths }: { paths: string[] }) {
   let videoUrl = '';
   let useIframe = true;
 
+  // Handle iframe controls visibility
+  useEffect(() => {
+    if (!useIframe) {
+      setShowControls(true);
+      return;
+    }
+
+    let timeout: NodeJS.Timeout;
+    const resetTimeout = () => {
+      setShowControls(true);
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        setShowControls(false);
+      }, 3000);
+    };
+
+    window.addEventListener('mousemove', resetTimeout);
+    window.addEventListener('mousedown', resetTimeout);
+    window.addEventListener('touchstart', resetTimeout);
+    resetTimeout();
+
+    return () => {
+      window.removeEventListener('mousemove', resetTimeout);
+      window.removeEventListener('mousedown', resetTimeout);
+      window.removeEventListener('touchstart', resetTimeout);
+      clearTimeout(timeout);
+    };
+  }, [useIframe]);
+
+
   if (ophimDetail?.data?.item) {
     const movieData = ophimDetail.data.item;
     const server = movieData.episodes?.[0];
@@ -149,9 +196,8 @@ function WatchPageWrapper({ paths }: { paths: string[] }) {
     }
   }
 
-  const embedUrl = type === 'movie' 
-    ? `https://vidsrc.me/embed/movie?tmdb=${id}`
-    : `https://vidsrc.me/embed/tv?tmdb=${id}&season=${season}&episode=${episode}`;
+  const activeServer = SERVERS.find(s => s.id === selectedServer) || SERVERS[0];
+  const embedUrl = activeServer.url(id, season, episode, type);
 
   const isLoadingTotal = (isNumeric && isMappingLoading && !ophimSlug) || (isOphimLoading && !ophimDetail);
 
@@ -206,13 +252,13 @@ function WatchPageWrapper({ paths }: { paths: string[] }) {
     return (
       <main className={styles.main}>
         <Header />
-        <div className={styles.error}>Nội dung này hiện không khả dụng.</div>
+        <div className={styles.error}>This content is currently unavailable.</div>
       </main>
     );
   }
 
   const title = detail?.title || detail?.name || ophimDetail?.data?.item?.name || '';
-  const subTitle = type === 'tv' ? `Mùa ${season} : Tập ${episode}` : (yearTMDB || ophimDetail?.data?.item?.year);
+  const subTitle = type === 'tv' ? `Season ${season} : Episode ${episode}` : (yearTMDB || ophimDetail?.data?.item?.year);
 
   return (
     <main className={styles.main}>
@@ -234,10 +280,56 @@ function WatchPageWrapper({ paths }: { paths: string[] }) {
               />
             ) : (
               <div className={styles.iframeWrapper}>
-                <button className={styles.backBtn} onClick={() => router.back()}>
-                  <ArrowLeft size={32} />
-                </button>
-                <iframe src={embedUrl} className={styles.iframe} allowFullScreen frameBorder="0" scrolling="no" allow="autoplay; encrypted-media"></iframe>
+                <div className={`${styles.playerControls} ${!showControls ? styles.hidden : ''}`}>
+                  <button className={styles.backBtn} onClick={() => router.back()}>
+                    <ArrowLeft size={24} />
+                  </button>
+
+                  <div className={styles.serverSwitcher}>
+                    <button 
+                      className={styles.serverBtn}
+                      onClick={() => setShowServerMenu(!showServerMenu)}
+                    >
+                      <Server size={20} />
+                      <span>{activeServer.name}</span>
+                    </button>
+
+                    <AnimatePresence>
+                      {showServerMenu && (
+                        <motion.div 
+                          className={styles.serverMenu}
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                        >
+                          {SERVERS.map((s) => (
+                            <button
+                              key={s.id}
+                              className={`${styles.serverMenuItem} ${selectedServer === s.id ? styles.activeServer : ''}`}
+                              onClick={() => {
+                                setSelectedServer(s.id);
+                                setShowServerMenu(false);
+                              }}
+                            >
+                              {s.name}
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+                
+                <iframe 
+                  src={embedUrl} 
+                  className={styles.iframe} 
+                  allowFullScreen 
+                  frameBorder="0" 
+                  scrolling="no" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-presentation"
+                  referrerPolicy="origin"
+                ></iframe>
               </div>
             )}
           </div>

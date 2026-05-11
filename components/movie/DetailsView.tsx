@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Play, Users, Plus, Star, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { ArrowLeft, Play, Users, Plus, Star, ChevronDown, ChevronUp, Loader2, Server } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { tmdb } from '@/lib/tmdb';
@@ -15,6 +15,7 @@ import WatchPartyModal from './WatchPartyModal';
 import VideoPlayer from '@/components/player/VideoPlayer';
 import { useStore } from '@/store/useStore';
 import { useSyncHistory } from '@/hooks/useSyncHistory';
+import { useToastStore } from '@/store/useToastStore';
 
 interface DetailsViewProps {
   id: string;
@@ -25,9 +26,46 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
   const router = useRouter();
   
   const [showPlayer, setShowPlayer] = useState(false);
-  const [playerConfig, setPlayerConfig] = useState<{src: string, title: string, subTitle: string, isIframe?: boolean, startTime?: number} | null>(null);
+  const [showIframeControls, setShowIframeControls] = useState(true);
+  const [playerConfig, setPlayerConfig] = useState<{src: string, title: string, subTitle: string, isIframe?: boolean, isTrailer?: boolean, startTime?: number} | null>(null);
+  const [selectedServer, setSelectedServer] = useState('vidlink');
+  const [showServerMenu, setShowServerMenu] = useState(false);
+
+  // Lock body scroll when player is active
+  useEffect(() => {
+    if (showPlayer) {
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflowY = 'scroll';
+      
+      return () => {
+        const scrollY = document.body.style.top;
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflowY = '';
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      };
+    }
+  }, [showPlayer]);
+
+  const SERVERS = [
+    { id: 'vidlink', name: 'VidLink (Clean)', url: (id: string, s: string, e: string, type: string) => 
+      type === 'movie' ? `https://vidlink.pro/embed/movie/${id}` : `https://vidlink.pro/embed/tv/${id}/${s}/${e}` 
+    },
+    { id: 'vidsrc_to', name: 'VidSrc (.to)', url: (id: string, s: string, e: string, type: string) => 
+      type === 'movie' ? `https://vidsrc.to/embed/movie/${id}` : `https://vidsrc.to/embed/tv/${id}/${s}/${e}` 
+    },
+    { id: 'vidsrc_xyz', name: 'VidSrc (.xyz)', url: (id: string, s: string, e: string, type: string) => 
+      type === 'movie' ? `https://vidsrc.xyz/embed/movie/${id}` : `https://vidsrc.xyz/embed/tv/${id}/${s}/${e}` 
+    },
+  ];
+
   const [currentEpisodeNum, setCurrentEpisodeNum] = useState('1');
   const { setPageLoading } = useLoadingStore();
+  const { addToast } = useToastStore();
 
   // Detect if the id is a TMDB ID (numeric) or an Ophim slug (contains letters)
   const isNumeric = /^\d+$/.test(id);
@@ -90,15 +128,21 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
   const { data: ophimRes, isLoading: isOphimLoading } = useMovieDetail(finalSlug || '');
   
   useEffect(() => {
+    if (isNumeric && detail?.media_type && detail.media_type !== type) {
+      // Redirect to the correct type route if TMDB reports a different media type
+      router.replace(`/${detail.media_type}/${id}`);
+    }
+
     if (!isNumeric && ophimRes?.status === 'success' && ophimRes.data?.item) {
       const movie = ophimRes.data.item;
       const tmdbId = movie.tmdb?.id;
       if (tmdbId) {
-        const movieType = movie.type === 'series' || movie.type === 'hoathinh' || movie.type === 'tvshows' ? 'tv' : 'movie';
+        // Use TMDB type if provided by Ophim, otherwise fallback to guessing
+        const movieType = movie.tmdb?.type || (movie.type === 'series' || movie.type === 'hoathinh' || movie.type === 'tvshows' ? 'tv' : 'movie');
         router.replace(`/${movieType}/${tmdbId}`);
       }
     }
-  }, [isNumeric, ophimRes, router]);
+  }, [isNumeric, detail?.media_type, type, id, ophimRes, router]);
 
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isPartyModalOpen, setIsPartyModalOpen] = useState(false);
@@ -135,10 +179,6 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
       }
     }
 
-    if (!m3u8Url && type === 'tv') {
-      return;
-    }
-
     if (m3u8Url) {
       setPlayerConfig({
         src: m3u8Url,
@@ -151,10 +191,9 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
       // Save initial history entry
       handleProgress(startTime || 0, 100, episodeNum);
     } else {
-      // Fallback to iframe overlay (e.g. Vidsrc)
-      const embedUrl = type === 'movie' 
-        ? `https://vidsrc.me/embed/movie?tmdb=${id}`
-        : `https://vidsrc.me/embed/tv?tmdb=${id}&season=${playSeason}&episode=${episodeNum}`;
+      // Fallback to iframe overlay
+      const activeServer = SERVERS.find(s => s.id === selectedServer) || SERVERS[0];
+      const embedUrl = activeServer.url(id as string, playSeason.toString(), episodeNum, type as string);
       
       setPlayerConfig({
         src: embedUrl,
@@ -163,6 +202,14 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
         isIframe: true
       });
       setShowPlayer(true);
+
+      if (!m3u8Url) {
+        if (!movieData) {
+          addToast("Using fallback playback source.", "info");
+        } else {
+          addToast(`Episode ${episodeNum} is playing from a fallback source.`, "info");
+        }
+      }
     }
   };
 
@@ -217,6 +264,35 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
     }
   }, [detail]);
 
+  // Handle iframe controls visibility
+  useEffect(() => {
+    if (!showPlayer || !playerConfig?.isIframe) {
+      setShowIframeControls(true);
+      return;
+    }
+
+    let timeout: NodeJS.Timeout;
+    const resetTimeout = () => {
+      setShowIframeControls(true);
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        setShowIframeControls(false);
+      }, 3000);
+    };
+
+    window.addEventListener('mousemove', resetTimeout);
+    window.addEventListener('mousedown', resetTimeout);
+    window.addEventListener('touchstart', resetTimeout);
+    resetTimeout();
+
+    return () => {
+      window.removeEventListener('mousemove', resetTimeout);
+      window.removeEventListener('mousedown', resetTimeout);
+      window.removeEventListener('touchstart', resetTimeout);
+      clearTimeout(timeout);
+    };
+  }, [showPlayer, playerConfig?.isIframe]);
+
   if (!isNumeric) {
     if (isOphimLoading || (ophimRes?.data?.item?.tmdb?.id)) return null;
     return <OphimDetailsView slug={id} />;
@@ -234,9 +310,13 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
   const title = detail ? (detail.title || detail.name) : '';
   const rating = detail?.vote_average?.toFixed(1);
   const year = (detail?.release_date || detail?.first_air_date || '').split('-')[0];
+
   const genres = detail?.genres || [];
   const cast = detail?.credits?.cast?.slice(0, 12) || [];
   const recommendations = detail?.recommendations?.results?.slice(0, 12) || [];
+  const trailer = detail?.videos?.results?.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube');
+  const isTrailerOnly = ophimRes?.data?.item?.status === 'trailer' || 
+                        ophimRes?.data?.item?.episode_current?.toLowerCase() === 'trailer';
 
   return (
     <>
@@ -245,51 +325,89 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
       <AnimatePresence>
         {showPlayer && playerConfig && (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.1 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             className={styles.playerOverlay}
+            onClick={() => setShowPlayer(false)}
+            style={{ 
+              backdropFilter: "blur(10px)", 
+              WebkitBackdropFilter: "blur(10px)", 
+              willChange: "auto" 
+            }}
           >
             {playerConfig.isIframe ? (
-              <div className={styles.iframeContainer}>
-                <div className={styles.iframeTopBar}>
-                  <button className={styles.iframeBackBtn} onClick={() => setShowPlayer(false)}>
-                    <ArrowLeft size={32} />
-                  </button>
-                  <div className={styles.iframeInfo}>
-                    <div className={styles.iframeTitle}>{playerConfig.title}</div>
-                    <div className={styles.iframeSubTitle}>{playerConfig.subTitle}</div>
+              <div className={styles.iframeContainer} onClick={(e) => e.stopPropagation()}>
+                {!playerConfig.isTrailer && (
+                  <div className={styles.iframeServerSwitcher}>
+                    <button 
+                      className={styles.serverBtn}
+                      onClick={() => setShowServerMenu(!showServerMenu)}
+                    >
+                      <Server size={18} />
+                      <span>{SERVERS.find(s => s.id === selectedServer)?.name}</span>
+                    </button>
+
+                    <AnimatePresence>
+                      {showServerMenu && (
+                        <motion.div 
+                          className={styles.serverMenuFloating}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                        >
+                          {SERVERS.map((s) => (
+                            <button
+                              key={s.id}
+                              className={`${styles.serverMenuItem} ${selectedServer === s.id ? styles.activeServer : ''}`}
+                              onClick={() => {
+                                setSelectedServer(s.id);
+                                setShowServerMenu(false);
+                                const newUrl = s.url(id as string, selectedSeason.toString(), currentEpisodeNum, type as string);
+                                setPlayerConfig({ ...playerConfig, src: newUrl });
+                              }}
+                            >
+                              {s.name}
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                </div>
+                )}
                 <iframe 
                   src={playerConfig.src} 
                   className={styles.iframe} 
                   allowFullScreen 
-                  allow="autoplay; encrypted-media"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-presentation"
+                  referrerPolicy="origin"
                 />
               </div>
             ) : (
-              <VideoPlayer 
-                src={playerConfig.src}
-                title={playerConfig.title}
-                subTitle={playerConfig.subTitle}
-                poster={detail?.backdrop_path ? tmdb.getImageUrl(detail.backdrop_path, 'w1280') : undefined}
-                startTime={playerConfig.startTime}
-                onProgress={(ct, d, f) => handleProgress(ct, d, undefined, f)}
-                onClose={(finalTime, finalDuration) => {
-                  handleProgress(finalTime, finalDuration, undefined, true); // Force sync on exit
-                  setShowPlayer(false);
-                }}
-                autoPlay
-                episodes={seasonData?.episodes}
-                currentEpisode={parseInt(currentEpisodeNum)}
-                onEpisodeSelect={handlePlay}
-                onNext={
-                  seasonData?.episodes?.some((ep: any) => ep.episode_number === parseInt(currentEpisodeNum) + 1)
-                    ? () => handlePlay((parseInt(currentEpisodeNum) + 1).toString())
-                    : undefined
-                }
-              />
+              <div className={styles.iframeContainer} onClick={(e) => e.stopPropagation()}>
+                <VideoPlayer 
+                  src={playerConfig.src}
+                  title={playerConfig.title}
+                  subTitle={playerConfig.subTitle}
+                  poster={detail?.backdrop_path ? tmdb.getImageUrl(detail.backdrop_path, 'w1280') : undefined}
+                  startTime={playerConfig.startTime}
+                  onProgress={(ct, d, f) => handleProgress(ct, d, undefined, f)}
+                  onClose={(finalTime, finalDuration) => {
+                    handleProgress(finalTime, finalDuration, undefined, true); // Force sync on exit
+                    setShowPlayer(false);
+                  }}
+                  autoPlay
+                  episodes={seasonData?.episodes}
+                  currentEpisode={parseInt(currentEpisodeNum)}
+                  onEpisodeSelect={handlePlay}
+                  onNext={
+                    seasonData?.episodes?.some((ep: any) => ep.episode_number === parseInt(currentEpisodeNum) + 1)
+                      ? () => handlePlay((parseInt(currentEpisodeNum) + 1).toString())
+                      : undefined
+                  }
+                />
+              </div>
             )}
           </motion.div>
         )}
@@ -341,47 +459,70 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
             <p className={styles.description}>{detail?.overview}</p>
 
             <div className={styles.mainActions}>
-              <button 
-                className={styles.btnPlay}
-                onClick={() => {
-                  const trailer = detail?.videos?.results?.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube');
-                  if (ophimRes?.data?.item) {
-                    if (hasHistory) {
-                      handlePlay(
-                        latestHistory.episodeNum?.toString() || '1', 
-                        latestHistory.currentTime, 
-                        latestHistory.seasonNum
-                      );
+              {isTrailerOnly ? (
+                <button 
+                  className={styles.btnTrailer}
+                  onClick={() => {
+                    if (trailer) {
+                      setPlayerConfig({
+                        src: `https://www.youtube.com/embed/${trailer.key}?autoplay=1`,
+                        title: detail?.title || detail?.name || '',
+                        subTitle: 'Official Trailer',
+                        isIframe: true,
+                        isTrailer: true
+                      });
+                      setShowPlayer(true);
                     } else {
-                      handlePlay('1');
+                      addToast("Trailer not available on YouTube.", "error");
                     }
-                  } else if (trailer) {
-                    setPlayerConfig({
-                      src: `https://www.youtube.com/embed/${trailer.key}?autoplay=1`,
-                      title: detail?.title || detail?.name || '',
-                      subTitle: 'Official Trailer',
-                      isIframe: true
-                    });
-                    setShowPlayer(true);
-                  }
-                }}
-                disabled={!ophimRes?.data?.item && !detail?.videos?.results?.some((v: any) => v.type === 'Trailer')}
-                style={{ 
-                  opacity: (!ophimRes?.data?.item && (isOphimLoading || (isNumeric && !mappingSlug))) ? 0.6 : 1, 
-                  cursor: (!ophimRes?.data?.item && (isOphimLoading || (isNumeric && !mappingSlug))) ? 'wait' : 'pointer' 
-                }}
-              >
-                <Play size={24} fill="currentColor" />
-                <span>
-                  {(!ophimRes?.data?.item && (isOphimLoading || (isNumeric && !mappingSlug))) 
-                    ? 'Loading...' 
-                    : ophimRes?.data?.item 
-                      ? (hasHistory ? 'Continue Watching' : 'Play')
-                      : detail?.videos?.results?.some((v: any) => v.type === 'Trailer') 
-                        ? 'Play Trailer' 
-                        : 'Not Available'}
-                </span>
-              </button>
+                  }}
+                >
+                  <Play size={24} fill="currentColor" />
+                  <span>Watch Trailer</span>
+                </button>
+              ) : (
+                <button 
+                  className={styles.btnPlay}
+                  onClick={() => {
+                    if (ophimRes?.data?.item || isNumeric) {
+                      if (hasHistory) {
+                        handlePlay(
+                          latestHistory.episodeNum?.toString() || '1', 
+                          latestHistory.currentTime, 
+                          latestHistory.seasonNum
+                        );
+                      } else {
+                        handlePlay('1');
+                      }
+                    } else if (trailer) {
+                      setPlayerConfig({
+                        src: `https://www.youtube.com/embed/${trailer.key}?autoplay=1`,
+                        title: detail?.title || detail?.name || '',
+                        subTitle: 'Official Trailer',
+                        isIframe: true,
+                        isTrailer: true
+                      });
+                      setShowPlayer(true);
+                    }
+                  }}
+                  disabled={!ophimRes?.data?.item && !isNumeric && !trailer}
+                  style={{ 
+                    opacity: (!ophimRes?.data?.item && isNumeric && isOphimLoading) ? 0.6 : 1, 
+                    cursor: (!ophimRes?.data?.item && isNumeric && isOphimLoading) ? 'wait' : 'pointer' 
+                  }}
+                >
+                  <Play size={24} fill="currentColor" />
+                  <span>
+                    {(isNumeric && !ophimRes?.data?.item && isOphimLoading) 
+                      ? 'Loading...' 
+                      : (ophimRes?.data?.item || isNumeric)
+                        ? (hasHistory ? 'Continue Watching' : 'Play')
+                        : trailer 
+                          ? 'Play Trailer' 
+                          : 'Not Available'}
+                  </span>
+                </button>
+              )}
               <button 
                 className={styles.btnWatchParty}
                 onClick={() => setIsPartyModalOpen(true)}

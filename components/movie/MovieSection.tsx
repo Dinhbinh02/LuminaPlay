@@ -47,19 +47,21 @@ function MovieCard({ movie, index, lastElementRef }: { movie: any, index: number
               </div>
             )}
             <Image
-              src={movie.poster}
+              src={movie.poster || 'https://via.placeholder.com/500x750?text=No+Poster'}
               alt={movie.title}
               fill
               className={styles.poster}
               style={{ 
                 opacity: isLoaded ? 1 : 0,
-                transition: isLoaded && loadedImagesCache.has(movie.poster) ? 'none' : 'opacity 0.3s ease'
+                transition: isLoaded && movie.poster && loadedImagesCache.has(movie.poster) ? 'none' : 'opacity 0.3s ease'
               }}
               sizes="(max-width: 768px) 160px, 200px"
               quality={75}
               priority={index < 6}
               onLoad={() => {
-                loadedImagesCache.add(movie.poster);
+                if (movie.poster) {
+                  loadedImagesCache.add(movie.poster);
+                }
                 setIsLoaded(true);
               }}
             />
@@ -142,7 +144,7 @@ export default function MovieSection({ title, type, slug, params = {}, movies }:
       return movies.map((item: any) => ({
         id: item.id,
         title: item.title || item.name,
-        poster: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : item.poster,
+        poster: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : (item.poster || ''),
         slug: item.media_type === 'tv' || (!item.title && item.name) ? `tv/${item.id}` : `movie/${item.id}`,
         year: (item.release_date || item.first_air_date || '')?.split('-')[0],
         quality: item.vote_average?.toFixed(1),

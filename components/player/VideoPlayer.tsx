@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Hls from 'hls.js';
-import { Play, Pause, RotateCcw, RotateCw, ChevronLeft, SlidersHorizontal, List, SkipForward, PictureInPicture2, Maximize, Minimize, Volume2, VolumeX, Settings, Layers, Lock, Unlock, Cast, Scan, Mic, MicOff, Gauge } from 'lucide-react';
+import { Play, Pause, RotateCcw, RotateCw, ChevronLeft, SlidersHorizontal, List, SkipForward, PictureInPicture2, Maximize, Minimize, Volume1, Volume2, VolumeX, Settings, Layers, Lock, Unlock, Cast, Scan, Mic, MicOff, Gauge, Loader2 } from 'lucide-react';
 import styles from './VideoPlayer.module.css';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useWatchParty, WatchPartyMessage } from '@/hooks/useWatchParty';
@@ -62,13 +62,13 @@ const VideoPlayer = ({
   const [showControls, setShowControls] = useState(true);
   const [isLocked, setIsLocked] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
-  const [isSeeking, setIsSeeking] = useState(false);
-  const [showEpisodeSelector, setShowEpisodeSelector] = useState(false);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [isHoveringProgress, setIsHoveringProgress] = useState(false);
   const [hoverProgress, setHoverProgress] = useState(0);
   const [tooltipTime, setTooltipTime] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const lastSyncTime = useRef(0);
   const dragStartX = useRef(0);
   const dragStartTime = useRef(0);
@@ -84,6 +84,7 @@ const VideoPlayer = ({
       videoRef.current.playbackRate = playbackRate;
     }
   }, [playbackRate]);
+
 
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isExternalUpdate = useRef(false);
@@ -130,13 +131,13 @@ const VideoPlayer = ({
     resetControlsTimeout();
   }, [isLocked, broadcastSync, resetControlsTimeout]);
 
-  const seek = useCallback((amount: number) => {
+  const seek = useCallback((amount: number, suppressUI: boolean = false) => {
     if (!videoRef.current || isLocked) return;
     const newTime = videoRef.current.currentTime + amount;
     videoRef.current.currentTime = newTime;
     setCurrentTime(newTime);
     if (!isExternalUpdate.current) broadcastSync(newTime, 'SEEK');
-    resetControlsTimeout();
+    if (!suppressUI) resetControlsTimeout();
   }, [isLocked, broadcastSync, resetControlsTimeout]);
 
   const toggleFullscreen = useCallback(async () => {
@@ -205,9 +206,14 @@ const VideoPlayer = ({
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.volume = isMuted ? 0 : volume;
+    }
+  }, [volume, isMuted]);
+
   // Keyboard shortcuts
   useEffect(() => {
-    // Auto-fullscreen on mount
     const handleKeyDown = (e: KeyboardEvent) => {
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
 
@@ -224,10 +230,10 @@ const VideoPlayer = ({
           toggleFullscreen();
           break;
         case 'arrowleft':
-          seek(-10);
+          seek(-10, true);
           break;
         case 'arrowright':
-          seek(10);
+          seek(10, true);
           break;
         case '<':
         case ',':
@@ -303,8 +309,14 @@ const VideoPlayer = ({
     };
     const handleDurationChange = () => setDuration(video.duration);
 
+    // Only show loading for the very first load of the source
+    setIsLoading(true);
+    const handleCanPlay = () => setIsLoading(false);
+
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('durationchange', handleDurationChange);
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('playing', handleCanPlay);
 
     return () => {
       // Force one last sync on unmount/source change
@@ -313,6 +325,8 @@ const VideoPlayer = ({
       }
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('durationchange', handleDurationChange);
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('playing', handleCanPlay);
       if (hls) hls.destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -366,9 +380,17 @@ const VideoPlayer = ({
   return (
     <div
       ref={containerRef}
-      className={`${styles.netflixContainer} ${!showControls ? styles.hideCursor : ''}`}
+      className={`${styles.playerContainer} ${!showControls ? styles.hideCursor : ''}`}
       onMouseMove={resetControlsTimeout}
       onClick={resetControlsTimeout}
+      onMouseLeave={() => {
+        if (isPlaying) {
+          setShowControls(false);
+          if (controlsTimeoutRef.current) {
+            clearTimeout(controlsTimeoutRef.current);
+          }
+        }
+      }}
       onPointerDown={(e) => {
         resetControlsTimeout();
         // Don't seek if clicking a button
@@ -458,7 +480,7 @@ const VideoPlayer = ({
     >
       <video
         ref={videoRef}
-        className={styles.netflixVideo}
+        className={styles.playerVideo}
         playsInline
         autoPlay={autoPlay}
         onPlay={() => setIsPlaying(true)}
@@ -470,7 +492,7 @@ const VideoPlayer = ({
               clearTimeout(controlsTimeoutRef.current);
             }
           } else {
-            togglePlay();
+            resetControlsTimeout();
           }
         }}
       />
@@ -480,121 +502,150 @@ const VideoPlayer = ({
         <RemoteAudio key={peerId} stream={stream} />
       ))}
 
+      {isLoading && (
+        <div className={styles.loaderContainer}>
+          <Loader2 className={styles.loaderIcon} size={64} />
+        </div>
+      )}
+
       <AnimatePresence>
-        {showControls && (
+        {showControls && !isLoading && (
           <motion.div
-            className={styles.netflixOverlay}
+            className={styles.playerOverlay}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
             {/* Top Bar */}
-            <div className={styles.netflixTop} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.playerTop} onClick={(e) => e.stopPropagation()}>
               <button className={styles.iconBtn} onClick={() => onClose ? onClose(videoRef.current?.currentTime || 0, videoRef.current?.duration || 0) : router.back()}>
                 <ChevronLeft size={32} />
               </button>
-              <div className={styles.netflixTitleGroup}>
-                <span className={styles.netflixMainTitle}>{title}</span>
-                <span className={styles.netflixSubTitle}>{subTitle}</span>
+              <div className={styles.playerTitleGroup}>
+                <span className={styles.playerSubTitle}>{subTitle}</span>
               </div>
               <button className={styles.iconBtn} onClick={togglePIP}>
                 <PictureInPicture2 size={24} />
               </button>
             </div>
 
-            {/* Center Controls Removed */}
+            {/* Center Controls */}
+            <div className={styles.playerCenter} onClick={(e) => e.stopPropagation()}>
+              <button className={styles.centerBtn} onClick={() => seek(-10)}>
+                <RotateCcw size={40} />
+              </button>
+              <button className={styles.playBtnLarge} onClick={togglePlay}>
+                {isPlaying ? <Pause size={64} fill="white" /> : <Play size={64} fill="white" />}
+              </button>
+              <button className={styles.centerBtn} onClick={() => seek(10)}>
+                <RotateCw size={40} />
+              </button>
+            </div>
 
             {/* Bottom Bar */}
             <div
-              className={styles.netflixBottom}
+              className={styles.playerBottom}
               onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
             >
-              <div className={styles.progressSection}>
-                <div className={styles.timeLabel}>
-                  {formatTime(currentTime)}
-                </div>
+              <div
+                className={styles.playerProgressBar}
+                onPointerMove={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const pos = (e.clientX - rect.left) / rect.width;
+                  const time = pos * duration;
+                  setHoverProgress(pos * 100);
+                  setTooltipTime(time);
+                }}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  if (!videoRef.current || !duration) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const pos = (e.clientX - rect.left) / rect.width;
+                  const newTime = Math.max(0, Math.min(duration, pos * duration));
+                  videoRef.current.currentTime = newTime;
+                  setCurrentTime(newTime);
+                  setTooltipTime(newTime);
+                  if (!isExternalUpdate.current) broadcastSync(newTime, 'SEEK');
+                  resetControlsTimeout();
+                }}
+                onPointerEnter={() => setIsHoveringProgress(true)}
+                onPointerLeave={() => {
+                  setIsHoveringProgress(false);
+                  if (!isDragging) setTooltipTime(null);
+                }}
+                onPointerUp={() => {
+                  setIsHoveringProgress(false);
+                  setTooltipTime(null);
+                }}
+                onPointerCancel={() => {
+                  setIsHoveringProgress(false);
+                  setTooltipTime(null);
+                }}
+              >
+                {tooltipTime !== null && (
+                  <div
+                    className={styles.progressTooltip}
+                    style={{ left: isDragging ? `${(currentTime / duration) * 100}%` : `${(tooltipTime / duration) * 100}%` }}
+                  >
+                    {formatTime(tooltipTime)}
+                  </div>
+                )}
                 <div
-                  className={styles.netflixProgressBar}
-                  onPointerMove={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const pos = (e.clientX - rect.left) / rect.width;
-                    const time = pos * duration;
-                    setHoverProgress(pos * 100);
-                    setTooltipTime(time);
+                  className={styles.playerProgressHover}
+                  style={{ width: `${hoverProgress}%` }}
+                />
+                <div
+                  className={styles.playerProgressFill}
+                  style={{ width: `${(currentTime / duration) * 100}%` }}
+                />
+                <div
+                  className={styles.playerProgressHandle}
+                  style={{
+                    left: `${(currentTime / duration) * 100}%`,
+                    opacity: isDragging ? 1 : undefined,
+                    transform: isDragging ? 'translate(-50%, -50%) scale(1.5)' : undefined
                   }}
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                    if (!videoRef.current || !duration) return;
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const pos = (e.clientX - rect.left) / rect.width;
-                    const newTime = Math.max(0, Math.min(duration, pos * duration));
-                    videoRef.current.currentTime = newTime;
-                    setCurrentTime(newTime);
-                    setTooltipTime(newTime);
-                    if (!isExternalUpdate.current) broadcastSync(newTime, 'SEEK');
-                    resetControlsTimeout();
-                  }}
-                  onPointerEnter={() => setIsHoveringProgress(true)}
-                  onPointerLeave={() => {
-                    setIsHoveringProgress(false);
-                    if (!isDragging) setTooltipTime(null);
-                  }}
-                  onPointerUp={() => {
-                    setIsHoveringProgress(false);
-                    setTooltipTime(null);
-                  }}
-                  onPointerCancel={() => {
-                    setIsHoveringProgress(false);
-                    setTooltipTime(null);
-                  }}
-                >
-                  {tooltipTime !== null && (
-                    <div
-                      className={styles.progressTooltip}
-                      style={{ left: isDragging ? `${(currentTime / duration) * 100}%` : `${(tooltipTime / duration) * 100}%` }}
-                    >
-                      {formatTime(tooltipTime)}
-                    </div>
-                  )}
-                  <div
-                    className={styles.netflixProgressHover}
-                    style={{ width: `${hoverProgress}%` }}
-                  />
-                  <div
-                    className={styles.netflixProgressFill}
-                    style={{ width: `${(currentTime / duration) * 100}%` }}
-                  />
-                  <div
-                    className={styles.netflixProgressHandle}
-                    style={{
-                      left: `${(currentTime / duration) * 100}%`,
-                      opacity: isDragging ? 1 : undefined,
-                      transform: isDragging ? 'translate(-50%, -50%) scale(1.5)' : undefined
-                    }}
-                  />
-                </div>
-                <div className={styles.timeLabel}>
-                  {formatTime(duration)}
-                </div>
+                />
               </div>
 
               <div className={styles.controlsRow}>
                 {/* Left side (Play Controls) */}
                 <div className={styles.controlsLeft}>
-                  <button className={styles.iconBtn} onClick={() => seek(-10)}>
-                    <RotateCcw size={28} />
-                  </button>
-                  <button className={styles.iconBtn} onClick={togglePlay}>
-                    {isPlaying ? <Pause size={32} fill="white" /> : <Play size={32} fill="white" />}
-                  </button>
-                  <button className={styles.iconBtn} onClick={() => seek(10)}>
-                    <RotateCw size={28} />
-                  </button>
-                  {onNext && (
-                    <button className={styles.iconBtn} onClick={onNext}>
-                      <SkipForward size={24} />
+                  <div className={styles.timeDisplay}>
+                    <span className={styles.currentTime}>{formatTime(currentTime)}</span>
+                    <span className={styles.timeDivider}>/</span>
+                    <span className={styles.totalTime}>{formatTime(duration)}</span>
+                  </div>
+                  <div className={styles.volumeContainer} onMouseEnter={() => setShowVolumeSlider(true)} onMouseLeave={() => setShowVolumeSlider(false)}>
+                    <button className={styles.iconBtn} onClick={() => setIsMuted(!isMuted)}>
+                      {isMuted || volume === 0 ? <VolumeX size={24} /> : volume < 0.5 ? <Volume1 size={24} /> : <Volume2 size={24} />}
                     </button>
-                  )}
+                    <AnimatePresence>
+                      {showVolumeSlider && (
+                        <motion.div 
+                          className={styles.volumeSliderWrapper}
+                          initial={{ width: 0, opacity: 0 }}
+                          animate={{ width: 80, opacity: 1 }}
+                          exit={{ width: 0, opacity: 0 }}
+                        >
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={isMuted ? 0 : volume}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              setVolume(val);
+                              setIsMuted(val === 0);
+                            }}
+                            className={styles.volumeSlider}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
 
                 {/* Center side (Empty) */}
@@ -647,12 +698,12 @@ const VideoPlayer = ({
                     </AnimatePresence>
                   </div>
 
-                  {episodes && episodes.length > 1 && (
+                  {onNext && (
                     <button
                       className={styles.actionBtn}
-                      onClick={() => setShowEpisodeSelector(true)}
+                      onClick={onNext}
                     >
-                      <List size={24} />
+                      <SkipForward size={24} />
                     </button>
                   )}
 
@@ -670,54 +721,6 @@ const VideoPlayer = ({
               </div>
             </div>
 
-            {/* Episode Selector Overlay */}
-            <AnimatePresence>
-              {showEpisodeSelector && (
-                <motion.div
-                  className={styles.episodeSelector}
-                  initial={{ x: '100%' }}
-                  animate={{ x: 0 }}
-                  exit={{ x: '100%' }}
-                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                >
-                  <div className={styles.episodeHeader}>
-                    <h3>Episodes</h3>
-                    <button
-                      className={styles.closeSelectorBtn}
-                      onClick={() => setShowEpisodeSelector(false)}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div className={styles.episodeScroll}>
-                    {episodes?.map((ep) => (
-                      <div
-                        key={ep.id}
-                        className={`${styles.episodeItem} ${currentEpisode === ep.episode_number ? styles.activeEpisode : ''}`}
-                        onClick={() => {
-                          if (onEpisodeSelect) onEpisodeSelect(ep.episode_number.toString());
-                          setShowEpisodeSelector(false);
-                        }}
-                      >
-                        <div className={styles.episodeThumb}>
-                          <img
-                            src={tmdb.getEpisodeImage(ep.still_path) || (poster || '')}
-                            alt={ep.name}
-                          />
-                          <div className={styles.epPlayOverlay}>
-                            <Play size={20} fill="white" />
-                          </div>
-                        </div>
-                        <div className={styles.episodeText}>
-                          <div className={styles.epNumber}>Episode {ep.episode_number}</div>
-                          <div className={styles.epTitle}>{ep.name}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>

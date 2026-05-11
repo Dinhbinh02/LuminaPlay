@@ -4,13 +4,13 @@ import { useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useStore } from '@/store/useStore';
 
-export function useFavorites() {
+export function useFavorites({ init = false } = {}) {
   const { favorites, user, setFavorites } = useStore();
   const supabase = createClient();
 
   // Sync from Supabase to Local
   const fetchFavoritesFromCloud = useCallback(async () => {
-    if (!user) return;
+    if (!user || !init) return;
 
     try {
       const { data, error } = await supabase
@@ -37,11 +37,13 @@ export function useFavorites() {
     } catch (e) {
       console.error('Network error during favorites fetch:', e);
     }
-  }, [user, setFavorites, supabase]);
+  }, [user, setFavorites, supabase, init]);
 
   useEffect(() => {
-    fetchFavoritesFromCloud();
-  }, [fetchFavoritesFromCloud]);
+    if (init) {
+      fetchFavoritesFromCloud();
+    }
+  }, [init, fetchFavoritesFromCloud]);
 
   // Sync actions to Cloud
   const addFavoriteToCloud = async (item: any) => {

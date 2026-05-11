@@ -164,3 +164,14 @@ img {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px var(--primary-glow);
 }
+
+/* Player overlay: blur the page content when player is open */
+html.player-open body > *:not([data-player-overlay]) {
+  filter: blur(12px);
+  transition: filter 0.3s ease;
+}
+
+html:not(.player-open) body > * {
+  filter: blur(0px);
+  transition: filter 0.3s ease;
+}

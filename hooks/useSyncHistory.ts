@@ -4,12 +4,14 @@ import { useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useStore } from '@/store/useStore';
 
-export function useSyncHistory() {
+export function useSyncHistory({ init = false } = {}) {
   const { history, user, setUser, setHistory, addToHistory } = useStore();
   const supabase = createClient();
 
   // Handle Auth state change
   useEffect(() => {
+    if (!init) return;
+
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
@@ -22,11 +24,11 @@ export function useSyncHistory() {
     });
 
     return () => subscription.unsubscribe();
-  }, [setUser, supabase.auth]);
+  }, [init, setUser, supabase.auth]);
 
   // Sync from Supabase to Local
   const fetchHistoryFromCloud = useCallback(async () => {
-    if (!user) return;
+    if (!user || !init) return;
 
     const { data, error } = await supabase
       .from('watch_history')
@@ -48,20 +50,20 @@ export function useSyncHistory() {
         slug: item.slug,
         watched_at: item.watched_at,
         episodeNum: item.episode_num,
-        season_num: item.season_num, // Map correctly to seasonNum below
+        season_num: item.season_num,
         seasonNum: item.season_num,
         currentTime: Number(item.playback_time)
       }));
 
-      // Merge logic: prefer cloud history but keep local if it's newer
-      // For simplicity, we'll just use cloud history if user is logged in
       setHistory(cloudHistory);
     }
-  }, [user, setHistory, supabase]);
+  }, [user, setHistory, supabase, init]);
 
   useEffect(() => {
-    fetchHistoryFromCloud();
-  }, [fetchHistoryFromCloud]);
+    if (init) {
+      fetchHistoryFromCloud();
+    }
+  }, [init, fetchHistoryFromCloud]);
 
   const lastSyncRef = useRef<number>(0);
 
