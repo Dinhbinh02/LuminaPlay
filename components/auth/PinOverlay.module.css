@@ -1,9 +1,10 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: radial-gradient(circle, transparent 20%, rgba(0, 0, 0, 0.4) 100%),
+    linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 50%, rgba(0, 0, 0, 0.4) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   z-index: 9999;
   display: flex;
   align-items: center;

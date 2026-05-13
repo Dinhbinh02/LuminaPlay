@@ -1,8 +1,9 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
+  background: radial-gradient(circle, transparent 20%, rgba(0, 0, 0, 0.4) 100%),
+    linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 50%, rgba(0, 0, 0, 0.4) 100%);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -13,7 +14,7 @@
 .modal {
   background: #141414;
   width: 90%;
-  max-width: 450px;
+  max-width: 380px;
   border-radius: 20px;
   padding: 40px;
   position: relative;

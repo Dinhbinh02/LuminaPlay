@@ -93,14 +93,14 @@ export const tmdb = {
 
   getMovieDetails: async (id: number | string) => {
     return tmdb.fetch(`/movie/${id}`, { 
-      append_to_response: 'images,videos,credits,external_ids,recommendations',
+      append_to_response: 'images,videos,credits,external_ids,recommendations,release_dates,watch/providers',
       include_video_language: 'vi,ja,en'
     });
   },
 
   getTVDetails: async (id: number | string) => {
     return tmdb.fetch(`/tv/${id}`, { 
-      append_to_response: 'images,videos,credits,external_ids,recommendations,content_ratings',
+      append_to_response: 'images,videos,credits,external_ids,recommendations,content_ratings,watch/providers',
       include_video_language: 'vi,ja,en'
     });
   },
@@ -122,11 +122,15 @@ export const tmdb = {
   },
 
   getPersonDetails: async (id: number | string) => {
-    return tmdb.fetch(`/person/${id}`, { append_to_response: 'images,combined_credits' });
+    return tmdb.fetch(`/person/${id}`, { append_to_response: 'images,combined_credits,external_ids' });
   },
 
   getTVImages: async (id: number | string) => {
     return tmdb.fetch(`/tv/${id}/images`);
+  },
+  
+  getCollectionDetails: async (id: number | string) => {
+    return tmdb.fetch(`/collection/${id}`);
   },
 
   getImageUrl: (path: string | null, size: 'w300' | 'w342' | 'w500' | 'w780' | 'w1280' | 'original' = 'w500') => {
@@ -139,6 +143,22 @@ export const tmdb = {
     const logo = images?.logos?.find((l: any) => l.iso_639_1 === 'en' || !l.iso_639_1);
     if (!logo) return null;
     return `${IMAGE_BASE_URL}/original${logo.file_path}`;
+  },
+
+  // Get Textless Poster URL
+  getTextlessPosterUrl(images: any) {
+    if (!images?.posters) return null;
+    const textless = images.posters.find((p: any) => p.iso_639_1 === null || p.iso_639_1 === 'xx');
+    if (!textless) return null;
+    return `${IMAGE_BASE_URL}/original${textless.file_path}`;
+  },
+
+  // Get Textless Backdrop URL
+  getTextlessBackdropUrl(images: any) {
+    if (!images?.backdrops) return null;
+    const textless = images.backdrops.find((b: any) => b.iso_639_1 === null || b.iso_639_1 === 'xx');
+    if (!textless) return null;
+    return `${IMAGE_BASE_URL}/original${textless.file_path}`;
   },
 
   getPersonImage(path: string) {

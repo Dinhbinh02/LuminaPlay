@@ -53,10 +53,10 @@
 
 .sliderContainer {
   display: flex;
-  gap: 20px; /* Reduced gap as requested */
+  gap: 20px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 20px 0 60px;
+  padding: 10px 0 10px;
   scrollbar-width: none;
   -ms-overflow-style: none;
   contain: content;
@@ -71,7 +71,7 @@
 
 .cardWrapper {
   position: relative;
-  flex: 0 0 350px; /* Base width */
+  flex: 0 0 350px;
   height: 300px;
   display: flex;
   align-items: center;
@@ -81,7 +81,7 @@
 
 .rankNumber {
   position: absolute;
-  left: -20px; /* Shifted left to be more visible */
+  left: -20px;
   bottom: 0;
   height: 100%;
   font-size: 320px;
@@ -101,19 +101,20 @@
 
 .doubleDigit {
   letter-spacing: -50px;
-  left: -60px; /* More space for two digits */
+  left: -60px;
 }
 
 .cardLink {
   width: 200px;
   height: 100%;
-  margin-left: 150px; /* Pushed right to show more of the number */
+  margin-left: 150px;
+  /* Pushed right to show more of the number */
   z-index: 2;
   display: block;
   position: relative;
 }
 
-.doubleDigit + .cardLink {
+.doubleDigit+.cardLink {
   margin-left: 240px;
 }
 
@@ -163,7 +164,7 @@
     margin-left: 90px;
   }
 
-  .doubleDigit + .cardLink {
+  .doubleDigit+.cardLink {
     margin-left: 140px;
   }
 }

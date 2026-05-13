@@ -93,14 +93,16 @@ const VideoPlayer = ({
   const { broadcastSync, onSyncRef, isMicOn, toggleMic, remoteStreams } = useWatchParty(partyId, !partyId?.includes('-guest'));
 
   useEffect(() => {
-    onSyncRef.current = (msg: WatchPartyMessage) => {
-      if (!videoRef.current) return;
-      isExternalUpdate.current = true;
-      if (msg.type === 'PLAY') { videoRef.current.play(); setIsPlaying(true); }
-      else if (msg.type === 'PAUSE') { videoRef.current.pause(); setIsPlaying(false); }
-      else if (msg.type === 'SEEK' && msg.currentTime !== undefined) { videoRef.current.currentTime = msg.currentTime; setCurrentTime(msg.currentTime); }
-      setTimeout(() => { isExternalUpdate.current = false; }, 50);
-    };
+    if (onSyncRef) {
+      onSyncRef.current = (msg: WatchPartyMessage) => {
+        if (!videoRef.current) return;
+        isExternalUpdate.current = true;
+        if (msg.type === 'PLAY') { videoRef.current.play(); setIsPlaying(true); }
+        else if (msg.type === 'PAUSE') { videoRef.current.pause(); setIsPlaying(false); }
+        else if (msg.type === 'SEEK' && msg.currentTime !== undefined) { videoRef.current.currentTime = msg.currentTime; setCurrentTime(msg.currentTime); }
+        setTimeout(() => { isExternalUpdate.current = false; }, 50);
+      };
+    }
   }, [onSyncRef]);
 
   const resetControlsTimeout = useCallback(() => {
@@ -498,7 +500,7 @@ const VideoPlayer = ({
       />
 
       {/* Voice Chat Streams */}
-      {Object.entries(remoteStreams).map(([peerId, stream]) => (
+      {remoteStreams && Object.entries(remoteStreams).map(([peerId, stream]) => (
         <RemoteAudio key={peerId} stream={stream} />
       ))}
 
@@ -624,7 +626,7 @@ const VideoPlayer = ({
                     <AnimatePresence>
                       {showVolumeSlider && (
                         <motion.div 
-                          className={styles.volumeSliderWrapper}
+                           className={styles.volumeSliderWrapper}
                           initial={{ width: 0, opacity: 0 }}
                           animate={{ width: 80, opacity: 1 }}
                           exit={{ width: 0, opacity: 0 }}
@@ -728,4 +730,5 @@ const VideoPlayer = ({
   );
 };
 
+export { VideoPlayer };
 export default VideoPlayer;

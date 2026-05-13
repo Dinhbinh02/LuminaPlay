@@ -156,7 +156,7 @@ export function useTMDBPerson(id: string) {
     queryKey: ['tmdb-person', id],
     queryFn: () => tmdb.getPersonDetails(id),
     enabled: !!id,
-    staleTime: 1000 * 60 * 60 * 24, // 24 hours cache
+    staleTime: 1000 * 60 * 60 * 24,
   });
 }
 
@@ -165,7 +165,7 @@ export function useTrendingWithLogos(type: 'all' | 'movie' | 'tv' = 'all', limit
     queryKey: ['trending-with-logos', type, limit, region],
     queryFn: async () => {
       let results = [];
-      
+
       if (region) {
         if (type === 'all') {
           const [movies, tv] = await Promise.all([
@@ -184,21 +184,23 @@ export function useTrendingWithLogos(type: 'all' | 'movie' | 'tv' = 'all', limit
         const trending = await tmdb.getTrending(type, 'day');
         results = trending.results.slice(0, limit);
       }
-      
+
       const itemsWithLogos = await Promise.all(
         results.map(async (item: any) => {
           const itemType = item.media_type || (item.title ? 'movie' : 'tv');
           const images = await (itemType === 'tv'
-            ? tmdb.getTVImages(item.id) 
+            ? tmdb.getTVImages(item.id)
             : tmdb.getMovieImages(item.id));
           return {
             ...item,
-            media_type: itemType, // Ensure media_type is set for regional popular
-            logo: tmdb.getLogoUrl(images)
+            media_type: itemType,
+            logo: tmdb.getLogoUrl(images),
+            textless_poster: tmdb.getTextlessPosterUrl(images),
+            textless_backdrop: tmdb.getTextlessBackdropUrl(images)
           };
         })
       );
-      
+
       return itemsWithLogos;
     },
     staleTime: 1000 * 60 * 60,
@@ -269,22 +271,22 @@ export function useOphimMapping(title: string, year: string | number, originalTi
     queryKey: ['ophim-mapping', title, year, originalTitle, type, tmdbId, season],
     queryFn: async () => {
       if (!title) return null;
-      
+
       const isTV = !!season || type === 'tv';
-      
+
       // 1. Search with main title or TMDB ID as fallback keyword
       const searchKeyword = title || tmdbId?.toString();
       if (!searchKeyword) return null;
 
       const searchRes = await ophim.search(searchKeyword);
       let items = searchRes.data?.items || [];
-      
+
       // 2. If no items, try searching with original title
       if (items.length === 0 && originalTitle && originalTitle !== title) {
         const searchResOrig = await ophim.search(originalTitle);
         items = searchResOrig.data?.items || [];
       }
-      
+
       if (items.length === 0) return null;
 
       // 3. Match Priority 1: Perfect TMDB ID match (matches ID and Season)
@@ -292,7 +294,7 @@ export function useOphimMapping(title: string, year: string | number, originalTi
         const perfectMatch = items.find((item: any) => {
           const matchId = item.tmdb?.id?.toString() === tmdbId.toString();
           if (!matchId) return false;
-          
+
           // For TV, if we have season info, it must match both season and year (if year provided)
           if (isTV && season) {
             const matchSeason = item.tmdb?.season?.toString() === season.toString();
@@ -314,7 +316,7 @@ export function useOphimMapping(title: string, year: string | number, originalTi
           const seasonSearchRes = await ophim.search(`${title} Phần ${s}`);
           if (seasonSearchRes.status === 'success' && seasonSearchRes.data?.items?.length > 0) {
             // Check if this result also matches year or TMDB ID
-            const exactSeasonMatch = seasonSearchRes.data.items.find((item: any) => 
+            const exactSeasonMatch = seasonSearchRes.data.items.find((item: any) =>
               (tmdbId && item.tmdb?.id?.toString() === tmdbId.toString()) ||
               (item.year?.toString() === targetYear)
             );
@@ -327,7 +329,7 @@ export function useOphimMapping(title: string, year: string | number, originalTi
         const seasonMatch = items.find((item: any) => {
           const name = (item.name || '').toLowerCase();
           const origin = (item.origin_name || '').toLowerCase();
-          
+
           const patterns = [
             `phần ${s}`,
             `(phần ${s})`,
@@ -336,7 +338,7 @@ export function useOphimMapping(title: string, year: string | number, originalTi
             `s${s}`,
             `p${s}`
           ];
-          
+
           return patterns.some(p => name.includes(p) || origin.includes(p));
         });
 
@@ -386,7 +388,7 @@ export function useOphimMapping(title: string, year: string | number, originalTi
         // Name match
         if (itemName === lowTitle || itemOrigin === lowOrig) score += 10;
         if (itemName.includes(lowTitle) || itemOrigin.includes(lowOrig)) score += 5;
-        
+
         // For Season 1, prefer items without "Phần" or "Part"
         if (season?.toString() === '1') {
           if (!itemName.includes('phần') && !itemName.includes('season')) score += 5;
@@ -397,7 +399,7 @@ export function useOphimMapping(title: string, year: string | number, originalTi
       });
 
       scoredItems.sort((a: { score: number }, b: { score: number }) => b.score - a.score);
-      
+
       // Threshold: If the best match is still poor, don't return it
       if (scoredItems.length > 0 && scoredItems[0].score < 10) {
         return null;

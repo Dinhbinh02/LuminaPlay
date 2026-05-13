@@ -1,42 +1,101 @@
-# 💠 Lumina Core
+<p align="center">
+  <img src="public/banner.png" alt="Lumina Play Banner" width="100%">
+</p>
 
-**Lumina Core** is a sophisticated frontend architecture and UI component library built on **Next.js 15**. This project serves as a comprehensive research framework for modern web interaction patterns, optimized performance strategies, and advanced CSS module implementations.
 
-## 🔬 Core Objectives
+<h1 align="center">Lumina Play</h1>
 
-- 🧪 **Interaction Research**: Exploring complex user gesture patterns (touch, drag, and pointer capture) for next-generation web applications.
-- 📐 **Modular Design System**: Implementing a strict design token architecture using Vanilla CSS Modules for maximum performance and portability.
-- ⚡ **State Synchronization**: High-efficiency state management and cache synchronization patterns using TanStack Query and Zustand.
-- 📱 **Universal Responsiveness**: Adaptive layout strategies that dynamically reconfigure based on device orientation and viewport constraints.
+<p align="center">
+  <a href="https://nextjs.org/">
+    <img src="https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js" alt="Next.js">
+  </a>
+  <a href="https://tailwindcss.com/">
+    <img src="https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind CSS">
+  </a>
+  <a href="https://supabase.com/">
+    <img src="https://img.shields.io/badge/Supabase-v2-3ECF8E?style=for-the-badge&logo=supabase" alt="Supabase">
+  </a>
+  <a href="https://react.dev/">
+    <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react" alt="React">
+  </a>
+</p>
 
-## 🛠 Tech Stack
+<p align="center">
+  <b>A professional, high-performance movie streaming platform with a stunning minimalist interface.</b>
+  <br />
+  Built for the modern web with a focus on aesthetics, speed, and seamless user experience.
+</p>
 
-- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
-- **Styling**: Vanilla CSS Modules (Zero-runtime CSS-in-JS alternative)
-- **Animation**: [Framer Motion](https://www.framer.com/motion/)
-- **Data Fetching**: [TanStack Query v5](https://tanstack.com/query/latest)
-- **Icons**: [Lucide React](https://lucide.dev/)
-- **State Management**: [Zustand](https://docs.pmnd.rs/zustand/getting-started/introduction)
+---
 
-## ⚖️ License & Disclaimer
+## ✨ Features
 
-> [!NOTE]
-> This repository is a personal research project dedicated to frontend engineering best practices. It does not provide any commercial services or host proprietary content.
+- 🎬 **Premium Streaming Experience**: High-quality video playback powered by Vidstack and HLS.js.
+- 🎨 **Modern Minimalist Design**: A "glassmorphism" aesthetic built with Tailwind CSS v4 and Joly UI components.
+- 🚀 **Next-Generation Stack**: Leveraging Next.js 16 and React 19 for unmatched performance and SEO.
+- 📱 **Fully Responsive**: Optimized for every device, from mobile phones to high-resolution desktops.
+- 🔒 **Secure Authentication**: Robust user management with NextAuth and Supabase integration.
+- ⚡ **Lightning Fast State**: Global state management using Zustand for smooth transitions.
+- 🎭 **Fluid Animations**: Beautiful micro-interactions powered by Framer Motion.
 
-## 🚀 Development
+## 🛠️ Tech Stack
 
-1. Clone the repository:
+- **Framework**: [Next.js 16](https://nextjs.org/) (App Router)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **UI Components**: [Radix UI](https://www.radix-ui.com/) & [Lucide Icons](https://lucide.dev/)
+- **Backend/Database**: [Supabase](https://supabase.com/)
+- **State Management**: [Zustand](https://github.com/pmndrs/zustand)
+- **Video Player**: [Vidstack](https://vidstack.io/)
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 20+ 
+- npm / yarn / pnpm
+- Supabase account
+
+### Installation
+
+1. **Clone the repository:**
    ```bash
-   git clone https://github.com/Dinhbinh02/LuminaPlay.git
+   git clone https://github.com/yourusername/lumina-play.git
+   cd lumina-play
    ```
-2. Install dependencies:
+
+2. **Install dependencies:**
    ```bash
    npm install
    ```
-3. Start research environment:
+
+3. **Set up environment variables:**
+   Create a `.env.local` file and add your credentials:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+
+4. **Run the development server:**
    ```bash
    npm run dev
    ```
 
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## 📸 Screenshots
+
+*(Add your high-quality screenshots here to showcase the stunning UI)*
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
 ---
-Maintained for research purposes by [Dinhbinh02](https://github.com/Dinhbinh02)
+
+> [!IMPORTANT]
+> **Disclaimer**: This is a personal, non-commercial project developed solely for educational and research purposes. All media content and metadata are provided by third-party APIs and are intended for demonstration only. This project does not host any copyrighted files.
+
+<p align="center">
+  Built with ❤️ by Lumina
+</p>
