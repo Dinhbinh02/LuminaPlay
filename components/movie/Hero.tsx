@@ -129,12 +129,10 @@ export default function Hero({ movies = [] }: HeroProps) {
         <div 
           className={styles.navZoneLeft} 
           onClick={() => handleManualAction(prevSlide)}
-          title="Previous Slide"
         />
         <div 
           className={styles.navZoneRight} 
           onClick={() => handleManualAction(nextSlide)}
-          title="Next Slide"
         />
       </div>
 
