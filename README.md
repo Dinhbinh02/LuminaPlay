@@ -90,6 +90,4 @@ Distributed under the MIT License. See `LICENSE` for more information.
 > [!IMPORTANT]
 > **Disclaimer**: This is a personal, non-commercial project developed solely for educational and research purposes. All media content and metadata are provided by third-party APIs and are intended for demonstration only. This project does not host any copyrighted files.
 
-<p align="center">
-  Built with ❤️ by Lumina
-</p>
+
