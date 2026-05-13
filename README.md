@@ -1,6 +1,3 @@
-<p align="center">
-  <img src="public/banner.png" alt="Lumina Play Banner" width="100%">
-</p>
 
 
 <h1 align="center">Lumina Play</h1>
@@ -83,9 +80,6 @@
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## 📸 Screenshots
-
-*(Add your high-quality screenshots here to showcase the stunning UI)*
 
 ## 📄 License
 
