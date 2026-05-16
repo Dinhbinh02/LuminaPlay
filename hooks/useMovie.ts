@@ -1,4 +1,4 @@
-import { useQuery, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useQueries, keepPreviousData } from '@tanstack/react-query';
 import { ophim } from '@/lib/ophim';
 import { tmdb } from '@/lib/tmdb';
 
@@ -96,21 +96,44 @@ export function useGeoLocation() {
   return useQuery({
     queryKey: ['geo-location'],
     queryFn: async () => {
-      try {
-        const res = await fetch('https://ipapi.co/json/');
-        if (res.ok) {
-          const data = await res.json();
-          return {
-            countryCode: data.country_code || 'VN',
-            countryName: data.country_name || 'Vietnam'
-          };
+      // List of geolocation services to try
+      const services = [
+        'https://ipapi.co/json/',
+        'http://ip-api.com/json',
+        'https://ipinfo.io/json'
+      ];
+
+      for (const url of services) {
+        try {
+          // Use a short timeout for each attempt
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+          const res = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+
+          if (res.ok) {
+            const data = await res.json();
+            // Map common fields from different services
+            const code = data.country_code || data.countryCode || data.country || 'VN';
+            const name = data.country_name || data.country || 'Vietnam';
+            
+            return {
+              countryCode: code.toUpperCase(),
+              countryName: name
+            };
+          }
+        } catch (e) {
+          // Silent fail for individual services, we'll try the next one
+          console.warn(`Geolocation service ${url} failed:`, e instanceof Error ? e.message : e);
         }
-      } catch (e) {
-        console.error('Failed to get geolocation', e);
       }
+
+      // Final fallback if all services fail
       return { countryCode: 'VN', countryName: 'Vietnam' };
     },
     staleTime: 1000 * 60 * 60 * 24, // 24 hours cache
+    retry: 1, // Only retry once if all services fail
   });
 }
 
@@ -142,12 +165,26 @@ export function useTMDBTrending(type: 'all' | 'movie' | 'tv' = 'all', timeWindow
   });
 }
 
-export function useTMDBRecommendations(id: string, type: 'movie' | 'tv' = 'movie') {
+export function useTMDBRecommendations(id: string | number, type: 'movie' | 'tv' = 'movie') {
   return useQuery({
-    queryKey: ['tmdb-recommendations', id, type],
+    queryKey: ['tmdb', 'recommendations', id, type],
     queryFn: () => tmdb.getRecommendations(id, type),
     enabled: !!id,
     staleTime: 1000 * 60 * 60 * 24, // 24 hours cache
+  });
+}
+
+// Hook to get Infinite TMDB recommendations
+export function useInfiniteTMDBRecommendations(id: string | number, type: 'movie' | 'tv' = 'movie') {
+  return useInfiniteQuery({
+    queryKey: ['tmdb', 'infinite', 'recommendations', id, type],
+    queryFn: ({ pageParam = 1 }) => tmdb.getRecommendations(id, type, pageParam),
+    getNextPageParam: (lastPage: any) => {
+      return lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined;
+    },
+    initialPageParam: 1,
+    enabled: !!id,
+    staleTime: 1000 * 60 * 60 * 24,
   });
 }
 
@@ -207,15 +244,6 @@ export function useTrendingWithLogos(type: 'all' | 'movie' | 'tv' = 'all', limit
   });
 }
 
-// Hook to get TMDB Upcoming movies
-export function useTMDBUpcoming() {
-  return useQuery({
-    queryKey: ['tmdb', 'upcoming'],
-    queryFn: () => tmdb.getUpcoming(),
-    staleTime: 1000 * 60 * 60 * 24,
-  });
-}
-
 // Hook to get TMDB Popular
 export function useTMDBPopular(type: 'movie' | 'tv' = 'movie') {
   return useQuery({
@@ -225,11 +253,228 @@ export function useTMDBPopular(type: 'movie' | 'tv' = 'movie') {
   });
 }
 
+// Hook to get Infinite TMDB Popular
+export function useInfiniteTMDBPopular(type: 'movie' | 'tv' = 'movie') {
+  return useInfiniteQuery({
+    queryKey: ['tmdb', 'infinite', 'popular', type],
+    queryFn: ({ pageParam = 1 }) => tmdb.getPopular(type, pageParam),
+    getNextPageParam: (lastPage: any) => {
+      return lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined;
+    },
+    initialPageParam: 1,
+    staleTime: 1000 * 60 * 60 * 24,
+  });
+}
+
+// Hook to get TMDB Upcoming movies
+export function useTMDBUpcoming() {
+  return useQuery({
+    queryKey: ['tmdb', 'upcoming'],
+    queryFn: () => tmdb.getUpcoming(),
+    staleTime: 1000 * 60 * 60 * 24,
+  });
+}
+
+// Hook to get Infinite TMDB Upcoming
+export function useInfiniteTMDBUpcoming() {
+  return useInfiniteQuery({
+    queryKey: ['tmdb', 'infinite', 'upcoming'],
+    queryFn: ({ pageParam = 1 }) => tmdb.getUpcoming(pageParam),
+    getNextPageParam: (lastPage: any) => {
+      return lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined;
+    },
+    initialPageParam: 1,
+    staleTime: 1000 * 60 * 60 * 24,
+  });
+}
+
 // Hook to get TMDB by Genre
 export function useTMDBByGenre(genreId: number, type: 'movie' | 'tv' = 'movie') {
   return useQuery({
     queryKey: ['tmdb', 'genre', genreId, type],
     queryFn: () => tmdb.getMoviesByGenre(genreId, type),
+    staleTime: 1000 * 60 * 60 * 24,
+  });
+}
+
+// Hook to get Infinite TMDB by Genre
+export function useInfiniteTMDBByGenre(genreId: number, type: 'movie' | 'tv' = 'movie') {
+  return useInfiniteQuery({
+    queryKey: ['tmdb', 'infinite', 'genre', genreId, type],
+    queryFn: ({ pageParam = 1 }) => tmdb.getMoviesByGenre(genreId, type, pageParam),
+    getNextPageParam: (lastPage: any) => {
+      return lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined;
+    },
+    initialPageParam: 1,
+    staleTime: 1000 * 60 * 60 * 24,
+  });
+}
+
+// Hook for TMDB Discover (generic)
+export function useTMDBDiscover(type: 'movie' | 'tv', params: Record<string, string> = {}) {
+  return useQuery({
+    queryKey: ['tmdb', 'discover', type, params],
+    queryFn: () => tmdb.discover(type, params),
+    staleTime: 1000 * 60 * 60 * 24,
+  });
+}
+
+// Hook for Infinite Netflix Content
+export function useInfiniteNetflixContent() {
+  return useInfiniteQuery({
+    queryKey: ['tmdb', 'infinite', 'netflix'],
+    queryFn: async ({ pageParam = 1 }) => {
+      const today = new Date().toISOString().split('T')[0];
+      
+      const [movies, tv] = await Promise.all([
+        tmdb.discover('movie', {
+          with_companies: '178464|198834|185004|145174|171251',
+          sort_by: 'primary_release_date.desc',
+          'primary_release_date.lte': today,
+          'vote_count.gte': '5',
+          page: pageParam.toString()
+        }),
+        tmdb.discover('tv', {
+          with_networks: '213',
+          sort_by: 'first_air_date.desc',
+          'first_air_date.lte': today,
+          'vote_count.gte': '5',
+          page: pageParam.toString()
+        })
+      ]);
+
+      const movieResults = (movies?.results || []).map((m: any) => ({ 
+        ...m, 
+        media_type: 'movie',
+        display_date: m.release_date 
+      }));
+      
+      const tvResults = (tv?.results || []).map((t: any) => ({ 
+        ...t, 
+        media_type: 'tv',
+        display_date: t.first_air_date 
+      }));
+
+      // Merge and sort by date
+      const combined = [...movieResults, ...tvResults]
+        .sort((a, b) => new Date(b.display_date).getTime() - new Date(a.display_date).getTime());
+
+      return {
+        results: combined,
+        page: pageParam,
+        total_pages: Math.max(movies?.total_pages || 0, tv?.total_pages || 0)
+      };
+    },
+    getNextPageParam: (lastPage: any) => {
+      return lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined;
+    },
+    initialPageParam: 1,
+    staleTime: 1000 * 60 * 60 * 24,
+  });
+}
+
+// Hook for Infinite HBO Content
+export function useInfiniteHBOContent() {
+  return useInfiniteQuery({
+    queryKey: ['tmdb', 'infinite', 'hbo'],
+    queryFn: async ({ pageParam = 1 }) => {
+      const today = new Date().toISOString().split('T')[0];
+      
+      const [movies, tv] = await Promise.all([
+        tmdb.discover('movie', {
+          with_companies: '3268|7429',
+          sort_by: 'primary_release_date.desc',
+          'primary_release_date.lte': today,
+          'vote_count.gte': '5',
+          page: pageParam.toString()
+        }),
+        tmdb.discover('tv', {
+          with_networks: '49',
+          sort_by: 'first_air_date.desc',
+          'first_air_date.lte': today,
+          'vote_count.gte': '5',
+          page: pageParam.toString()
+        })
+      ]);
+
+      const movieResults = (movies?.results || []).map((m: any) => ({ 
+        ...m, 
+        media_type: 'movie',
+        display_date: m.release_date 
+      }));
+      
+      const tvResults = (tv?.results || []).map((t: any) => ({ 
+        ...t, 
+        media_type: 'tv',
+        display_date: t.first_air_date 
+      }));
+
+      const combined = [...movieResults, ...tvResults]
+        .sort((a, b) => new Date(b.display_date).getTime() - new Date(a.display_date).getTime());
+
+      return {
+        results: combined,
+        page: pageParam,
+        total_pages: Math.max(movies?.total_pages || 0, tv?.total_pages || 0)
+      };
+    },
+    getNextPageParam: (lastPage: any) => {
+      return lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined;
+    },
+    initialPageParam: 1,
+    staleTime: 1000 * 60 * 60 * 24,
+  });
+}
+
+// Hook for Infinite Apple Content
+export function useInfiniteAppleContent() {
+  return useInfiniteQuery({
+    queryKey: ['tmdb', 'infinite', 'apple'],
+    queryFn: async ({ pageParam = 1 }) => {
+      const today = new Date().toISOString().split('T')[0];
+      
+      const [movies, tv] = await Promise.all([
+        tmdb.discover('movie', {
+          with_companies: '194232',
+          sort_by: 'primary_release_date.desc',
+          'primary_release_date.lte': today,
+          'vote_count.gte': '5',
+          page: pageParam.toString()
+        }),
+        tmdb.discover('tv', {
+          with_networks: '2552',
+          sort_by: 'first_air_date.desc',
+          'first_air_date.lte': today,
+          'vote_count.gte': '5',
+          page: pageParam.toString()
+        })
+      ]);
+
+      const movieResults = (movies?.results || []).map((m: any) => ({ 
+        ...m, 
+        media_type: 'movie',
+        display_date: m.release_date 
+      }));
+      
+      const tvResults = (tv?.results || []).map((t: any) => ({ 
+        ...t, 
+        media_type: 'tv',
+        display_date: t.first_air_date 
+      }));
+
+      const combined = [...movieResults, ...tvResults]
+        .sort((a, b) => new Date(b.display_date).getTime() - new Date(a.display_date).getTime());
+
+      return {
+        results: combined,
+        page: pageParam,
+        total_pages: Math.max(movies?.total_pages || 0, tv?.total_pages || 0)
+      };
+    },
+    getNextPageParam: (lastPage: any) => {
+      return lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined;
+    },
+    initialPageParam: 1,
     staleTime: 1000 * 60 * 60 * 24,
   });
 }
@@ -262,6 +507,18 @@ export function useTMDBSeason(tvId: string | number, seasonNumber: number) {
     queryFn: () => tmdb.getTVSeasonDetails(tvId, seasonNumber),
     enabled: !!tvId && typeof seasonNumber === 'number',
     placeholderData: keepPreviousData,
+  });
+}
+
+// Hook to get all TMDB TV Seasons at once
+export function useTMDBAllSeasons(tvId: string | number, numberOfSeasons: number) {
+  return useQueries({
+    queries: Array.from({ length: numberOfSeasons || 0 }, (_, i) => i + 1).map(seasonNumber => ({
+      queryKey: ['tmdb', 'tv', tvId, 'season', seasonNumber],
+      queryFn: () => tmdb.getTVSeasonDetails(tvId, seasonNumber),
+      enabled: !!tvId && !!numberOfSeasons,
+      staleTime: 1000 * 60 * 60 * 24, // Cache for 24 hours
+    }))
   });
 }
 

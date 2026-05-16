@@ -1,13 +1,13 @@
 .section {
-  padding: 0 4% 20px;
-  margin-bottom: 10px;
+  padding: 0;
+  margin-bottom: 20px;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 12px;
 }
 
 .titleWrapper {
@@ -64,13 +64,14 @@
   .controls {
     display: none;
   }
-  
+
   .header {
-    margin-bottom: 16px;
+    margin-bottom: 8px;
     padding-right: 4%;
   }
 
-  .title, .titleHighlight {
+  .title,
+  .titleHighlight {
     font-size: 20px;
   }
 }
@@ -80,35 +81,72 @@
 }
 
 .controlBtn {
-  width: 36px;
-  height: 36px;
+  position: absolute;
+  top: 42%; /* Centered on posters */
+  transform: translateY(-50%);
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  z-index: 100;
+  opacity: 0;
   transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
 }
 
 .controlBtn:hover {
   background: var(--primary);
   border-color: var(--primary);
-  transform: scale(1.1);
+}
+
+.controlBtn.left:hover {
+  transform: translateY(-50%) scale(1.15);
+}
+
+.controlBtn.right:hover {
+  transform: translateY(-50%) scale(1.15);
+}
+
+.controlBtn.left {
+  left: 0;
+  transform: translateY(-50%);
+}
+
+.controlBtn.right {
+  right: 0;
+  transform: translateY(-50%);
+}
+
+.sliderWrapper {
+  position: relative;
+  margin: 0 -25px;
+  padding: 0 25px;
+}
+
+.sliderWrapper:hover .controlBtn {
+  opacity: 1;
+}
+
+.gridWrapper {
+  position: relative;
 }
 
 .sliderContainer {
   display: flex;
-  align-items: flex-start; /* Prevent cards from stretching vertically */
+  align-items: flex-start;
   gap: 20px;
   overflow-x: auto;
   padding: 10px 0;
   scrollbar-width: none;
-  /* Firefox */
   contain: content;
   -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
 }
 
 .sliderContainer::-webkit-scrollbar {
@@ -116,8 +154,29 @@
   /* Chrome, Safari */
 }
 
+.gridContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 30px 20px;
+  padding: 20px 0;
+}
+
+@media (max-width: 1024px) {
+  .gridContainer {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .gridContainer {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 20px 12px;
+  }
+}
+
 .cardWrapper {
-  flex: 0 0 200px; /* Fixed width */
+  flex: 0 0 200px;
+  /* Fixed width */
   width: 200px;
   min-width: 200px;
   transition: transform 0.3s ease;
@@ -175,7 +234,9 @@
 }
 
 @keyframes card-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .poster {
@@ -223,9 +284,15 @@
   font-weight: 700;
   color: white;
   margin: 0;
-  white-space: nowrap;
+  line-height: 1.3;
+  height: 2.6em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: normal;
   transition: color 0.3s ease;
 }
 
@@ -254,6 +321,14 @@
   align-items: center;
   justify-content: center;
   flex: 0 0 100px;
+}
+
+.gridLoaderWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  grid-column: 1 / -1;
+  padding: 40px 0;
 }
 
 .spinner {

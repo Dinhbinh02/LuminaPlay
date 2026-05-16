@@ -15,6 +15,25 @@ export default function WatchPartyModal({ isOpen, onClose, peerId, onJoin }: Wat
   const [joinId, setJoinId] = useState('');
   const [copied, setCopied] = useState(false);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      
+      const preventScroll = (e: WheelEvent) => {
+        if ((e.target as HTMLElement).classList.contains(styles.overlay)) {
+          e.preventDefault();
+        }
+      };
+
+      window.addEventListener('wheel', preventScroll, { passive: false });
+
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('wheel', preventScroll);
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const copyId = () => {
@@ -57,14 +76,14 @@ export default function WatchPartyModal({ isOpen, onClose, peerId, onJoin }: Wat
         <div className={styles.section}>
           <h3>Join a Party</h3>
           <div className={styles.inputRow}>
-            <input 
-              type="text" 
-              placeholder="Enter Room ID..." 
+            <input
+              type="text"
+              placeholder="Enter Room ID..."
               value={joinId}
               onChange={e => setJoinId(e.target.value)}
               className={styles.input}
             />
-            <button 
+            <button
               className={styles.joinBtn}
               onClick={() => onJoin(joinId)}
               disabled={!joinId}

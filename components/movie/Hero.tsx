@@ -28,7 +28,7 @@ export default function Hero({ movies = [] }: HeroProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlayDisabled, setIsAutoPlayDisabled] = useState(false);
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
-  
+
   const nextSlide = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % movies.length);
   }, [movies.length]);
@@ -106,9 +106,9 @@ export default function Hero({ movies = [] }: HeroProps) {
           >
             <div className={styles.heroBg}>
               <picture>
-                <source 
-                  media="(max-width: 768px)" 
-                  srcSet={movie.poster || movie.backdrop} 
+                <source
+                  media="(max-width: 768px)"
+                  srcSet={movie.poster || movie.backdrop}
                 />
                 <img
                   src={movie.backdrop || movie.poster}
@@ -126,12 +126,12 @@ export default function Hero({ movies = [] }: HeroProps) {
 
       {/* Story-style Navigation Zones */}
       <div className={styles.storyNavZones}>
-        <div 
-          className={styles.navZoneLeft} 
+        <div
+          className={styles.navZoneLeft}
           onClick={() => handleManualAction(prevSlide)}
         />
-        <div 
-          className={styles.navZoneRight} 
+        <div
+          className={styles.navZoneRight}
           onClick={() => handleManualAction(nextSlide)}
         />
       </div>
@@ -189,7 +189,7 @@ export default function Hero({ movies = [] }: HeroProps) {
 
       {/* Pagination & Navigation (Grouped at bottom) */}
       <div className={styles.pagination}>
-        <button 
+        <button
           className={styles.navBtnCompact}
           onClick={() => handleManualAction(prevSlide)}
           aria-label="Previous slide"
@@ -199,19 +199,18 @@ export default function Hero({ movies = [] }: HeroProps) {
 
         <div className={styles.barsWrapper}>
           {movies.map((_, idx) => (
-            <div 
-              key={idx} 
+            <div
+              key={idx}
               className={styles.pageBarContainer}
               onClick={() => handleManualAction(() => setCurrentIndex(idx))}
             >
               <div className={styles.pageBar}>
-                <div 
+                <div
                   key={`${idx}-${currentIndex}-${isAutoPlayDisabled}`}
-                  className={`${styles.pageBarFill} ${
-                    idx === currentIndex 
-                      ? (isAutoPlayDisabled ? styles.pageBarFillComplete : styles.pageBarFillActive) 
-                      : (idx < currentIndex ? styles.pageBarFillComplete : '')
-                  }`}
+                  className={`${styles.pageBarFill} ${idx === currentIndex
+                    ? (isAutoPlayDisabled ? styles.pageBarFillComplete : styles.pageBarFillActive)
+                    : (idx < currentIndex ? styles.pageBarFillComplete : '')
+                    }`}
                   style={{
                     animationPlayState: isAutoPlayDisabled ? 'paused' : 'running',
                   }}
@@ -221,7 +220,7 @@ export default function Hero({ movies = [] }: HeroProps) {
           ))}
         </div>
 
-        <button 
+        <button
           className={styles.navBtnCompact}
           onClick={() => handleManualAction(nextSlide)}
           aria-label="Next slide"
@@ -232,13 +231,13 @@ export default function Hero({ movies = [] }: HeroProps) {
 
       <AnimatePresence>
         {showScrollIndicator && (
-          <motion.div 
+          <motion.div
             className={styles.scrollIndicator}
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.5 }}
-            onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
+            onClick={() => window.scrollTo({ top: window.innerHeight - 76, behavior: 'smooth' })}
           >
             <ChevronDown size={24} className={styles.scrollArrow} />
           </motion.div>

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { tmdb } from '@/lib/tmdb';
+import PersonModal from '@/components/movie/PersonModal';
 import styles from './SearchOverlay.module.css';
 
 interface SearchOverlayProps {
@@ -19,10 +20,21 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   const [isMoreLoading, setIsMoreLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const observer = useRef<IntersectionObserver | null>(null);
+
+  const GENRE_MAP: Record<number, string> = {
+    28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy', 80: 'Crime',
+    99: 'Documentary', 18: 'Drama', 10751: 'Family', 14: 'Fantasy', 36: 'History',
+    27: 'Horror', 10402: 'Music', 9648: 'Mystery', 10749: 'Romance', 878: 'Sci-Fi',
+    10770: 'TV Movie', 53: 'Thriller', 10752: 'War', 37: 'Western',
+    10759: 'Action & Adventure', 10762: 'Kids', 10763: 'News', 10764: 'Reality',
+    10765: 'Sci-Fi & Fantasy', 10766: 'Soap', 10767: 'Talk', 10768: 'War & Politics'
+  };
 
   const lastElementRef = useCallback((node: HTMLDivElement) => {
     if (isLoading || isMoreLoading) return;
@@ -40,6 +52,25 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   useEffect(() => {
     if (isOpen && inputRef.current) {
       inputRef.current.focus();
+    }
+  }, [isOpen]);
+
+  // Body scroll lock
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+
+      const preventScroll = (e: WheelEvent) => {
+        if (e.target === overlayRef.current) {
+          e.preventDefault();
+        }
+      };
+      window.addEventListener('wheel', preventScroll, { passive: false });
+
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('wheel', preventScroll);
+      };
     }
   }, [isOpen]);
 
@@ -80,6 +111,10 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
 
   const handleSelect = (movie: any) => {
     const type = movie.media_type || 'movie';
+    if (type === 'person') {
+      setSelectedPersonId(movie.id.toString());
+      return;
+    }
     router.push(`/${type}/${movie.id}`);
     onClose();
     setQuery('');
@@ -97,6 +132,7 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
     <AnimatePresence>
       {isOpen && (
         <motion.div 
+          ref={overlayRef}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -119,13 +155,23 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                   onKeyDown={handleSearchEnter}
                 />
                 {query && (
-                  <button onClick={() => setQuery('')} className={styles.clearBtn}>
-                    <X size={20} />
+                  <button 
+                    onClick={() => {
+                      if (query.trim()) {
+                        router.push(`/search?keyword=${encodeURIComponent(query.trim())}`);
+                        onClose();
+                        setQuery('');
+                      }
+                    }} 
+                    className={styles.clearBtn}
+                    title="Search"
+                  >
+                    <Search size={18} />
                   </button>
                 )}
               </div>
               <button onClick={onClose} className={styles.closeBtn}>
-                Close
+                <X size={24} />
               </button>
             </div>
 
@@ -169,7 +215,16 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                             {year && <span className={styles.dot}>•</span>}
                             <span>{movie.media_type === 'tv' ? 'TV Show' : 'Movie'}</span>
                             <span className={styles.dot}>•</span>
-                            <span>⭐ {movie.vote_average?.toFixed(1) || 'N/A'}</span>
+                            {movie.genre_ids && movie.genre_ids.length > 0 && (
+                              <>
+                                <span>{GENRE_MAP[movie.genre_ids[0]] || 'Other'}</span>
+                                <span className={styles.dot}>•</span>
+                              </>
+                            )}
+                            <div className={styles.rating}>
+                              <span className={styles.imdb}>IMDb</span>
+                              <span>{movie.vote_average?.toFixed(1) || 'N/A'}</span>
+                            </div>
                           </div>
                         </div>
                         <div className={styles.playIcon}>
@@ -189,6 +244,11 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
               )}
             </div>
           </div>
+          
+          <PersonModal 
+            personId={selectedPersonId} 
+            onClose={() => setSelectedPersonId(null)} 
+          />
         </motion.div>
       )}
     </AnimatePresence>

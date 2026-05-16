@@ -46,12 +46,36 @@ export default function PersonModal({ personId, onClose }: PersonModalProps) {
   useEffect(() => {
     if (personId) {
       document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
+
+      const preventScroll = (e: WheelEvent) => {
+        const target = e.target as HTMLElement;
+        const contentArea = target.closest(`.${styles.content}`);
+        
+        if (!contentArea) {
+          // If scrolling outside the content area (on backdrop), block it
+          e.preventDefault();
+          return;
+        }
+
+        // If scrolling inside the content area, check for boundaries to prevent chaining
+        const { scrollTop, scrollHeight, clientHeight } = contentArea;
+        const isScrollingUp = e.deltaY < 0;
+        const isScrollingDown = e.deltaY > 0;
+
+        if (isScrollingUp && scrollTop <= 0) {
+          e.preventDefault();
+        } else if (isScrollingDown && scrollTop + clientHeight >= scrollHeight - 1) {
+          e.preventDefault();
+        }
+      };
+
+      window.addEventListener('wheel', preventScroll, { passive: false });
+
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('wheel', preventScroll);
+      };
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
   }, [personId]);
 
   const modalContent = (

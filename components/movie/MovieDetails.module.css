@@ -63,6 +63,7 @@
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }
@@ -101,7 +102,8 @@
 }
 
 .videoVisible {
-  opacity: 0.6; /* Slight transparency to blend with background */
+  opacity: 0.6;
+  /* Slight transparency to blend with background */
 }
 
 .backdrop {
@@ -121,18 +123,14 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    to right,
-    rgba(0, 0, 0, 0.8) 0%,
-    rgba(0, 0, 0, 0.4) 30%,
-    transparent 100%
-  ),
-  linear-gradient(
-    to top,
-    #000 0%,
-    rgba(0, 0, 0, 0.5) 20%,
-    transparent 50%
-  );
+  background: linear-gradient(to right,
+      rgba(0, 0, 0, 0.8) 0%,
+      rgba(0, 0, 0, 0.4) 30%,
+      transparent 100%),
+    linear-gradient(to top,
+      #000 0%,
+      rgba(0, 0, 0, 0.5) 20%,
+      transparent 50%);
   z-index: 1;
 }
 
@@ -140,7 +138,7 @@
   max-width: 1200px;
   position: relative;
   z-index: 10;
-  padding: 0 5%;
+  padding: 0 4%;
   pointer-events: auto;
   display: flex;
   flex-direction: column;
@@ -177,7 +175,7 @@
 .logoWrapper {
   margin-bottom: 30px;
   max-width: 450px;
-  height: 180px;
+  height: 220px;
   position: relative;
   display: flex;
   align-items: center;
@@ -194,12 +192,12 @@
 
 .title {
   font-size: clamp(32px, 6vw, 72px);
-  font-weight: 800;
-  line-height: 1.1;
+  font-weight: 900;
+  line-height: 1;
   margin-bottom: 24px;
   color: #fff;
   text-shadow: 0 4px 30px rgba(0, 0, 0, 0.8);
-  letter-spacing: -1px;
+  letter-spacing: -2px;
 }
 
 .meta {
@@ -259,11 +257,6 @@
   color: rgba(255, 255, 255, 0.8);
   margin-bottom: 40px;
   max-width: 650px;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
 
@@ -281,19 +274,19 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 24px;
-  background-color: #fff;
-  color: #000;
+  padding: 12px 28px;
+  background: #ffffff;
+  color: #000000;
   border: none;
-  border-radius: 4px;
-  font-size: 18px;
+  border-radius: 8px;
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btnPlay:hover {
-  background-color: rgba(255, 255, 255, 0.8);
+  background: #f0f0f0;
   transform: translateY(-2px);
 }
 
@@ -301,21 +294,20 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 24px;
-  background-color: #f97316;
+  padding: 12px 28px;
+  background: rgba(109, 109, 110, 0.7);
   color: #fff;
   border: none;
-  border-radius: 4px;
-  font-size: 18px;
-  font-weight: 700;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btnTrailer:hover {
-  background-color: #ea580c;
+  background: rgba(109, 109, 110, 0.9);
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4);
 }
 
 .btnWatchParty {
@@ -323,19 +315,19 @@
   align-items: center;
   gap: 12px;
   padding: 12px 24px;
-  background-color: rgba(147, 51, 234, 0.4);
+  background: #333333;
   color: #fff;
-  border: 1px solid rgba(147, 51, 234, 0.5);
-  border-radius: 6px;
+  border: none;
+  border-radius: 8px;
   font-size: 18px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
 }
 
 .btnWatchParty:hover {
-  background-color: rgba(147, 51, 234, 0.6);
+  background: #444444;
+  transform: translateY(-2px);
 }
 
 .seasonDropdownWrapper {
@@ -396,33 +388,42 @@
   white-space: nowrap;
 }
 
-.seasonDropdownItem:hover, .active {
+.seasonDropdownItem:hover,
+.active {
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
 }
 
 .btnAdd {
-  width: 50px;
-  height: 50px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  background: rgba(109, 109, 110, 0.7);
+  border: none;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btnAdd:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(109, 109, 110, 0.9);
+  transform: translateY(-2px);
+}
+
+.btnAdd.active {
+  background: rgba(229, 9, 20, 0.8);
+}
+
+.btnAdd.active:hover {
+  background: #e50914;
 }
 
 /* Sections */
 .sections {
-  padding: 40px 4%;
+  padding: 0 4%;
   background: linear-gradient(to bottom, #000 0%, #050505 100%);
 }
 
@@ -430,7 +431,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .sectionBar {
@@ -444,39 +445,133 @@
   font-size: 24px;
   font-weight: 700;
   color: #fff;
+  flex: 1;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+}
+
+.sliderWrapper {
+  position: relative;
+  margin: 0 -25px; /* Extend exactly half the button width beyond content */
+  padding: 0 25px; /* Same amount of padding inside */
+}
+
+.controlBtn {
+  position: absolute;
+  top: 42%;
+  /* Adjusted to center on posters, excluding text info */
+  transform: translateY(-50%);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  z-index: 20;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+}
+
+.sliderWrapper:hover .controlBtn {
+  opacity: 1;
+}
+
+.controlBtn:hover {
+  background: #e50914;
+  border-color: #e50914;
+}
+
+.controlBtn.left:hover {
+  transform: translateY(-50%) scale(1.15);
+}
+
+.controlBtn.right:hover {
+  transform: translateY(-50%) scale(1.15);
+}
+
+.controlBtn.left {
+  left: 0;
+  transform: translateY(-50%); /* Only vertical centering — center is at 25px from left = content boundary */
+}
+
+.controlBtn.right {
+  right: 0;
+  transform: translateY(-50%); /* Only vertical centering — center is at 25px from right = content boundary */
+}
+
+.controlBtn svg {
+  transition: transform 0.3s ease;
 }
 
 /* Episodes */
 .episodesSection {
-  margin-bottom: 60px;
+  margin-bottom: 20px;
 }
 
-.seasonSelect {
-  margin-bottom: 24px;
-  background: #1a1a1a;
-  border: 1px solid #333;
-  color: #fff;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.episodesList {
+.seasonChips {
   display: flex;
-  flex-direction: column;
-  gap: 0;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+}
+
+.seasonChip {
+  padding: 8px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 100px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.seasonChip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.seasonChipActive {
+  background: #e50914 !important;
+  border-color: #e50914 !important;
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(229, 9, 20, 0.3);
+}
+
+.episodesGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
 }
 
 .episodeCard {
   display: flex;
   gap: 16px;
-  padding: 16px 0;
-  background: transparent;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.2s ease;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.episodeCard:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-4px);
 }
 
 .episodeCard:last-child {
@@ -489,13 +584,13 @@
 
 .episodeThumbWrapper {
   position: relative;
-  width: 140px;
-  min-width: 140px;
+  width: 120px;
+  min-width: 120px;
   aspect-ratio: 16/9;
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
-  background: #222;
+  background: #111;
 }
 
 .episodeThumb {
@@ -511,7 +606,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -523,10 +618,6 @@
   opacity: 1;
 }
 
-.episodeCard:hover .episodeThumb {
-  transform: scale(1.05);
-}
-
 .episodeInfo {
   flex: 1;
   display: flex;
@@ -534,18 +625,23 @@
   justify-content: center;
 }
 
-.episodeHeader {
-  font-size: 15px;
-  color: #fff;
-  font-weight: 600;
-  margin-bottom: 2px;
+.episodeNumber {
+  color: #e50914;
+  font-weight: 800;
+  font-size: 13px;
+  margin-bottom: 4px;
 }
 
 .episodeTitle {
-  font-size: 14px;
-  color: #ccc;
-  font-weight: 400;
+  font-size: 15px;
+  color: #fff;
+  font-weight: 600;
   margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .episodeRuntime {
@@ -560,21 +656,20 @@
 
 /* Cast */
 .castSection {
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 .castGrid {
   display: flex;
   gap: 16px;
   overflow-x: auto;
-  padding-top: 10px;
-  padding-bottom: 8px;
-  scrollbar-width: none; /* Hide scrollbar for Firefox */
-  -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
+  padding: 10px 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .castGrid::-webkit-scrollbar {
-  display: none; /* Hide scrollbar for Chrome/Safari */
+  display: none;
 }
 
 .castCard {
@@ -626,15 +721,27 @@
 
 /* Similar */
 .similarGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  display: flex;
   gap: 20px;
+  overflow-x: auto;
+  padding: 10px 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+.similarGrid::-webkit-scrollbar {
+  display: none;
 }
 
 .similarCard {
   text-decoration: none;
   display: block;
   transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  flex: 0 0 200px;
+  width: 200px;
+  min-width: 200px;
 }
 
 .similarCard:hover {
@@ -658,9 +765,6 @@
   transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.similarCard:hover .similarPoster {
-  transform: scale(1.1);
-}
 
 .similarInfo {
   display: flex;
@@ -687,25 +791,29 @@
 }
 
 @media (max-width: 1024px) {
-  .title { font-size: 48px; }
+  .title {
+    font-size: 48px;
+  }
 }
 
 @media (max-width: 768px) {
-  .hero { 
-    height: auto; 
-    min-height: 100vh; 
+  .hero {
+    height: auto;
+    min-height: 100vh;
   }
-  .heroContent { 
-    padding: 0 6%; 
+
+  .heroContent {
+    padding: 0 6%;
     align-items: flex-start;
     text-align: left;
   }
-  .title { 
-    font-size: 36px; 
+
+  .title {
+    font-size: 36px;
     text-align: left;
     margin-bottom: 20px;
   }
-  
+
   .meta {
     justify-content: flex-start;
     font-size: 14px;
@@ -731,40 +839,42 @@
     line-clamp: 2;
     text-align: left;
   }
-  
-  .mainActions { 
+
+  .mainActions {
     display: flex;
     flex-direction: column;
     width: 100%;
     gap: 12px;
   }
-  
-  .btnPlay { 
-    width: 100%; 
-    justify-content: center; 
+
+  .btnPlay {
+    width: 100%;
+    justify-content: center;
     padding: 14px 20px;
     font-size: 16px;
   }
-  
+
   .secondaryActions {
     display: flex;
     width: 100%;
     gap: 12px;
   }
 
-  .btnTrailer, .btnWatchParty {
+  .btnTrailer,
+  .btnWatchParty {
     flex: 1;
     justify-content: center !important;
     padding: 14px 10px;
     font-size: 14px;
     white-space: nowrap;
   }
-  
-  .btnTrailer svg, .btnWatchParty svg {
+
+  .btnTrailer svg,
+  .btnWatchParty svg {
     width: 20px;
     height: 20px;
   }
-  
+
   .btnAdd {
     width: 52px;
     height: auto;
@@ -772,7 +882,7 @@
     justify-content: center;
     flex-shrink: 0;
   }
-  
+
   .logoWrapper {
     height: 100px;
     margin-bottom: 20px;
@@ -786,11 +896,28 @@
     max-height: 100%;
   }
 
-  .castGrid { grid-template-columns: 1fr; }
+  .castGrid {
+    grid-template-columns: 1fr;
+  }
 
   .similarGrid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    padding-bottom: 20px;
+  }
+
+  .sliderWrapper {
+    margin: 0 -6%;
+    padding: 0 6%;
+  }
+
+  .similarCard {
+    flex: 0 0 160px;
+    width: 160px;
+    min-width: 160px;
+  }
+
+  .controlBtn {
+    display: none;
+    /* Hide on mobile as users swipe */
   }
 
   .similarPosterWrapper {
@@ -828,25 +955,33 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  z-index: 1;
+}
+
 .iframeTopBar {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 100px;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
+  background: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 4%;
+  padding: 20px;
   z-index: 10;
-  gap: 20px;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  transition: all 0.2s ease;
 }
 
 .iframeTopBar.hidden {
   opacity: 0;
-  transform: translateY(-20px);
   pointer-events: none;
 }
 
@@ -854,6 +989,7 @@
   display: flex;
   align-items: center;
   gap: 20px;
+  pointer-events: auto;
 }
 
 .iframeBackBtn {
@@ -864,133 +1000,109 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px;
-  border-radius: 50%;
-  transition: background 0.3s;
+  transition: transform 0.2s;
 }
 
 .iframeBackBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
 }
 
 .iframeInfo {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
 }
 
 .iframeTitle {
   font-size: 24px;
-  font-weight: 700;
-  color: #fff;
-  line-height: 1.2;
-}
-
-.iframeSubTitle {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.6);
   font-weight: 500;
-}
-
-
-.iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-}
-
-/* Server Switcher Styles */
-.serverSwitcher {
-  position: relative;
-}
-
-.serverBtn {
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 10px 16px;
-  border-radius: 12px;
   color: #fff;
+}
+
+.serverContainer {
+  position: relative;
+  margin-left: auto;
+  pointer-events: auto;
+}
+
+.serverButton {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  font-size: 14px;
+  transition: all 0.2s;
   font-weight: 500;
-  transition: all 0.3s ease;
+  font-size: 15px;
+  backdrop-filter: blur(10px);
 }
 
-.serverBtn:hover {
-  background: rgba(255, 255, 255, 0.2);
+.serverButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
-.serverMenu {
+.serverMenuFloating {
   position: absolute;
-  top: calc(100% + 10px);
+  top: 100%;
   right: 0;
-  background: rgba(20, 20, 20, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 8px;
-  min-width: 180px;
+  margin-top: 12px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  padding: 8px 0;
+  min-width: 180px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   z-index: 100;
+  overflow: hidden;
+}
+
+.menuHeader {
+  padding: 8px 16px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .serverMenuItem {
   background: none;
   border: none;
-  color: #ccc;
-  padding: 12px 16px;
+  color: #fff;
+  padding: 10px 16px;
   text-align: left;
-  border-radius: 10px;
-  cursor: pointer;
   font-size: 14px;
-  transition: all 0.2s ease;
-}
-
-.iframeServerSwitcher {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  z-index: 200;
-}
-
-.serverMenuFloating {
-  position: absolute;
-  bottom: calc(100% + 10px);
-  right: 0;
-  background: rgba(15, 15, 15, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 8px;
-  min-width: 180px;
+  cursor: pointer;
+  transition: background 0.2s;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  z-index: 300;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .serverMenuItem:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #fff;
 }
 
-.serverMenuItem.activeServer {
-  background: #f97316 !important;
-  color: #fff !important;
+.activeServer {
+  color: #e50914;
+  font-weight: bold;
+  background: rgba(229, 9, 20, 0.1) !important;
 }
 
 @media (max-width: 768px) {
   .playerOverlay {
     padding: 0;
   }
-  
+
   .iframeContainer {
     border-radius: 0;
     border-left: none;
@@ -1002,7 +1114,7 @@
     height: 70px;
     padding: 0 15px;
   }
-  
+
   .iframeTitle {
     display: none;
   }
@@ -1074,8 +1186,13 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .fetching {
@@ -1099,6 +1216,7 @@
     height: auto;
   }
 }
+
 .scrollIndicator {
   position: absolute;
   bottom: 30px;
@@ -1125,12 +1243,19 @@
 }
 
 @keyframes bounce {
-  0%, 20%, 50%, 80%, 100% {
+
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
     transform: translateY(0);
   }
+
   40% {
     transform: translateY(-10px);
   }
+
   60% {
     transform: translateY(-5px);
   }
@@ -1146,7 +1271,7 @@
 }
 
 .collectionSection {
-  margin-top: 60px;
+  margin-bottom: 20px;
 }
 
 .collectionGrid {
@@ -1249,9 +1374,6 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.providerIconWrapper:hover {
-  transform: scale(1.1);
-}
 
 .providerIcon {
   width: 100%;
@@ -1266,7 +1388,9 @@
 .collectionSection,
 .castSection,
 .similarSection {
-  margin-bottom: 30px;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  padding-top: 10px;
 }
 
 .infoGrid {
@@ -1324,6 +1448,13 @@
   image-rendering: crisp-edges;
 }
 
+.marvelLogo {
+  height: 80%;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
+}
+
 .companyName {
   font-size: 14px;
   color: #eee;
@@ -1346,18 +1477,50 @@
   .infoSection {
     padding: 0;
   }
-  
+
   .infoGrid {
     grid-template-columns: 1fr 1fr;
     gap: 20px;
   }
-  
+
   .infoValue {
     font-size: 16px;
   }
-  
+
   .watchProviders {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+@media (max-width: 1400px) {
+  .episodesGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1100px) {
+  .episodesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .episodesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .episodeCard {
+    padding: 10px;
+    gap: 12px;
+  }
+
+  .episodeThumbWrapper {
+    width: 100px;
+    min-width: 100px;
+  }
+
+  .episodeTitle {
+    font-size: 14px;
   }
 }

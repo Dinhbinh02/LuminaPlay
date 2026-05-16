@@ -6,16 +6,44 @@ import Header from "@/components/layout/Header";
 import { ophim } from "@/lib/ophim";
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Pagination from "@/components/ui/Pagination";
 import { useGenres, useCountries } from "@/hooks/useMovie";
 import { CATEGORIES } from "@/components/layout/FilterOverlay";
+import PersonModal from "@/components/movie/PersonModal";
+import { Info, Star, Calendar, Users, Film, Tv, Search } from 'lucide-react';
 import styles from './SearchPage.module.css';
 
-function SearchCard({ movie, cdnDomain, index }: { movie: any, cdnDomain: string, index: number }) {
+interface MovieResult {
+  _id: string | number;
+  name: string;
+  type?: string;
+  slug: string;
+  thumb_url: string;
+  year?: string;
+  quality?: string;
+  episode_current?: string;
+  overview?: string;
+  vote_average?: number;
+}
+
+function HorizontalSearchCard({ 
+  movie, 
+  cdnDomain, 
+  index, 
+  onPersonClick 
+}: { 
+  movie: MovieResult, 
+  cdnDomain: string, 
+  index: number, 
+  onPersonClick: (id: string) => void 
+}) {
   if (!movie) return null;
 
-  const fallbackImage = 'https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a76141859359722521fd48c5a093.svg';
+  const isPerson = movie.type === 'person';
+  const fallbackImage = isPerson 
+    ? 'https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-4-user-grey-d8fe9573754b761ca248618f7737233857d9760777498c4d32e92c68612185c7.svg'
+    : 'https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a76141859359722521fd48c5a093.svg';
   
   let posterUrl = movie.thumb_url;
   if (!posterUrl) {
@@ -24,38 +52,119 @@ function SearchCard({ movie, cdnDomain, index }: { movie: any, cdnDomain: string
     posterUrl = ophim.getImageUrl(movie.thumb_url, cdnDomain);
   }
 
-  // Double check posterUrl is not empty after processing
   const finalSrc = posterUrl || fallbackImage;
+
+  const content = (
+    <div className={styles.card}>
+      <div className={styles.imageContainer}>
+        <Image
+          src={finalSrc}
+          alt={movie.name || 'Poster'}
+          fill
+          loading="lazy"
+          className={styles.poster}
+          sizes="110px"
+          unoptimized={finalSrc.startsWith('https://image.tmdb.org')}
+        />
+      </div>
+      <div className={styles.cardContent}>
+        <div className={styles.cardHeader}>
+          <h2 className={styles.movieTitle}>{movie.name}</h2>
+          {movie.year && <span className={styles.year}>{movie.year}</span>}
+        </div>
+        
+        {movie.overview && (
+          <p className={styles.description}>{movie.overview}</p>
+        )}
+
+        <div className={styles.cardFooter}>
+          {movie.vote_average ? (
+            <div className={styles.rating}>
+              <Star size={14} fill="currentColor" />
+              <span>{movie.vote_average.toFixed(1)}</span>
+            </div>
+          ) : movie.quality && (
+            <div className={styles.badge}>{movie.quality}</div>
+          )}
+          
+          <div className={`${styles.badge} ${isPerson ? styles.personBadge : ''}`}>
+            {movie.type?.toUpperCase() || 'MOVIE'}
+          </div>
+          
+          {movie.episode_current && movie.episode_current !== 'TMDB' && (
+            <span>{movie.episode_current}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <motion.div
       className={styles.cardWrapper}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
       transition={{ delay: (index % 10) * 0.05 }}
     >
-      <Link href={`/${movie.slug}`}>
-        <div className={styles.card}>
-          <div className={styles.imageContainer}>
-            <Image
-              src={finalSrc}
-              alt={movie.name || 'Movie Poster'}
-              fill
-              loading="lazy"
-              className={styles.poster}
-              sizes="(max-width: 480px) 45vw, (max-width: 768px) 30vw, (max-width: 1200px) 18vw, 200px"
-              unoptimized={finalSrc.startsWith('https://image.tmdb.org')}
-            />
-          </div>
+      {isPerson ? (
+        <div onClick={() => onPersonClick(movie._id.toString())} style={{ cursor: 'pointer' }}>
+          {content}
         </div>
-        <div className={styles.movieInfo}>
-          <h3 className={styles.movieTitle}>{movie.name || 'Untitled'}</h3>
-          <div className={styles.movieMeta}>
-            <span>{movie.year || 'N/A'}</span>
-          </div>
-        </div>
-      </Link>
+      ) : (
+        <Link href={`/${movie.slug}`}>
+          {content}
+        </Link>
+      )}
     </motion.div>
+  );
+}
+
+function SearchSidebar({ 
+  counts, 
+  activeType, 
+  onTypeChange 
+}: { 
+  counts: any, 
+  activeType: string, 
+  onTypeChange: (type: string) => void 
+}) {
+  const categories = [
+    { id: 'multi', name: 'All Results', icon: <Search size={18} /> },
+    { id: 'movie', name: 'Movies', icon: <Film size={18} />, count: counts.movie },
+    { id: 'tv', name: 'TV Shows', icon: <Tv size={18} />, count: counts.tv },
+    { id: 'person', name: 'People', icon: <Users size={18} />, count: counts.person },
+  ];
+
+  return (
+    <aside className={styles.sidebar}>
+      <div className={styles.sidebarSection}>
+        <div className={styles.sidebarHeader}>
+          <h3>Search Results</h3>
+        </div>
+        <div className={styles.categoryList}>
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              className={`${styles.categoryItem} ${activeType === cat.id ? styles.categoryItemActive : ''}`}
+              onClick={() => onTypeChange(cat.id)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {cat.icon}
+                <span>{cat.name}</span>
+              </div>
+              {cat.count !== undefined && (
+                <span className={styles.countBadge}>{cat.count}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className={styles.tipCard}>
+        <Info size={18} className={styles.tipIcon} />
+        <p>Tip: Focus on the sidebar to filter results by type. Movies and TV shows often have higher quality posters.</p>
+      </div>
+    </aside>
   );
 }
 
@@ -70,14 +179,28 @@ function SearchResults() {
   const genre = searchParams.get('genre');
   const category = searchParams.get('category');
   const page = parseInt(searchParams.get('page') || '1');
+  const activeType = searchParams.get('type') || 'multi';
 
   const [results, setResults] = useState<any[]>([]);
+  const [counts, setCounts] = useState({ movie: 0, tv: 0, person: 0 });
   const [cdnDomain, setCdnDomain] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [pagination, setPagination] = useState<any>(null);
 
   const [currentQuery, setCurrentQuery] = useState(searchParams.toString());
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (keyword) {
+      const fetchCounts = async () => {
+        const tmdb = (await import('@/lib/tmdb')).tmdb;
+        const data = await tmdb.getSearchCounts(keyword);
+        setCounts(data);
+      };
+      fetchCounts();
+    }
+  }, [keyword]);
 
   if (searchParams.toString() !== currentQuery) {
     setCurrentQuery(searchParams.toString());
@@ -89,7 +212,6 @@ function SearchResults() {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      setTitle('');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       try {
         const mode = searchParams.get('mode');
@@ -99,88 +221,66 @@ function SearchResults() {
         const runtime = searchParams.get('runtime');
         const company = searchParams.get('company');
 
-        let data;
-
         if (mode === 'history') {
           setTitle('Watch History');
           if (typeof window !== 'undefined') {
-            try {
-              const watchHistory = localStorage.getItem('watch_history');
-              if (watchHistory) {
-                const parsed = JSON.parse(watchHistory);
-                const sorted = parsed.sort((a: any, b: any) => {
-                  const timeA = a.lastUpdated || (a.lastWatched ? new Date(a.lastWatched).getTime() : 0);
-                  const timeB = b.lastUpdated || (b.lastWatched ? new Date(b.lastWatched).getTime() : 0);
-                  return timeB - timeA;
-                });
-
-                const historyItems = sorted.map((item: any) => ({
-                  _id: item.id || item.slug,
-                  name: item.title,
-                  slug: item.slug,
-                  thumb_url: item.poster,
-                  year: item.year,
-                  quality: item.quality,
-                  episode_current: item.episodeName ? `EP ${item.episodeName}` : item.quality
-                }));
-                
-                setResults(historyItems);
-              } else {
-                setResults([]);
-              }
-            } catch (e) {
-              console.error("Failed to load history in SearchPage", e);
-              setResults([]);
+            const watchHistory = localStorage.getItem('watch_history');
+            if (watchHistory) {
+              const parsed = JSON.parse(watchHistory);
+              const sorted = parsed.sort((a: any, b: any) => (b.lastUpdated || 0) - (a.lastUpdated || 0));
+              setResults(sorted.map((item: any) => ({
+                _id: item.id || item.slug,
+                name: item.title,
+                slug: item.slug,
+                thumb_url: item.poster,
+                year: item.year,
+                quality: item.quality,
+                type: 'history'
+              })));
             }
           }
           setIsLoading(false);
           return;
         }
 
-        // SMART DISCOVERY (TMDB)
-        if (source === 'tmdb' || year || rating || runtime || company || (genre && genre.length < 5) || (country && country.length < 5)) {
-          setTitle('Discovery Results');
+        // TMDB DISCOVERY / SEARCH
+        if (source === 'tmdb' || year || rating || runtime || company || keyword || (genre && genre.length < 5) || (country && country.length < 5)) {
           const tmdb = (await import('@/lib/tmdb')).tmdb;
-          const discoverParams: Record<string, string> = {
-            page: page.toString()
-          };
+          let tmdbData;
 
-          if (year) {
-            if (year.endsWith('s')) {
-              const decade = parseInt(year);
-              discoverParams['primary_release_date.gte'] = `${decade}-01-01`;
-              discoverParams['primary_release_date.lte'] = `${decade + 9}-12-31`;
-            } else {
-              discoverParams['primary_release_year'] = year;
-            }
+          if (keyword) {
+            setTitle(`Search results for: "${keyword}"`);
+            tmdbData = await tmdb.search(keyword, activeType as any, page, {
+              language: 'vi-VN',
+              include_image_language: 'vi,en,null'
+            });
+          } else {
+            setTitle('Discovery Results');
+            const discoverParams: Record<string, string> = {
+              page: page.toString(),
+              language: 'vi-VN',
+              include_image_language: 'vi,en,null'
+            };
+            if (year) discoverParams[year.endsWith('s') ? 'primary_release_date.gte' : 'primary_release_year'] = year;
+            if (rating) discoverParams['vote_average.gte'] = rating;
+            if (genre) discoverParams['with_genres'] = genre;
+            if (country) discoverParams['with_origin_country'] = country;
+            
+            tmdbData = await tmdb.discover('movie', discoverParams);
           }
 
-          if (rating) discoverParams['vote_average.gte'] = rating;
-          if (runtime) {
-            if (runtime === 'short') discoverParams['with_runtime.lte'] = '90';
-            else if (runtime === 'medium') {
-              discoverParams['with_runtime.gte'] = '90';
-              discoverParams['with_runtime.lte'] = '120';
-            }
-            else if (runtime === 'long') discoverParams['with_runtime.gte'] = '120';
-          }
-          if (company) discoverParams['with_companies'] = company;
-          if (genre) discoverParams['with_genres'] = genre;
-          if (country) discoverParams['with_origin_country'] = country;
-
-          const tmdbData = await tmdb.discover('movie', discoverParams);
           if (tmdbData) {
-            const normalized = tmdbData.results.map((item: any) => ({
+            setResults(tmdbData.results.map((item: any) => ({
               _id: item.id,
               name: item.title || item.name,
-              slug: item.media_type === 'tv' ? `tv/${item.id}` : `movie/${item.id}`,
-              thumb_url: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : '',
+              type: item.media_type || (activeType === 'multi' ? 'movie' : activeType),
+              slug: (item.media_type || activeType) === 'tv' ? `tv/${item.id}` : `movie/${item.id}`,
+              thumb_url: tmdb.getImageUrl(item.poster_path || item.profile_path),
               year: (item.release_date || item.first_air_date || '').split('-')[0],
-              quality: item.vote_average?.toFixed(1) || '',
-              episode_current: 'TMDB'
-            }));
-            setResults(normalized);
-            setCdnDomain('');
+              vote_average: item.vote_average,
+              overview: item.overview,
+              quality: 'TMDB'
+            })));
             setPagination({
               totalItems: tmdbData.total_results,
               totalItemsPerPage: 20,
@@ -191,81 +291,19 @@ function SearchResults() {
           return;
         }
 
-        if (keyword) {
-          setTitle(`Search results for: "${keyword}"`);
-          const tmdb = (await import('@/lib/tmdb')).tmdb;
-          const tmdbData = await tmdb.search(keyword, 'multi', page);
-
-          if (tmdbData) {
-            const normalized = tmdbData.results.map((item: any) => ({
-              _id: item.id,
-              name: item.title || item.name,
-              slug: item.media_type === 'tv' ? `tv/${item.id}` : `movie/${item.id}`,
-              thumb_url: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : '',
-              year: (item.release_date || item.first_air_date || '').split('-')[0],
-              quality: item.vote_average?.toFixed(1) || '',
-              episode_current: 'TMDB'
-            }));
-            setResults(normalized);
-            setCdnDomain('');
-            setPagination({
-              totalItems: tmdbData.total_results,
-              totalItemsPerPage: 20,
-              currentPage: page
-            });
-          }
-          setIsLoading(false);
-          return;
-        }
-
-        // FALLBACK: OPHIM (For homepage "View All" links and categories)
+        // OPHIM FALLBACK
         const baseSlug = category || 'phim-moi';
-        let customTitle = '';
-        const parts = [];
-
-        if (genre) {
-          const genreNames = genre.split(',').map(s => {
-            const g = genresData?.data?.items?.find((i: any) => i.slug === s);
-            return g ? g.name : s;
-          });
-          parts.push(genreNames.join(', '));
-        }
-
-        if (country) {
-          const countryNames = country.split(',').map(s => {
-            const c = countriesData?.data?.items?.find((i: any) => i.slug === s);
-            return c ? c.name : s;
-          });
-          parts.push(countryNames.join(', '));
-        }
-
-        if (parts.length > 0) {
-          customTitle = parts.join(' • ');
-        } else {
-          const catObj = CATEGORIES.find(c => c.slug === baseSlug);
-          customTitle = catObj ? catObj.name : baseSlug;
-        }
-
-        setTitle(customTitle);
-
-        data = await ophim.getMovies('danh-sach', baseSlug, {
+        const data = await ophim.getMovies('danh-sach', baseSlug, {
           page,
           category: genre || undefined,
           country: country || undefined
         });
 
-        if (data && data.data) {
+        if (data?.data) {
           setResults(data.data.items || []);
           setCdnDomain(data.data.APP_DOMAIN_CDN_IMAGE || '');
           setPagination(data.data.params?.pagination);
-
-          if (!genre && !country) {
-            if (data.data.titlePage) {
-              setTitle(data.data.titlePage);
-            } else if ((data.data as any).seoOnPage?.titleHead) {
-              setTitle((data.data as any).seoOnPage.titleHead);
-            }
-          }
+          setTitle(data.data.titlePage || 'Search Results');
         }
       } catch (error) {
         console.error("Fetch error:", error);
@@ -275,7 +313,14 @@ function SearchResults() {
     };
 
     fetchData();
-  }, [keyword, country, genre, category, page, genresData, countriesData, searchParams]);
+  }, [keyword, country, genre, category, page, activeType, searchParams]);
+
+  const handleTypeChange = (type: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('type', type);
+    params.set('page', '1');
+    router.push(`/search?${params.toString()}`);
+  };
 
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -287,72 +332,89 @@ function SearchResults() {
 
   return (
     <div className={styles.container}>
-      {isLoading ? (
-        <div className={styles.skeletonTitle} />
-      ) : (
-        <div className={styles.titleWrapper}>
-          <h1 className={styles.title}>{title}</h1>
-          {page > 1 && <span className={styles.pageLabel}>Page {page}</span>}
-        </div>
+      {keyword && (
+        <SearchSidebar 
+          counts={counts} 
+          activeType={activeType} 
+          onTypeChange={handleTypeChange} 
+        />
       )}
 
-      {isLoading ? (
-        <div className={styles.grid}>
-          {Array.from({ length: 15 }).map((_, i) => (
-            <div key={i} className={styles.skeletonCard} />
-          ))}
+      <div className={styles.resultsArea}>
+        <div className={styles.titleWrapper}>
+          {isLoading ? (
+            <div className={styles.skeletonTitle} />
+          ) : (
+            <>
+              <h1 className={styles.title}>{title}</h1>
+              {pagination && (
+                <p className={styles.subtitle}>
+                  Showing {results.length} of {pagination.totalItems.toLocaleString()} results
+                </p>
+              )}
+            </>
+          )}
         </div>
-      ) : (
-        <>
+
+        {isLoading ? (
           <div className={styles.grid}>
-            {results.map((movie, index) => (
-              <SearchCard
-                key={movie._id || index}
-                movie={movie}
-                cdnDomain={cdnDomain}
-                index={index}
-              />
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className={styles.skeletonCard} />
             ))}
           </div>
+        ) : (
+          <>
+            <div className={styles.grid}>
+              <AnimatePresence mode="popLayout">
+                {results.map((movie, index) => (
+                  <HorizontalSearchCard
+                    key={movie._id || index}
+                    movie={movie}
+                    cdnDomain={cdnDomain}
+                    index={index}
+                    onPersonClick={(id) => setSelectedPersonId(id)}
+                  />
+                ))}
+              </AnimatePresence>
+            </div>
 
-          {totalPages > 1 && (
-            <Pagination
-              currentPage={page}
-              totalItems={pagination?.totalItems || 0}
-              itemsPerPage={pagination?.totalItemsPerPage || 20}
-              onPageChange={handlePageChange}
+            <PersonModal 
+              personId={selectedPersonId} 
+              onClose={() => setSelectedPersonId(null)} 
             />
-          )}
-        </>
-      )}
 
-      {!isLoading && results.length === 0 && (
-        <div className={styles.noResults}>
-          {searchParams.get('mode') === 'history' 
-            ? 'No watch history found.' 
-            : 'No movies found matching your criteria.'}
-        </div>
-      )}
+            {totalPages > 1 && (
+              <div style={{ marginTop: '40px' }}>
+                <Pagination
+                  currentPage={page}
+                  totalItems={pagination?.totalItems || 0}
+                  itemsPerPage={pagination?.totalItemsPerPage || 20}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            )}
+
+            {!isLoading && results.length === 0 && (
+              <div className={styles.noResults}>
+                No results found matching your criteria.
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
 export default function SearchPage() {
   return (
-    <main className={styles.main}>
-      <Header />
-      <Suspense fallback={
-        <div className={styles.container}>
-          <div className={styles.skeletonTitle} />
-          <div className={styles.grid}>
-            {Array.from({ length: 15 }).map((_, i) => (
-              <div key={i} className={styles.skeletonCard} />
-            ))}
-          </div>
-        </div>
-      }>
-        <SearchResults />
-      </Suspense>
-    </main>
+    <>
+      <Header isSolid />
+      <main className={styles.main}>
+        <Suspense fallback={null}>
+          <SearchResults />
+        </Suspense>
+      </main>
+    </>
   );
 }

@@ -1,22 +1,21 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Play, Users, Plus, Star, ChevronDown, ChevronUp, Loader2, Server } from 'lucide-react';
+import { PictureInPicture2, ChevronLeft, Globe, Play, Plus, Heart, Star, ChevronDown, ChevronUp, Loader2, Server, ChevronRight, Info, Share2, Film, Check, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { tmdb } from '@/lib/tmdb';
-import { useTMDBDetails, useTMDBSeason, useMovieDetail, useOphimMapping } from '@/hooks/useMovie';
+import { useTMDBDetails, useTMDBAllSeasons, useMovieDetail, useOphimMapping } from '@/hooks/useMovie';
 import styles from './MovieDetails.module.css';
-import OphimDetailsView from './OphimDetailsView';
 import { useLoadingStore } from '@/hooks/useLoadingStore';
 import Header from '@/components/layout/Header';
-import WatchPartyModal from './WatchPartyModal';
 import { VideoPlayer } from '@/components/player/VideoPlayer';
 import { useStore } from '@/store/useStore';
 import { useSyncHistory } from '@/hooks/useSyncHistory';
 import { useToastStore } from '@/store/useToastStore';
 import PersonModal from './PersonModal';
+
 
 interface DetailsViewProps {
   id: string;
@@ -29,8 +28,48 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
   const [showPlayer, setShowPlayer] = useState(false);
   const [showIframeControls, setShowIframeControls] = useState(true);
   const [playerConfig, setPlayerConfig] = useState<{ src: string, title: string, subTitle: string, isIframe?: boolean, isTrailer?: boolean, startTime?: number } | null>(null);
-  const [selectedServer, setSelectedServer] = useState('vidlink');
+  const [selectedServer, setSelectedServer] = useState('ophim');
+
+  useEffect(() => {
+    const saved = localStorage.getItem(`preferredServer_${id}`);
+    if (saved) {
+      setSelectedServer(saved);
+    } else {
+      setSelectedServer('ophim');
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (selectedServer) {
+      localStorage.setItem(`preferredServer_${id}`, selectedServer);
+    }
+  }, [id, selectedServer]);
+
   const [showServerMenu, setShowServerMenu] = useState(false);
+  const [isTrailerLoading, setIsTrailerLoading] = useState(false);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+
+  const handlePlayTrailer = (trailerKey: string, trailerTitle: string) => {
+    setPlayerConfig({
+      src: `https://www.youtube.com/embed/${trailerKey}?autoplay=1&vq=hd1080`,
+      title: trailerTitle,
+      subTitle: 'Official Trailer',
+      isIframe: true,
+      isTrailer: true
+    });
+    setShowPlayer(true);
+  };
+
+  const handleIframeMouseMove = () => {
+    setShowIframeControls(true);
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    controlsTimeoutRef.current = setTimeout(() => {
+      if (!showServerMenu) {
+        setShowIframeControls(false);
+      }
+    }, 3000);
+  };
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
   const [collection, setCollection] = useState<any>(null);
   const [personModalId, setPersonModalId] = useState<string | null>(null);
@@ -58,16 +97,15 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
 
   const SERVERS = [
     {
-      id: 'vidlink', name: 'VidLink (Clean)', url: (id: string, s: string, e: string, type: string) =>
-        type === 'movie' ? `https://vidlink.pro/embed/movie/${id}` : `https://vidlink.pro/embed/tv/${id}/${s}/${e}`
+      id: 'ophim', name: 'Ophim (Fast)', url: (id: string, s: string, e: string, type: string) => ''
     },
     {
-      id: 'vidsrc_to', name: 'VidSrc (.to)', url: (id: string, s: string, e: string, type: string) =>
+      id: 'videasy', name: 'Videasy (Stable)', url: (id: string, s: string, e: string, type: string) =>
+        type === 'movie' ? `https://player.videasy.net/movie/${id}` : `https://player.videasy.net/tv/${id}/${s}/${e}`
+    },
+    {
+      id: 'vidsrc', name: 'VidSrc (Unstable)', url: (id: string, s: string, e: string, type: string) =>
         type === 'movie' ? `https://vidsrc.to/embed/movie/${id}` : `https://vidsrc.to/embed/tv/${id}/${s}/${e}`
-    },
-    {
-      id: 'vidsrc_xyz', name: 'VidSrc (.xyz)', url: (id: string, s: string, e: string, type: string) =>
-        type === 'movie' ? `https://vidsrc.xyz/embed/movie/${id}` : `https://vidsrc.xyz/embed/tv/${id}/${s}/${e}`
     },
   ];
 
@@ -79,7 +117,7 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
   const isNumeric = /^\d+$/.test(id);
 
   const { data: detail, isLoading } = useTMDBDetails(isNumeric ? id : '', type);
-  const { history, addToHistory } = useStore();
+  const { history, addToHistory, favorites, addToFavorites, removeFromFavorites } = useStore();
   const { syncItemToCloud } = useSyncHistory();
 
   // Find all history entries for this movie/show
@@ -99,6 +137,21 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
 
   const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const similarScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollSimilar = (direction: 'left' | 'right') => {
+    if (similarScrollRef.current) {
+      const { scrollLeft, clientWidth } = similarScrollRef.current;
+      const scrollTo = direction === 'left'
+        ? scrollLeft - clientWidth * 0.8
+        : scrollLeft + clientWidth * 0.8;
+
+      similarScrollRef.current.scrollTo({
+        left: scrollTo,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -153,8 +206,17 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
   }, [isNumeric, detail?.media_type, type, id, ophimRes, router]);
 
   const [isImageLoaded, setIsImageLoaded] = useState(false);
-  const [isPartyModalOpen, setIsPartyModalOpen] = useState(false);
-  const { data: seasonData, isFetching: isFetchingSeason } = useTMDBSeason(type === 'tv' && isNumeric ? id : '', selectedSeason);
+
+  // Preload all seasons
+  const seasonsQueries = useTMDBAllSeasons(
+    type === 'tv' && isNumeric ? id : '',
+    detail?.number_of_seasons || 0
+  );
+
+  // Get data for the selected season
+  const seasonData = seasonsQueries[selectedSeason - 1]?.data;
+  const isFetchingSeason = seasonsQueries[selectedSeason - 1]?.isFetching;
+  const isAnySeasonLoading = seasonsQueries.some(q => q.isLoading);
 
   // Fetch Collection Details
   useEffect(() => {
@@ -179,8 +241,9 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
     }
   }, [detail, type]);
 
-  const handlePlay = (episodeNum: string = '1', startTime?: number, seasonNum?: number) => {
+  const handlePlay = (episodeNum: string = '1', startTime?: number, seasonNum?: number, forcedServer?: string) => {
     const playSeason = seasonNum || selectedSeason;
+    const activeServerIdForThisPlay = forcedServer || selectedServer;
     setCurrentEpisodeNum(episodeNum);
     if (seasonNum) setSelectedSeason(seasonNum); // Sync UI if needed
 
@@ -210,7 +273,7 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
       }
     }
 
-    if (m3u8Url) {
+    if (m3u8Url && activeServerIdForThisPlay === 'ophim') {
       setPlayerConfig({
         src: m3u8Url,
         title: detail?.title || detail?.name || movieData?.name || '',
@@ -222,8 +285,16 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
       // Save initial history entry
       handleProgress(startTime || 0, 100, episodeNum);
     } else {
-      // Fallback to iframe overlay
-      const activeServer = SERVERS.find(s => s.id === selectedServer) || SERVERS[0];
+      // Fallback or explicit iframe
+      let activeServerId = activeServerIdForThisPlay;
+
+      // Auto-fallback if 'ophim' was default but not available
+      if (activeServerId === 'ophim' && !m3u8Url) {
+        activeServerId = 'videasy';
+        setSelectedServer('videasy'); // Update UI
+      }
+
+      const activeServer = SERVERS.find(s => s.id === activeServerId) || SERVERS[1];
       const embedUrl = activeServer.url(id as string, playSeason.toString(), episodeNum, type as string);
 
       setPlayerConfig({
@@ -336,10 +407,6 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  if (!isNumeric) {
-    if (isOphimLoading || (ophimRes?.data?.item?.tmdb?.id)) return null;
-    return <OphimDetailsView slug={id} />;
-  }
 
   if (!isLoading && !detail) {
     return (
@@ -357,6 +424,30 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
   const genres = detail?.genres || [];
   const cast = detail?.credits?.cast?.slice(0, 12) || [];
   const recommendations = detail?.recommendations?.results?.slice(0, 12) || [];
+
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScroll = useCallback(() => {
+    if (similarScrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = similarScrollRef.current;
+      setCanScrollLeft(scrollLeft > 10);
+      setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 10);
+    }
+  }, []);
+
+  useEffect(() => {
+    const el = similarScrollRef.current;
+    if (el) {
+      el.addEventListener('scroll', checkScroll);
+      checkScroll();
+      window.addEventListener('resize', checkScroll);
+      return () => {
+        el.removeEventListener('scroll', checkScroll);
+        window.removeEventListener('resize', checkScroll);
+      };
+    }
+  }, [recommendations, checkScroll]);
   const trailers = detail?.videos?.results?.filter((v: any) => v.type === 'Trailer' && v.site === 'YouTube') || [];
   // Sort trailers by published_at date (newest first)
   const sortedTrailers = trailers.sort((a: any, b: any) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
@@ -383,51 +474,71 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
             }}
           >
             {playerConfig.isIframe ? (
-              <div className={styles.iframeContainer} onClick={(e) => e.stopPropagation()}>
+              <div
+                className={styles.iframeContainer}
+                onClick={(e) => e.stopPropagation()}
+                onMouseEnter={handleIframeMouseMove}
+                onMouseMove={handleIframeMouseMove}
+                onMouseLeave={() => {
+                  setShowIframeControls(false);
+                  if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+                }}
+              >
                 {!playerConfig.isTrailer && (
-                  <div className={styles.iframeServerSwitcher}>
-                    <button
-                      className={styles.serverBtn}
-                      onClick={() => setShowServerMenu(!showServerMenu)}
-                    >
-                      <Server size={18} />
-                      <span>{SERVERS.find(s => s.id === selectedServer)?.name}</span>
-                    </button>
+                  <div className={`${styles.iframeTopBar} ${!showIframeControls ? styles.hidden : ''}`}>
+                    <div className={styles.iframeTopLeft}>
+                      <button
+                        className={styles.iframeBackBtn}
+                        onClick={() => setShowPlayer(false)}
+                      >
+                        <ArrowLeft size={32} />
+                      </button>
+                      <div className={styles.iframeInfo}>
+                        <span className={styles.iframeTitle}>
+                          {playerConfig.subTitle || playerConfig.title}
+                        </span>
+                      </div>
+                    </div>
 
-                    <AnimatePresence>
-                      {showServerMenu && (
-                        <motion.div
-                          className={styles.serverMenuFloating}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                        >
-                          {SERVERS.map((s) => (
-                            <button
-                              key={s.id}
-                              className={`${styles.serverMenuItem} ${selectedServer === s.id ? styles.activeServer : ''}`}
-                              onClick={() => {
-                                setSelectedServer(s.id);
-                                setShowServerMenu(false);
-                                const newUrl = s.url(id as string, selectedSeason.toString(), currentEpisodeNum, type as string);
-                                setPlayerConfig({ ...playerConfig, src: newUrl });
-                              }}
-                            >
-                              {s.name}
-                            </button>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+
+                    <div className={styles.serverContainer}>
+                      <button className={styles.serverButton} onClick={() => setShowServerMenu(!showServerMenu)}>
+                        <Globe size={20} />
+                        <span>{SERVERS.find(s => s.id === selectedServer)?.name.split(' ')[0] || 'Server'}</span>
+                      </button>
+                      <AnimatePresence>
+                        {showServerMenu && (
+                          <motion.div
+                            className={styles.serverMenuFloating}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                          >
+                            <div className={styles.menuHeader}>Select Server</div>
+                            {SERVERS.map((s) => (
+                              <button
+                                key={s.id}
+                                className={`${styles.serverMenuItem} ${selectedServer === s.id ? styles.activeServer : ''}`}
+                                onClick={() => {
+                                  setSelectedServer(s.id);
+                                  setShowServerMenu(false);
+                                  handlePlay(currentEpisodeNum, undefined, selectedSeason, s.id);
+                                }}
+                              >
+                                {s.name}
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
                 )}
                 <iframe
                   src={playerConfig.src}
                   className={styles.iframe}
+                  allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
                   allowFullScreen
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-presentation"
-                  referrerPolicy="origin"
                 />
               </div>
             ) : (
@@ -444,6 +555,12 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
                     setShowPlayer(false);
                   }}
                   autoPlay
+                  servers={SERVERS}
+                  currentServerId={selectedServer}
+                  onServerSelect={(sid) => {
+                    setSelectedServer(sid);
+                    handlePlay(currentEpisodeNum, undefined, selectedSeason, sid);
+                  }}
                   onNext={
                     seasonData?.episodes?.some((ep: any) => ep.episode_number === parseInt(currentEpisodeNum) + 1)
                       ? () => handlePlay((parseInt(currentEpisodeNum) + 1).toString())
@@ -461,9 +578,9 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
           <div className={styles.backdropWrapper}>
             {(detail?.backdrop_path || detail?.poster_path) && (
               <picture>
-                <source 
-                  media="(max-width: 768px)" 
-                  srcSet={tmdb.getTextlessPosterUrl(detail.images) || tmdb.getImageUrl(detail.poster_path || detail.backdrop_path, 'original')} 
+                <source
+                  media="(max-width: 768px)"
+                  srcSet={tmdb.getTextlessPosterUrl(detail.images) || tmdb.getImageUrl(detail.poster_path || detail.backdrop_path, 'original')}
                 />
                 <img
                   src={tmdb.getTextlessBackdropUrl(detail.images) || tmdb.getImageUrl(detail.backdrop_path || detail.poster_path, 'original')}
@@ -510,47 +627,83 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
 
             <p className={styles.description}>{detail?.overview}</p>
 
-            {/* Watch Providers */}
-            {detail?.['watch/providers']?.results?.US?.flatrate && (
-              <div className={styles.watchProviders}>
-                <span className={styles.watchLabel}>Streaming on:</span>
-                <div className={styles.providerIcons}>
-                  {detail['watch/providers'].results.US.flatrate
-                    .reduce((acc: any[], provider: any) => {
-                      const isDuplicate = acc.find(p =>
-                        p.provider_name.toLowerCase().includes(provider.provider_name.toLowerCase().split(' ')[0]) ||
-                        provider.provider_name.toLowerCase().includes(p.provider_name.toLowerCase().split(' ')[0])
-                      );
-                      if (!isDuplicate) acc.push(provider);
-                      return acc;
-                    }, [])
-                    .map((provider: any) => (
-                      <div key={provider.provider_id} className={styles.providerIconWrapper} title={provider.provider_name}>
-                        <img
-                          src={tmdb.getImageUrl(provider.logo_path, 'w300')}
-                          alt={provider.provider_name}
-                          className={styles.providerIcon}
-                        />
-                      </div>
-                    ))}
+            {/* Studios and Watch Providers */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
+              {/* Studios */}
+              {detail?.production_companies?.some((c: any) => c.logo_path) && (
+                <div className={styles.watchProviders}>
+                  <span className={styles.watchLabel}>Studio:</span>
+                  <div className={styles.providerIcons}>
+                    {detail.production_companies
+                      .filter((c: any) => c.logo_path)
+                      .slice(0, 1) // Only show the primary studio to keep UI clean
+                      .map((company: any) => (
+                        <Link
+                          href={`/provider/${company.id}?type=company`}
+                          key={company.id}
+                          className={styles.providerIconWrapper}
+                          title={company.name}
+                        >
+                          <img
+                            src={tmdb.getImageUrl(company.logo_path, 'w300', 'negate,000,666')}
+                            alt={company.name}
+                            className={styles.providerIcon}
+                          />
+                        </Link>
+                      ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* Watch Providers */}
+              {detail?.['watch/providers']?.results?.US?.flatrate && (
+                <div className={styles.watchProviders}>
+                  <span className={styles.watchLabel}>Streaming on:</span>
+                  <div className={styles.providerIcons}>
+                    {detail['watch/providers'].results.US.flatrate
+                      .reduce((acc: any[], provider: any) => {
+                        const isDuplicate = acc.find(p =>
+                          p.provider_name.toLowerCase().includes(provider.provider_name.toLowerCase().split(' ')[0]) ||
+                          provider.provider_name.toLowerCase().includes(p.provider_name.toLowerCase().split(' ')[0])
+                        );
+                        if (!isDuplicate) acc.push(provider);
+                        return acc;
+                      }, [])
+                      .map((provider: any) => (
+                        <Link
+                          href={`/provider/${provider.provider_id}?type=watch`}
+                          key={provider.provider_id}
+                          className={styles.providerIconWrapper}
+                          title={provider.provider_name}
+                        >
+                          <img
+                            src={tmdb.getImageUrl(provider.logo_path, 'w300')}
+                            alt={provider.provider_name}
+                            className={styles.providerIcon}
+                          />
+                        </Link>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className={styles.mainActions}>
-              {isTrailerOnly ? (
+              {(isOphimLoading || isMappingLoading) ? (
+                <button
+                  className={styles.btnPlay}
+                  disabled
+                  style={{ opacity: 0.8, cursor: 'wait' }}
+                >
+                  <Loader2 size={24} className={styles.spinner} />
+                  <span>Loading...</span>
+                </button>
+              ) : isTrailerOnly ? (
                 <button
                   className={styles.btnTrailer}
                   onClick={() => {
                     if (trailer) {
-                      setPlayerConfig({
-                        src: `https://www.youtube.com/embed/${trailer.key}?autoplay=1`,
-                        title: detail?.title || detail?.name || '',
-                        subTitle: 'Official Trailer',
-                        isIframe: true,
-                        isTrailer: true
-                      });
-                      setShowPlayer(true);
+                      handlePlayTrailer(trailer.key, title);
                     } else {
                       addToast("Trailer not available on YouTube.", "error");
                     }
@@ -575,21 +728,10 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
                           handlePlay('1');
                         }
                       } else if (trailer) {
-                        setPlayerConfig({
-                          src: `https://www.youtube.com/embed/${trailer.key}?autoplay=1`,
-                          title: detail?.title || detail?.name || '',
-                          subTitle: 'Official Trailer',
-                          isIframe: true,
-                          isTrailer: true
-                        });
-                        setShowPlayer(true);
+                        handlePlayTrailer(trailer.key, title);
                       }
                     }}
                     disabled={!ophimRes?.data?.item && !isNumeric && !trailer}
-                    style={{
-                      opacity: (!ophimRes?.data?.item && isNumeric && isOphimLoading) ? 0.6 : 1,
-                      cursor: (!ophimRes?.data?.item && isNumeric && isOphimLoading) ? 'wait' : 'pointer'
-                    }}
                   >
                     <Play size={24} fill="currentColor" />
                     <span>
@@ -603,18 +745,15 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
                 </>
               )}
               <div className={styles.secondaryActions}>
-                {trailer && !isTrailerOnly && (
+                {!isTrailerOnly && (
                   <button
                     className={styles.btnTrailer}
                     onClick={() => {
-                      setPlayerConfig({
-                        src: `https://www.youtube.com/embed/${trailer.key}?autoplay=1`,
-                        title: detail?.title || detail?.name || '',
-                        subTitle: 'Official Trailer',
-                        isIframe: true,
-                        isTrailer: true
-                      });
-                      setShowPlayer(true);
+                      if (trailer) {
+                        handlePlayTrailer(trailer.key, title);
+                      } else {
+                        addToast("Trailer not available on YouTube.", "error");
+                      }
                     }}
                   >
                     <Play size={24} />
@@ -622,14 +761,31 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
                   </button>
                 )}
                 <button
-                  className={styles.btnWatchParty}
-                  onClick={() => setIsPartyModalOpen(true)}
+                  className={`${styles.btnAdd} ${favorites.some(f => String(f.id) === String(detail?.id)) ? styles.active : ''}`}
+                  onClick={() => {
+                    if (!detail) return;
+                    const isFav = favorites.some(f => String(f.id) === String(detail.id));
+                    if (isFav) {
+                      removeFromFavorites(String(detail.id));
+                      addToast('Removed from My List', 'info');
+                    } else {
+                      addToFavorites({
+                        id: String(detail.id),
+                        title: detail.title || detail.name || '',
+                        poster: detail.poster_path || detail.backdrop_path || '',
+                        progress: 0,
+                        slug: detail.id.toString()
+                      });
+                      addToast('Added to My List', 'success');
+                    }
+                  }}
+                  title={favorites.some(f => String(f.id) === String(detail?.id)) ? "Remove from My List" : "Add to My List"}
                 >
-                  <Users size={24} />
-                  <span>Watch Party</span>
-                </button>
-                <button className={styles.btnAdd}>
-                  <Plus size={24} />
+                  <Heart
+                    size={24}
+                    fill={favorites.some(f => String(f.id) === String(detail?.id)) ? "var(--primary)" : "none"}
+                    color={favorites.some(f => String(f.id) === String(detail?.id)) ? "var(--primary)" : "currentColor"}
+                  />
                 </button>
               </div>
             </div>
@@ -640,14 +796,6 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
             onClose={() => setPersonModalId(null)}
           />
 
-          <WatchPartyModal
-            isOpen={isPartyModalOpen}
-            onClose={() => setIsPartyModalOpen(false)}
-            peerId={id}
-            onJoin={(roomId) => {
-              router.push(`/watch/${type}/${id}?partyId=${roomId}`);
-            }}
-          />
           <motion.div
             className={styles.scrollIndicator}
             initial={{ opacity: 0 }}
@@ -656,7 +804,7 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
             transition={{ duration: 0.3 }}
             onClick={() => {
               window.scrollTo({
-                top: window.innerHeight,
+                top: window.innerHeight - 76,
                 behavior: 'smooth'
               });
             }}
@@ -682,23 +830,27 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
                 <span className={styles.infoValue}>{contentRating || 'N/A'}</span>
               </div>
 
-              {type === 'tv' && detail?.networks?.length > 0 && (
+              {(type === 'tv' ? detail?.networks : detail?.production_companies)?.length > 0 && (
                 <div className={styles.infoItem}>
-                  <span className={styles.infoLabel}>Network</span>
+                  <span className={styles.infoLabel}>{type === 'tv' ? 'Network' : 'Studio'}</span>
                   <div className={styles.productionLogos}>
-                    {detail.networks.slice(0, 1).map((network: any) => (
-                      network.logo_path ? (
-                        <div key={network.id} className={styles.infoLogoWrapper} title={network.name}>
-                          <img 
-                            src={tmdb.getImageUrl(network.logo_path, 'w300')} 
-                            alt={network.name}
-                            className={styles.infoLogo}
+                    {(type === 'tv' ? detail.networks : detail.production_companies)
+                      .filter((c: any) => c.logo_path)
+                      .slice(0, 1)
+                      .map((company: any) => (
+                        <Link
+                          href={`/provider/${company.id}?type=${type === 'tv' ? 'network' : 'company'}`}
+                          key={company.id}
+                          className={styles.infoLogoWrapper}
+                          title={company.name}
+                        >
+                          <img
+                            src={tmdb.getImageUrl(company.logo_path, 'w300')}
+                            alt={company.name}
+                            className={company.name === 'Marvel Studios' ? styles.marvelLogo : styles.infoLogo}
                           />
-                        </div>
-                      ) : (
-                        <span key={network.id} className={styles.companyName}>{network.name}</span>
-                      )
-                    ))}
+                        </Link>
+                      ))}
                   </div>
                 </div>
               )}
@@ -764,25 +916,7 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
                 </div>
               )}
 
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>Production</span>
-                <div className={styles.productionLogos}>
-                  {detail?.production_companies?.slice(0, 1).map((company: any) => (
-                    company.logo_path ? (
-                      <div key={company.id} className={styles.infoLogoWrapper} title={company.name}>
-                        <img 
-                          key={company.id}
-                          src={tmdb.getImageUrl(company.logo_path, 'w300')} 
-                          alt={company.name}
-                          className={styles.infoLogo}
-                        />
-                      </div>
-                    ) : (
-                      <span key={company.id} className={styles.companyName}>{company.name}</span>
-                    )
-                  ))}
-                </div>
-              </div>
+
             </div>
           </section>
 
@@ -822,49 +956,22 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
               </div>
 
               {detail?.number_of_seasons && (
-                <div className={styles.seasonDropdownWrapper} ref={dropdownRef}>
-                  <button
-                    className={styles.seasonDropdownToggle}
-                    onClick={() => setIsSeasonDropdownOpen(!isSeasonDropdownOpen)}
-                    disabled={isFetchingSeason}
-                  >
-                    Season {selectedSeason}
-                    {isFetchingSeason ? (
-                      <Loader2 size={20} className={styles.spinner} />
-                    ) : isSeasonDropdownOpen ? (
-                      <ChevronUp size={20} />
-                    ) : (
-                      <ChevronDown size={20} />
-                    )}
-                  </button>
-
-                  <AnimatePresence>
-                    {isSeasonDropdownOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className={styles.seasonDropdownMenu}
-                      >
-                        {Array.from({ length: detail.number_of_seasons }, (_, i) => i + 1).map(seasonNum => (
-                          <button
-                            key={seasonNum}
-                            className={`${styles.seasonDropdownItem} ${selectedSeason === seasonNum ? styles.active : ''}`}
-                            onClick={() => {
-                              setSelectedSeason(seasonNum);
-                              setIsSeasonDropdownOpen(false);
-                            }}
-                          >
-                            Season {seasonNum}
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                <div className={styles.seasonChips}>
+                  {Array.from({ length: detail.number_of_seasons }, (_, i) => i + 1).map(seasonNum => (
+                    <button
+                      key={seasonNum}
+                      className={`${styles.seasonChip} ${selectedSeason === seasonNum ? styles.seasonChipActive : ''}`}
+                      onClick={() => setSelectedSeason(seasonNum)}
+                      disabled={isFetchingSeason}
+                    >
+                      Season {seasonNum}
+                    </button>
+                  ))}
+                  {isFetchingSeason && <Loader2 size={20} className={styles.spinner} />}
                 </div>
               )}
 
-              <div className={`${styles.episodesList} ${isFetchingSeason ? styles.fetching : ''}`}>
+              <div className={`${styles.episodesGrid} ${isFetchingSeason ? styles.fetching : ''}`}>
                 {seasonData?.episodes?.map((ep: any) => {
                   const epHistory = showHistory.find((h: any) =>
                     h.episodeNum === ep.episode_number &&
@@ -890,7 +997,7 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
                           className={styles.episodeThumb}
                         />
                         <div className={styles.playOverlay}>
-                          <Play size={32} fill="#fff" />
+                          <Play size={24} fill="#fff" />
                         </div>
                         {epHistory && epHistory.progress > 0 && (
                           <div className={styles.episodeProgressContainer}>
@@ -900,15 +1007,11 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
                             />
                           </div>
                         )}
-                        {isCurrentWatching && (
-                          <div className={styles.watchingBadge}>Watching</div>
-                        )}
                       </div>
                       <div className={styles.episodeInfo}>
-                        <div className={styles.episodeHeader}>Episode {ep.episode_number}</div>
+                        <div className={styles.episodeNumber}>E{ep.episode_number}</div>
                         <h4 className={styles.episodeTitle}>{ep.name}</h4>
                         {ep.runtime && <p className={styles.episodeRuntime}>{ep.runtime}m</p>}
-                        <p className={styles.episodeDesc}>{ep.overview || 'No description available.'}</p>
                       </div>
                     </div>
                   );
@@ -958,26 +1061,38 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
                 <div className={styles.sectionBar} />
                 <h3 className={styles.sectionTitle}>Similar Shows</h3>
               </div>
-              <div className={styles.similarGrid}>
-                {recommendations.map((item: any) => (
-                  <Link
-                    key={item.id}
-                    href={type === 'tv' ? `/tv/${item.id}` : `/movie/${item.id}`}
-                    className={styles.similarCard}
-                  >
-                    <div className={styles.similarPosterWrapper}>
-                      <img
-                        src={tmdb.getImageUrl(item.poster_path, 'w342')}
-                        alt={item.title || item.name}
-                        className={styles.similarPoster}
-                      />
-                    </div>
-                    <div className={styles.similarInfo}>
-                      <div className={styles.similarTitle}>{item.title || item.name}</div>
-                      <div className={styles.similarYear}>{(item.release_date || item.first_air_date || '').split('-')[0]}</div>
-                    </div>
-                  </Link>
-                ))}
+              <div className={styles.sliderWrapper}>
+                {canScrollLeft && (
+                  <button className={`${styles.controlBtn} ${styles.left}`} onClick={() => scrollSimilar('left')}>
+                    <ChevronLeft size={28} />
+                  </button>
+                )}
+                <div className={styles.similarGrid} ref={similarScrollRef}>
+                  {recommendations.map((item: any) => (
+                    <Link
+                      key={item.id}
+                      href={type === 'tv' ? `/tv/${item.id}` : `/movie/${item.id}`}
+                      className={styles.similarCard}
+                    >
+                      <div className={styles.similarPosterWrapper}>
+                        <img
+                          src={tmdb.getImageUrl(item.poster_path, 'w342')}
+                          alt={item.title || item.name}
+                          className={styles.similarPoster}
+                        />
+                      </div>
+                      <div className={styles.similarInfo}>
+                        <div className={styles.similarTitle}>{item.title || item.name}</div>
+                        <div className={styles.similarYear}>{(item.release_date || item.first_air_date || '').split('-')[0]}</div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                {canScrollRight && (
+                  <button className={`${styles.controlBtn} ${styles.right}`} onClick={() => scrollSimilar('right')}>
+                    <ChevronRight size={28} />
+                  </button>
+                )}
               </div>
             </section>
           )}

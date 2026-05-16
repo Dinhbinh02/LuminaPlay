@@ -1,5 +1,5 @@
 .section {
-  padding: 0 4% 20px;
+  padding: 0 0 20px;
   margin-bottom: 10px;
 }
 
@@ -7,7 +7,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .titleWrapper {
@@ -200,7 +200,7 @@
   .cardWrapper {
     flex: 0 0 240px;
   }
-  
+
   .info {
     height: 44px;
   }

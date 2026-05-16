@@ -1,7 +1,7 @@
 const TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY || '';
 const TMDB_ACCESS_TOKEN = process.env.NEXT_PUBLIC_TMDB_ACCESS_TOKEN || '';
 const BASE_URL = 'https://api.themoviedb.org/3';
-const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
+const IMAGE_BASE_URL = 'https://media.themoviedb.org/t/p';
 
 export interface TMDBMovie {
   id: number;
@@ -18,15 +18,17 @@ export interface TMDBMovie {
 }
 
 export const tmdb = {
-  fetch: async (endpoint: string, params: Record<string, string> = {}) => {
-    const url = new URL(`${BASE_URL}${endpoint}`);
-    
+  fetch: async (endpoint: string, params: Record<string, string | number> = {}) => {
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const url = new URL(`${BASE_URL}${cleanEndpoint}`);
+
     // Only add api_key to URL if we don't have a Bearer Token
     if (TMDB_API_KEY && !TMDB_ACCESS_TOKEN) {
       url.searchParams.append('api_key', TMDB_API_KEY);
     }
-    Object.entries(params).forEach(([key, value]) => {
-      url.searchParams.append(key, value);
+    const searchParams = { language: 'en-US', ...params };
+    Object.entries(searchParams).forEach(([key, value]) => {
+      url.searchParams.append(key, String(value));
     });
 
     const headers: Record<string, string> = {};
@@ -34,21 +36,26 @@ export const tmdb = {
       headers['Authorization'] = `Bearer ${TMDB_ACCESS_TOKEN}`;
     }
 
-    const res = await fetch(url.toString(), {
-      headers,
-      next: { revalidate: 3600 } // Cache for 1 hour
-    });
+    try {
+      const res = await fetch(url.toString(), {
+        headers,
+        next: { revalidate: 3600 } // Cache for 1 hour
+      });
 
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      if (res.status !== 404 && res.status !== 502) {
-        console.error(`TMDB API Error [${res.status}] for ${endpoint}:`, errorData);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        if (res.status !== 404 && res.status !== 502) {
+          console.error(`TMDB API Error [${res.status}] for ${endpoint}:`, errorData);
+        }
+        return null;
       }
-      return null; 
-    }
 
-    const data = await res.json();
-    return data;
+      const data = await res.json();
+      return data;
+    } catch (error) {
+      console.error(`TMDB Fetch Exception for ${endpoint}:`, error instanceof Error ? error.message : error);
+      return null;
+    }
   },
 
   getTrending: async (type: 'all' | 'movie' | 'tv' = 'all', timeWindow: 'day' | 'week' = 'day') => {
@@ -58,7 +65,7 @@ export const tmdb = {
   getPopularByRegion: async (region: string, type: 'movie' | 'tv' = 'movie') => {
     return tmdb.fetch(`/${type}/popular`, { region });
   },
-  
+
   getPopular: async (type: 'movie' | 'tv' = 'movie', page = 1) => {
     return tmdb.fetch(`/${type}/popular`, { page: page.toString() });
   },
@@ -68,7 +75,7 @@ export const tmdb = {
   },
 
   getMoviesByGenre: async (genreId: number, type: 'movie' | 'tv' = 'movie', page = 1) => {
-    return tmdb.fetch(`/discover/${type}`, { 
+    return tmdb.fetch(`/discover/${type}`, {
       with_genres: genreId.toString(),
       sort_by: 'popularity.desc',
       page: page.toString()
@@ -87,21 +94,23 @@ export const tmdb = {
     });
   },
 
-  search: async (query: string, type: 'movie' | 'tv' | 'multi' = 'multi', page = 1) => {
-    return tmdb.fetch(`/search/${type}`, { query, page: page.toString() });
+  search: async (query: string, type: 'movie' | 'tv' | 'multi' = 'multi', page = 1, params: Record<string, string> = {}) => {
+    return tmdb.fetch(`/search/${type}`, { query, page: page.toString(), ...params });
   },
 
   getMovieDetails: async (id: number | string) => {
-    return tmdb.fetch(`/movie/${id}`, { 
+    return tmdb.fetch(`/movie/${id}`, {
       append_to_response: 'images,videos,credits,external_ids,recommendations,release_dates,watch/providers',
-      include_video_language: 'vi,ja,en'
+      include_video_language: 'vi,ja,en',
+      include_image_language: 'en,vi,null'
     });
   },
 
   getTVDetails: async (id: number | string) => {
-    return tmdb.fetch(`/tv/${id}`, { 
+    return tmdb.fetch(`/tv/${id}`, {
       append_to_response: 'images,videos,credits,external_ids,recommendations,content_ratings,watch/providers',
-      include_video_language: 'vi,ja,en'
+      include_video_language: 'vi,ja,en',
+      include_image_language: 'en,vi,null'
     });
   },
 
@@ -117,8 +126,8 @@ export const tmdb = {
     return tmdb.fetch(`/tv/${id}/season/${season}`);
   },
 
-  getRecommendations: async (id: number | string, type: 'movie' | 'tv' = 'movie') => {
-    return tmdb.fetch(`/${type}/${id}/recommendations`);
+  getRecommendations: async (id: number | string, type: 'movie' | 'tv' = 'movie', page: number | string = 1) => {
+    return tmdb.fetch(`/${type}/${id}/recommendations`, { page: String(page) });
   },
 
   getPersonDetails: async (id: number | string) => {
@@ -128,21 +137,45 @@ export const tmdb = {
   getTVImages: async (id: number | string) => {
     return tmdb.fetch(`/tv/${id}/images`);
   },
-  
+
+  getSearchCounts: async (query: string) => {
+    const [movies, tv, people] = await Promise.all([
+      tmdb.fetch('/search/movie', { query }),
+      tmdb.fetch('/search/tv', { query }),
+      tmdb.fetch('/search/person', { query })
+    ]);
+    return {
+      movie: movies?.total_results || 0,
+      tv: tv?.total_results || 0,
+      person: people?.total_results || 0
+    };
+  },
   getCollectionDetails: async (id: number | string) => {
     return tmdb.fetch(`/collection/${id}`);
   },
+  getCompanyImages: async (id: number | string) => {
+    return tmdb.fetch(`/company/${id}/images`);
+  },
+  getNetworkImages: async (id: number | string) => {
+    return tmdb.fetch(`/network/${id}/images`);
+  },
+  getWatchProviders: async (type: 'movie' | 'tv' = 'movie', region = 'US') => {
+    return tmdb.fetch(`/watch/providers/${type}`, { watch_region: region });
+  },
 
-  getImageUrl: (path: string | null, size: 'w300' | 'w342' | 'w500' | 'w780' | 'w1280' | 'original' = 'w500') => {
+  getImageUrl: (path: string | null, size: 'w300' | 'w342' | 'w500' | 'w780' | 'w1280' | 'original' = 'w500', filter?: string) => {
     if (!path) return '';
-    return `${IMAGE_BASE_URL}/${size}${path}`;
+    // Use a fixed size like w500 instead of original when filtering to ensure the filter is applied reliably
+    const effectiveSize = filter && size === 'original' ? 'w500' : size;
+    const sizeWithFilter = filter ? `${effectiveSize}_filter(${filter})` : effectiveSize;
+    return `${IMAGE_BASE_URL}/${sizeWithFilter}${path}`;
   },
 
   // Get Logo URL (improved to find best logo)
   getLogoUrl(images: any) {
     const logo = images?.logos?.find((l: any) => l.iso_639_1 === 'en' || !l.iso_639_1);
     if (!logo) return null;
-    return `${IMAGE_BASE_URL}/original${logo.file_path}`;
+    return tmdb.getImageUrl(logo.file_path, 'w500');
   },
 
   // Get Textless Poster URL
@@ -151,6 +184,28 @@ export const tmdb = {
     const textless = images.posters.find((p: any) => p.iso_639_1 === null || p.iso_639_1 === 'xx');
     if (!textless) return null;
     return `${IMAGE_BASE_URL}/original${textless.file_path}`;
+  },
+
+  // Map common Watch Provider IDs to Company IDs
+  getCompanyIdFromProvider(providerId: string | number): string {
+    const id = providerId.toString();
+    const map: Record<string, string> = {
+      '283': '198847', // Crunchyroll
+      '2411': '198847',
+      '213': '178464', // Netflix
+      '8': '178464',
+      '49': '3186',   // HBO
+      '1899': '3186',
+      '350': '2552',   // Apple
+      '337': '2739',   // Disney
+      '1024': '1024',  // Amazon
+      '9': '1024',
+      '119': '1024',
+      '15': '453',     // Hulu
+      '4330': '531',    // Paramount
+      '386': '3353',   // Peacock
+    };
+    return map[id] || id;
   },
 
   // Get Textless Backdrop URL

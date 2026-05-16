@@ -17,6 +17,9 @@ interface MovieSectionProps {
   slug?: string;
   params?: any;
   movies?: any[];
+  infiniteData?: any;
+  gridMode?: boolean;
+  href?: string;
 }
 
 // Memory cache for scroll positions during the session
@@ -51,7 +54,7 @@ function MovieCard({ movie, index, lastElementRef }: { movie: any, index: number
               alt={movie.title}
               fill
               className={styles.poster}
-              style={{ 
+              style={{
                 opacity: isLoaded ? 1 : 0,
                 transition: isLoaded && movie.poster && loadedImagesCache.has(movie.poster) ? 'none' : 'opacity 0.3s ease'
               }}
@@ -65,29 +68,15 @@ function MovieCard({ movie, index, lastElementRef }: { movie: any, index: number
                 setIsLoaded(true);
               }}
             />
-            {(movie.episodeCurrent || movie.quality || movie.status) && (
-              <div className={`
-                ${styles.badge} 
-                ${movie.status === 'trailer' || movie.episodeCurrent?.toLowerCase() === 'trailer' ? styles.trailer : ''}
-                ${!movie.episodeCurrent || movie.episodeCurrent === 'Đang cập nhật' ? styles.soon : ''}
-              `}>
-                {ophim.formatEpisode(movie.episodeCurrent || movie.quality, movie.episodeTotal, movie.status)}
-              </div>
-            )}
           </div>
         </div>
-        <div className={styles.movieInfo}>
-          <h3 className={styles.movieTitle}>{movie.title}</h3>
-          <div className={styles.movieMeta}>
-            <span>{movie.year}</span>
-          </div>
-        </div>
+
       </Link>
     </motion.div>
   );
 }
 
-export default function MovieSection({ title, type, slug, params = {}, movies }: MovieSectionProps) {
+export default function MovieSection({ title, type, slug, params = {}, movies, infiniteData, gridMode, href }: MovieSectionProps) {
   const memoizedParams = useMemo(() => params, [JSON.stringify(params)]);
 
   const {
@@ -100,30 +89,28 @@ export default function MovieSection({ title, type, slug, params = {}, movies }:
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const observer = useRef<IntersectionObserver | null>(null);
+  const restoredTitles = useRef<Set<string>>(new Set());
 
 
-  // Save scroll position
-  const handleScroll = useCallback(() => {
-    if (scrollContainerRef.current) {
-      scrollRegistry[title] = scrollContainerRef.current.scrollLeft;
-    }
-  }, [title]);
 
   const lastElementRef = useCallback((node: HTMLDivElement) => {
-    if (isFetchingNextPage || movies) return;
+    if (isFetchingNextPage || movies || (infiniteData && infiniteData.isFetchingNextPage)) return;
     if (observer.current) observer.current.disconnect();
 
+    const fetchNext = infiniteData ? infiniteData.fetchNextPage : fetchNextPage;
+    const hasNext = infiniteData ? infiniteData.hasNextPage : hasNextPage;
+
     observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasNextPage) {
-        fetchNextPage();
+      if (entries[0].isIntersecting && hasNext) {
+        fetchNext();
       }
     }, {
-      root: scrollContainerRef.current,
-      rootMargin: '400px'
+      root: gridMode ? null : scrollContainerRef.current,
+      rootMargin: gridMode ? '800px' : '400px'
     });
 
     if (node) observer.current.observe(node);
-  }, [isFetchingNextPage, hasNextPage, fetchNextPage, movies]);
+  }, [isFetchingNextPage, hasNextPage, fetchNextPage, movies, infiniteData]);
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
@@ -153,6 +140,21 @@ export default function MovieSection({ title, type, slug, params = {}, movies }:
       }));
     }
 
+    if (infiniteData?.data) {
+      return infiniteData.data.pages.flatMap((page: any) =>
+        page.results.map((item: any) => ({
+          id: item.id,
+          title: item.title || item.name,
+          poster: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : '',
+          slug: item.media_type === 'tv' ? `tv/${item.id}` : `movie/${item.id}`,
+          year: (item.release_date || item.first_air_date || '')?.split('-')[0],
+          quality: item.vote_average?.toFixed(1),
+          episodeCurrent: item.media_type === 'tv' ? 'Series' : 'Movie',
+          status: 'completed'
+        }))
+      );
+    }
+
     return data?.pages.flatMap((page: any) =>
       page.data.items.map((item: any) => ({
         id: item._id,
@@ -166,9 +168,50 @@ export default function MovieSection({ title, type, slug, params = {}, movies }:
         status: item.status
       }))
     ) || [];
-  }, [data, movies]);
+  }, [data, movies, infiniteData]);
 
-  if (isLoading && allMovies.length === 0 && !movies) {
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScroll = useCallback(() => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setCanScrollLeft(scrollLeft > 10);
+      setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 10);
+    }
+  }, []);
+
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (el && !gridMode) {
+      // Restore scroll position ONLY ONCE per title when movies are available
+      if (!restoredTitles.current.has(title) && allMovies.length > 0) {
+        const savedPos = scrollRegistry[title];
+        if (savedPos) {
+          el.scrollLeft = savedPos;
+        }
+        restoredTitles.current.add(title);
+      }
+
+      el.addEventListener('scroll', checkScroll);
+      checkScroll();
+      window.addEventListener('resize', checkScroll);
+      return () => {
+        el.removeEventListener('scroll', checkScroll);
+        window.removeEventListener('resize', checkScroll);
+      };
+    }
+  }, [gridMode, checkScroll, title, allMovies.length > 0]);
+
+  // Save scroll position
+  const handleScroll = useCallback(() => {
+    if (scrollContainerRef.current) {
+      scrollRegistry[title] = scrollContainerRef.current.scrollLeft;
+      checkScroll();
+    }
+  }, [title, checkScroll]);
+
+  if ((isLoading || (infiniteData && infiniteData.isLoading)) && allMovies.length === 0 && !movies) {
     return (
       <div className={styles.section}>
         <h2 className={styles.title}>{title}</h2>
@@ -191,55 +234,54 @@ export default function MovieSection({ title, type, slug, params = {}, movies }:
 
   return (
     <section className={styles.section}>
-      <div className={styles.header}>
-        <Link
-          href={buildSearchUrl()}
-          className={styles.titleWrapper}
-        >
-          <h2 className={styles.title}>
-            {title.startsWith('Because you watched') ? (
-              <>
-                <span className={styles.titlePrefix}>Because you watched</span>
-                <span className={styles.titleHighlight}>{title.replace('Because you watched ', '')}</span>
-              </>
-            ) : title}
-          </h2>
-        </Link>
-        <div className={styles.controls}>
-          <button className={styles.controlBtn} onClick={() => scroll('left')}>
-            <ChevronLeft size={20} />
-          </button>
-          <button className={styles.controlBtn} onClick={() => scroll('right')}>
-            <ChevronRight size={20} />
-          </button>
+      {title && (
+        <div className={styles.header}>
+          <Link
+            href={href || buildSearchUrl()}
+            className={styles.titleWrapper}
+          >
+            <h2 className={styles.title}>
+              {title.startsWith('Because you watched') ? (
+                <>
+                  <span className={styles.titlePrefix}>Because you watched</span>
+                  <span className={styles.titleHighlight}>{title.replace('Because you watched ', '')}</span>
+                </>
+              ) : title}
+            </h2>
+          </Link>
+          {/* Header controls removed, moved to sliderWrapper */}
         </div>
-      </div>
+      )}
 
-      <div
-        className={styles.sliderContainer}
-        ref={(el) => {
-          if (el) {
-            (scrollContainerRef as any).current = el;
-            const savedPos = scrollRegistry[title];
-            if (savedPos) {
-              el.scrollLeft = savedPos;
-            }
-          }
-        }}
-        onScroll={handleScroll}
-      >
-        {allMovies.map((movie, index) => (
-          <MovieCard 
-            key={movie.id} 
-            movie={movie} 
-            index={index}
-            lastElementRef={index === allMovies.length - 1 ? lastElementRef : null}
-          />
-        ))}
-        {isFetchingNextPage && (
-          <div className={styles.loaderWrapper}>
-            <Loader2 className={styles.spinner} />
-          </div>
+      <div className={gridMode ? styles.gridWrapper : styles.sliderWrapper}>
+        {!gridMode && canScrollLeft && (
+          <button className={`${styles.controlBtn} ${styles.left}`} onClick={() => scroll('left')}>
+            <ChevronLeft size={28} />
+          </button>
+        )}
+        <div
+          className={gridMode ? styles.gridContainer : styles.sliderContainer}
+          ref={scrollContainerRef}
+          onScroll={!gridMode ? handleScroll : undefined}
+        >
+          {allMovies.map((movie: any, index: number) => (
+            <MovieCard
+              key={movie.id}
+              movie={movie}
+              index={index}
+              lastElementRef={index === allMovies.length - 1 ? lastElementRef : null}
+            />
+          ))}
+          {(isFetchingNextPage || (infiniteData && infiniteData.isFetchingNextPage)) && (
+            <div className={gridMode ? styles.gridLoaderWrapper : styles.loaderWrapper}>
+              <Loader2 className={styles.spinner} />
+            </div>
+          )}
+        </div>
+        {!gridMode && canScrollRight && (
+          <button className={`${styles.controlBtn} ${styles.right}`} onClick={() => scroll('right')}>
+            <ChevronRight size={28} />
+          </button>
         )}
       </div>
     </section>

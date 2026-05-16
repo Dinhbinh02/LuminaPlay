@@ -3,7 +3,6 @@
   height: 100%;
   background: #000;
   position: relative;
-  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -24,11 +23,11 @@
   position: absolute;
   inset: 0;
   z-index: 10;
-  background: radial-gradient(circle, transparent 50%, rgba(0, 0, 0, 0.2) 100%),
-    linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, transparent 20%, transparent 80%, rgba(0, 0, 0, 0.4) 100%);
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, transparent 15%, transparent 85%, rgba(0, 0, 0, 0.6) 100%);
   color: #fff;
   pointer-events: none;
   overscroll-behavior: contain;
+  overflow: visible;
 }
 
 .playerTop,
@@ -46,26 +45,42 @@
   padding: 20px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 20px;
   width: 100%;
 }
 
 .playerTitleGroup {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
+  max-width: 40%; /* Prevent overlap with centered PIP */
 }
 
-.playerMainTitle {
-  font-size: 18px;
-  font-weight: 500;
-  opacity: 0.8;
+.pipBtn {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+
+.pipBtn:hover {
+  opacity: 0.7;
 }
 
 .playerSubTitle {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #fff;
 }
 
 .playerCenter {
@@ -130,6 +145,7 @@
   width: 100%;
   touch-action: none;
   user-select: none;
+  overflow: visible !important;
 }
 
 .progressSection {
@@ -229,6 +245,7 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  overflow: visible !important;
 }
 
 .controlsLeft,
@@ -237,6 +254,7 @@
   align-items: center;
   gap: 24px;
   flex: 1;
+  overflow: visible !important;
 }
 
 .controlsRight {
@@ -336,9 +354,139 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+@media (max-width: 600px) {
+  .speedMenu {
+    min-width: 220px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    padding: 6px;
+    gap: 2px;
+    max-height: 140px;
+    overflow-y: auto;
+  }
+
+  .speedOption {
+    padding: 6px 4px;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 13px;
+  }
+}
+
 .activeSpeed {
   color: #e50914;
   font-weight: bold;
+}
+
+.serverTopContainer {
+  position: relative;
+  margin-left: auto;
+  z-index: 5;
+}
+
+.serverPillBtn {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+  font-size: 15px;
+  backdrop-filter: blur(10px);
+}
+
+.serverPillBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+@media (max-width: 600px) {
+  .serverPillBtn {
+    padding: 4px;
+    background: none;
+    border: none;
+    backdrop-filter: none;
+  }
+
+  .serverPillBtn span {
+    display: none;
+  }
+}
+
+.serverMenuTop {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 12px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+  min-width: 180px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 100;
+}
+
+.menuHeader {
+  padding: 8px 16px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.serverOption {
+  background: none;
+  border: none;
+  color: #fff;
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.serverOption:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.activeServer {
+  color: #e50914;
+  font-weight: bold;
+  background: rgba(229, 9, 20, 0.1) !important;
+}
+
+@media (max-width: 600px) {
+  .serverMenuTop {
+    max-height: 220px;
+    overflow-y: auto;
+    min-width: 160px;
+    padding: 4px 0;
+    margin-top: 4px;
+  }
+  
+  .serverMenuTitle {
+    padding: 8px 12px;
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+
+  .serverOption {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
 }
 
 .actionBtn {
@@ -399,6 +547,23 @@
 
 .iconBtn:hover {
   opacity: 0.7;
+}
+
+.seekIconContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seekNumber {
+  position: absolute;
+  font-size: 9px;
+  font-weight: 800;
+  top: 55%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: system-ui, -apple-system, sans-serif;
 }
 
 .hideCursor {

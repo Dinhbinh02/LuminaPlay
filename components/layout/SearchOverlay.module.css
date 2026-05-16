@@ -1,19 +1,28 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: radial-gradient(circle, transparent 20%, rgba(0, 0, 0, 0.4) 100%),
-    linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 50%, rgba(0, 0, 0, 0.4) 100%);
+  background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  z-index: 1000;
-  padding: 40px 4%;
+  z-index: 2000;
   display: flex;
+  align-items: center;
   justify-content: center;
+  padding: 20px;
 }
 
 .container {
   width: 100%;
   max-width: 800px;
+  height: 90vh;
+  background: #121212;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding: 30px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
 }
 
 .header {
@@ -29,65 +38,97 @@
   align-items: center;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  padding: 0 20px;
-  height: 48px;
+  padding: 0 15px;
+  height: 54px;
   transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .searchBar:focus-within {
   background: rgba(255, 255, 255, 0.15);
-  border-color: var(--primary);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
 }
 
 .searchIcon {
   color: rgba(255, 255, 255, 0.5);
+  margin-right: 12px;
 }
 
 .input {
   flex: 1;
   background: transparent;
   border: none;
-  outline: none;
   color: white;
   font-size: 18px;
-  padding: 0 15px;
+  outline: none;
+  width: 100%;
 }
 
 .clearBtn {
   background: transparent;
   border: none;
   color: rgba(255, 255, 255, 0.5);
-  cursor: pointer;
-  padding: 5px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clearBtn:hover {
+  color: white;
+  transform: scale(1.1);
 }
 
 .closeBtn {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
   color: white;
-  padding: 0 25px;
-  height: 48px;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  padding: 0;
 }
 
 .closeBtn:hover {
-  background: white;
-  color: black;
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+@media (max-width: 900px) {
+  .overlay {
+    padding: 0 !important;
+  }
+
+  .container {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100vh !important;
+    border-radius: 0 !important;
+    padding: 20px;
+  }
+
+  .header {
+    margin-bottom: 20px;
+  }
 }
 
 .resultsContainer {
-  max-height: calc(100vh - 200px);
+  flex: 1;
   overflow-y: auto;
-  padding-right: 10px;
   overscroll-behavior: contain;
 }
 
@@ -168,6 +209,25 @@
 
 .dot {
   font-size: 10px;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #f5c518;
+  font-weight: 600;
+}
+
+.imdb {
+  background: #f5c518;
+  color: black;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 900;
+  font-size: 10px;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .playIcon {

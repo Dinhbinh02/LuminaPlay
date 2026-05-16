@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Hls from 'hls.js';
-import { Play, Pause, RotateCcw, RotateCw, ChevronLeft, SlidersHorizontal, List, SkipForward, PictureInPicture2, Maximize, Minimize, Volume1, Volume2, VolumeX, Settings, Layers, Lock, Unlock, Cast, Scan, Mic, MicOff, Gauge, Loader2 } from 'lucide-react';
+import { Play, Pause, RotateCcw, RotateCw, ChevronLeft, SlidersHorizontal, List, SkipForward, PictureInPicture2, Maximize, Minimize, Volume1, Volume2, VolumeX, Settings, Layers, Lock, Unlock, Cast, Scan, Mic, MicOff, Gauge, Loader2, Globe } from 'lucide-react';
 import styles from './VideoPlayer.module.css';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useWatchParty, WatchPartyMessage } from '@/hooks/useWatchParty';
@@ -23,6 +23,9 @@ interface VideoPlayerProps {
   episodes?: any[];
   currentEpisode?: number;
   onEpisodeSelect?: (episodeNum: string) => void;
+  servers?: { id: string, name: string }[];
+  currentServerId?: string;
+  onServerSelect?: (serverId: string) => void;
 }
 
 const RemoteAudio = ({ stream }: { stream: MediaStream }) => {
@@ -48,7 +51,8 @@ const formatTime = (seconds: number) => {
 
 const VideoPlayer = ({
   src, poster, title, subTitle, startTime, autoPlay = false,
-  onProgress, onNext, onClose, partyId, episodes, currentEpisode, onEpisodeSelect
+  onProgress, onNext, onClose, partyId, episodes, currentEpisode, onEpisodeSelect,
+  servers, currentServerId, onServerSelect
 }: VideoPlayerProps) => {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -75,10 +79,11 @@ const VideoPlayer = ({
   const holdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isPointerDown = useRef(false);
   const speedMenuRef = useRef<HTMLDivElement>(null);
+  const serverMenuRef = useRef<HTMLDivElement>(null);
+  const [showServerMenu, setShowServerMenu] = useState(false);
   const onProgressRef = useRef(onProgress);
   useEffect(() => { onProgressRef.current = onProgress; }, [onProgress]);
 
-  // Sync playbackRate to video element
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.playbackRate = playbackRate;
@@ -108,13 +113,11 @@ const VideoPlayer = ({
   const resetControlsTimeout = useCallback(() => {
     setShowControls(true);
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    // Auto-hide if playing, not locked, and NOT dragging
-    if (isPlaying && !isLocked && !isDragging) {
-      controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 2500);
+    if (isPlaying && !isLocked && !isDragging && !showServerMenu && !showSpeedMenu) {
+      controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 3000);
     }
-  }, [isPlaying, isLocked, isDragging]);
+  }, [isPlaying, isLocked, isDragging, showServerMenu, showSpeedMenu]);
 
-  // Trigger timeout when states change
   useEffect(() => {
     resetControlsTimeout();
   }, [isPlaying, isFullscreen, isLocked, resetControlsTimeout]);
@@ -273,6 +276,21 @@ const VideoPlayer = ({
   }, [showSpeedMenu]);
 
   useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (serverMenuRef.current && !serverMenuRef.current.contains(event.target as Node)) {
+        setShowServerMenu(false);
+      }
+    };
+
+    if (showServerMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showServerMenu]);
+
+  useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
 
@@ -321,7 +339,6 @@ const VideoPlayer = ({
     video.addEventListener('playing', handleCanPlay);
 
     return () => {
-      // Force one last sync on unmount/source change
       if (video.currentTime > 0) {
         onProgressRef.current?.(video.currentTime, video.duration, true);
       }
@@ -331,8 +348,7 @@ const VideoPlayer = ({
       video.removeEventListener('playing', handleCanPlay);
       if (hls) hls.destroy();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src, startTime]); // onProgress intentionally excluded — handled via ref
+  }, [src, startTime]);
 
   const togglePIP = async () => {
     try {
@@ -348,14 +364,14 @@ const VideoPlayer = ({
 
   const isClickOnBlackBars = (e: React.PointerEvent) => {
     if (!videoRef.current || !containerRef.current || !videoRef.current.videoWidth) return false;
-    
+
     const video = videoRef.current;
     const container = containerRef.current;
     const rect = container.getBoundingClientRect();
-    
+
     const containerRatio = rect.width / rect.height;
     const videoRatio = video.videoWidth / video.videoHeight;
-    
+
     let videoDisplayWidth, videoDisplayHeight;
     if (containerRatio > videoRatio) {
       videoDisplayHeight = rect.height;
@@ -364,17 +380,17 @@ const VideoPlayer = ({
       videoDisplayWidth = rect.width;
       videoDisplayHeight = videoDisplayWidth / videoRatio;
     }
-    
+
     const horizontalPadding = (rect.width - videoDisplayWidth) / 2;
     const verticalPadding = (rect.height - videoDisplayHeight) / 2;
-    
+
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
-    
+
     return (
-      clickX < horizontalPadding || 
+      clickX < horizontalPadding ||
       clickX > (rect.width - horizontalPadding) ||
-      clickY < verticalPadding || 
+      clickY < verticalPadding ||
       clickY > (rect.height - verticalPadding)
     );
   };
@@ -383,9 +399,13 @@ const VideoPlayer = ({
     <div
       ref={containerRef}
       className={`${styles.playerContainer} ${!showControls ? styles.hideCursor : ''}`}
-      onMouseMove={resetControlsTimeout}
-      onClick={resetControlsTimeout}
+      onMouseMove={(e) => {
+        if (window.matchMedia('(pointer: fine)').matches) {
+          resetControlsTimeout();
+        }
+      }}
       onMouseLeave={() => {
+        if (!window.matchMedia('(pointer: fine)').matches) return;
         if (isPlaying) {
           setShowControls(false);
           if (controlsTimeoutRef.current) {
@@ -394,10 +414,28 @@ const VideoPlayer = ({
         }
       }}
       onPointerDown={(e) => {
-        resetControlsTimeout();
-        // Don't seek if clicking a button
+        const isMobile = window.matchMedia('(pointer: coarse)').matches;
+
+        // Don't interfere with button clicks
         if ((e.target as HTMLElement).closest('button')) return;
 
+        if (isMobile) {
+          if (!showControls) {
+            // Controls hidden → show them
+            resetControlsTimeout();
+            return;
+          } else if (isPlaying) {
+            // Controls visible + playing → hide controls
+            setShowControls(false);
+            if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+            return;
+          } else {
+            // Controls visible + paused → do nothing, keep controls visible
+            return;
+          }
+        }
+
+        // Desktop: handle drag-to-seek on bottom third
         const rect = e.currentTarget.getBoundingClientRect();
         const isBottomThird = e.clientY > rect.top + (rect.height * 2 / 3);
 
@@ -405,17 +443,15 @@ const VideoPlayer = ({
           isPointerDown.current = true;
           dragStartX.current = e.clientX;
           dragStartTime.current = videoRef.current?.currentTime || 0;
-          
-          // Clear any existing timeout
+
           if (holdTimeoutRef.current) clearTimeout(holdTimeoutRef.current);
-          
-          // Set a timeout for "hold" to activate dragging
+
           holdTimeoutRef.current = setTimeout(() => {
             if (isPointerDown.current) {
               setIsDragging(true);
               e.currentTarget.setPointerCapture(e.pointerId);
             }
-          }, 400); // 400ms hold threshold
+          }, 400);
         }
       }}
       onPointerMove={(e) => {
@@ -457,7 +493,7 @@ const VideoPlayer = ({
           clearTimeout(holdTimeoutRef.current);
           holdTimeoutRef.current = null;
         }
-        
+
         if (isDragging) {
           setIsDragging(false);
           setTooltipTime(null);
@@ -488,12 +524,16 @@ const VideoPlayer = ({
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onClick={(e) => {
+          const isDesktop = window.matchMedia('(pointer: fine)').matches;
+          if (!isDesktop) return;
+
           if (isClickOnBlackBars(e as any)) {
             setShowControls(false);
             if (controlsTimeoutRef.current) {
               clearTimeout(controlsTimeoutRef.current);
             }
           } else {
+            togglePlay();
             resetControlsTimeout();
           }
         }}
@@ -524,27 +564,46 @@ const VideoPlayer = ({
                 <ChevronLeft size={32} />
               </button>
               <div className={styles.playerTitleGroup}>
-                <span className={styles.playerSubTitle}>{subTitle}</span>
+                {subTitle && <span className={styles.playerSubTitle}>{subTitle}</span>}
               </div>
-              <button className={styles.iconBtn} onClick={togglePIP}>
-                <PictureInPicture2 size={24} />
-              </button>
-            </div>
 
-            {/* Center Controls */}
-            <div className={styles.playerCenter} onClick={(e) => e.stopPropagation()}>
-              <button className={styles.centerBtn} onClick={() => seek(-10)}>
-                <RotateCcw size={40} />
-              </button>
-              <button className={styles.playBtnLarge} onClick={togglePlay}>
-                {isPlaying ? <Pause size={64} fill="white" /> : <Play size={64} fill="white" />}
-              </button>
-              <button className={styles.centerBtn} onClick={() => seek(10)}>
-                <RotateCw size={40} />
-              </button>
-            </div>
+              {servers && servers.length > 0 && (
+                <div className={styles.serverTopContainer} ref={serverMenuRef}>
+                  <button
+                    className={styles.serverPillBtn}
+                    onClick={() => setShowServerMenu(!showServerMenu)}
+                  >
+                    <Globe size={20} />
+                    <span>{servers.find(s => s.id === currentServerId)?.name.split(' ')[0] || 'Server'}</span>
+                  </button>
 
-            {/* Bottom Bar */}
+                  <AnimatePresence>
+                    {showServerMenu && (
+                      <motion.div
+                        className={styles.serverMenuTop}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        {servers.map(server => (
+                          <button
+                            key={server.id}
+                            className={`${styles.serverOption} ${currentServerId === server.id ? styles.activeServer : ''}`}
+                            onClick={() => {
+                              onServerSelect?.(server.id);
+                              setShowServerMenu(false);
+                            }}
+                          >
+                            {server.name}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+            </div>
             <div
               className={styles.playerBottom}
               onClick={(e) => e.stopPropagation()}
@@ -614,6 +673,22 @@ const VideoPlayer = ({
               <div className={styles.controlsRow}>
                 {/* Left side (Play Controls) */}
                 <div className={styles.controlsLeft}>
+                  <button className={styles.iconBtn} onClick={togglePlay}>
+                    {isPlaying ? <Pause size={32} fill="white" /> : <Play size={32} fill="white" />}
+                  </button>
+                  <button className={styles.iconBtn} onClick={() => seek(-10)}>
+                    <div className={styles.seekIconContainer}>
+                      <RotateCcw size={28} />
+                      <span className={styles.seekNumber}>10</span>
+                    </div>
+                  </button>
+                  <button className={styles.iconBtn} onClick={() => seek(10)}>
+                    <div className={styles.seekIconContainer}>
+                      <RotateCw size={28} />
+                      <span className={styles.seekNumber}>10</span>
+                    </div>
+                  </button>
+
                   <div className={styles.timeDisplay}>
                     <span className={styles.currentTime}>{formatTime(currentTime)}</span>
                     <span className={styles.timeDivider}>/</span>
@@ -625,8 +700,8 @@ const VideoPlayer = ({
                     </button>
                     <AnimatePresence>
                       {showVolumeSlider && (
-                        <motion.div 
-                           className={styles.volumeSliderWrapper}
+                        <motion.div
+                          className={styles.volumeSliderWrapper}
                           initial={{ width: 0, opacity: 0 }}
                           animate={{ width: 80, opacity: 1 }}
                           exit={{ width: 0, opacity: 0 }}
@@ -708,6 +783,13 @@ const VideoPlayer = ({
                       <SkipForward size={24} />
                     </button>
                   )}
+
+                  <button
+                    className={styles.actionBtn}
+                    onClick={togglePIP}
+                  >
+                    <PictureInPicture2 size={24} />
+                  </button>
 
                   <button
                     className={`${styles.actionBtn} ${isFullscreen ? styles.activeAction : ''}`}

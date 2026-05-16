@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Grid, Globe, Tag } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -48,6 +48,33 @@ export default function FilterOverlay({ isOpen, onClose }: FilterOverlayProps) {
     runtime: searchParams.get('runtime') || '',
     company: searchParams.get('company') || '',
   });
+
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Body scroll lock
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+
+      const preventScroll = (e: WheelEvent) => {
+        const overlay = overlayRef.current;
+        if (!overlay) return;
+        // Allow scrolling inside the container, block on backdrop
+        if (e.target === overlay) {
+          e.preventDefault();
+        }
+      };
+
+      window.addEventListener('wheel', preventScroll, { passive: false });
+
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('wheel', preventScroll);
+      };
+    }
+  }, [isOpen]);
+
+
 
   const genres = genresData?.data?.items?.filter((g: any) => g.slug !== 'phim-18') || [];
   const countries = countriesData?.data?.items || [];
@@ -163,6 +190,7 @@ export default function FilterOverlay({ isOpen, onClose }: FilterOverlayProps) {
     <AnimatePresence>
       {isOpen && (
         <motion.div
+          ref={overlayRef}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -175,10 +203,9 @@ export default function FilterOverlay({ isOpen, onClose }: FilterOverlayProps) {
             <div className={styles.header}>
               <div className={styles.titleGroup}>
                 <h2 className={styles.title}>Discovery</h2>
-                <p className={styles.subtitle}>Explore movies using TMDB precision filters</p>
               </div>
               <button onClick={onClose} className={styles.closeBtn}>
-                Close
+                <X size={24} />
               </button>
             </div>
 

@@ -10,11 +10,14 @@ import LoadingScreen from "@/components/layout/LoadingScreen";
 import {
   useRegionalTrending,
   useTrendingWithLogos,
-  useTMDBRecommendations,
+  useInfiniteTMDBRecommendations,
   useGeoLocation,
-  useTMDBPopular,
-  useTMDBUpcoming,
-  useTMDBByGenre
+  useInfiniteTMDBPopular,
+  useInfiniteTMDBUpcoming,
+  useInfiniteTMDBByGenre,
+  useInfiniteNetflixContent,
+  useInfiniteHBOContent,
+  useInfiniteAppleContent
 } from "@/hooks/useMovie";
 import { tmdb } from "@/lib/tmdb";
 import styles from './page.module.css';
@@ -39,14 +42,16 @@ export default function Home() {
   const { data: regionalTrending, isLoading: isRegionalLoading } = useRegionalTrending('movie');
   const { data: heroData, isLoading: isHeroLoading } = useTrendingWithLogos('all', 6, geo?.countryCode);
 
-  const { data: popularTV } = useTMDBPopular('tv');
-  const { data: upcomingMovies } = useTMDBUpcoming();
-  const { data: actionMovies } = useTMDBByGenre(28); // Action
-  const { data: romanceMovies } = useTMDBByGenre(10749); // Romance
-  const { data: horrorMovies } = useTMDBByGenre(27); // Horror
-  const { data: sciFiMovies } = useTMDBByGenre(878); // Sci-Fi
-  const { data: animationMovies } = useTMDBByGenre(16); // Animation
-  const { data: docMovies } = useTMDBByGenre(99); // Documentary
+  const popularTVInfinite = useInfiniteTMDBPopular('tv');
+  const actionMoviesInfinite = useInfiniteTMDBByGenre(28); // Action
+  const romanceMoviesInfinite = useInfiniteTMDBByGenre(10749); // Romance
+  const horrorMoviesInfinite = useInfiniteTMDBByGenre(27); // Horror
+  const sciFiMoviesInfinite = useInfiniteTMDBByGenre(878); // Sci-Fi
+  const animationMoviesInfinite = useInfiniteTMDBByGenre(16); // Animation
+  const docMoviesInfinite = useInfiniteTMDBByGenre(99); // Documentary
+  const netflixInfinite = useInfiniteNetflixContent();
+  const hboInfinite = useInfiniteHBOContent();
+  const appleInfinite = useInfiniteAppleContent();
 
   const { history: globalHistory } = useStore();
   const [isHistoryChecked, setIsHistoryChecked] = useState(false);
@@ -132,26 +137,22 @@ export default function Home() {
 
   // Recommendations logic
   const lastWatched = history[0];
-  const lastWatchedId = lastWatched?.id;
   const lastWatchedType = lastWatched?.seasonNum ? 'tv' : 'movie';
-
-  const { data: recData, isLoading: isRecLoading } = useTMDBRecommendations(
-    lastWatchedId || '',
-    lastWatchedType
-  );
+  const recInfinite = useInfiniteTMDBRecommendations(lastWatched?.id, lastWatchedType);
+  const { isLoading: isRecLoading } = recInfinite;
 
   return (
     <>
       {/* Reusing existing LoadingScreen with forced visibility for preloading */}
       <LoadingScreen isForcedVisible={isPreloading} />
 
+      <Header />
       <main style={{ 
         minHeight: '100vh', 
         backgroundColor: '#000000', 
         opacity: isPreloading ? 0 : 1, 
         transition: 'opacity 0.8s ease' 
       }}>
-        <Header />
 
         <div className={styles.heroWrapper}>
           {heroMovies.length > 0 ? (
@@ -186,69 +187,54 @@ export default function Home() {
             <MovieSection title="K-Drama" type="quoc-gia" slug="han-quoc" />
           </LazySection>
 
-          {popularTV?.results && (
-            <LazySection height="350px">
-              <MovieSection title="Global Popular Series" movies={popularTV.results} />
-            </LazySection>
-          )}
-
           <LazySection height="350px">
-            <MovieSection title="New on LuminaPlay" type="danh-sach" slug="phim-moi" />
+            <MovieSection title="Global Popular Series" infiniteData={popularTVInfinite} />
           </LazySection>
 
-          {actionMovies?.results && (
-            <LazySection height="350px">
-              <MovieSection title="Action & Adventure Hits" movies={actionMovies.results} />
-            </LazySection>
-          )}
-
-          {!isRecLoading && recData?.results?.length > 0 && lastWatched && (
-            <LazySection height="400px">
-              <MovieSection title={`Because you watched ${lastWatched.title}`} movies={recData.results} />
-            </LazySection>
-          )}
-
-          {romanceMovies?.results && (
-            <LazySection height="350px">
-              <MovieSection title="Romantic Stories" movies={romanceMovies.results} />
-            </LazySection>
-          )}
-
-          {horrorMovies?.results && (
-            <LazySection height="350px">
-              <MovieSection title="Horror & Thriller" movies={horrorMovies.results} />
-            </LazySection>
-          )}
-
-          {sciFiMovies?.results && (
-            <LazySection height="350px">
-              <MovieSection title="Sci-Fi & Fantasy" movies={sciFiMovies.results} />
-            </LazySection>
-          )}
-
-          {animationMovies?.results && (
-            <LazySection height="350px">
-              <MovieSection title="International Animation" movies={animationMovies.results} />
-            </LazySection>
-          )}
-
-          {docMovies?.results && (
-            <LazySection height="350px">
-              <MovieSection title="Real Life Stories & Docs" movies={docMovies.results} />
-            </LazySection>
-          )}
+          <LazySection height="350px">
+            <MovieSection title="Netflix Originals" infiniteData={netflixInfinite} href="/provider/8?type=watch" />
+          </LazySection>
 
           <LazySection height="350px">
-            <MovieSection title="Chinese Dramas" type="quoc-gia" slug="trung-quoc" />
+            <MovieSection title="HBO Max Originals" infiniteData={hboInfinite} href="/provider/1899?type=watch" />
           </LazySection>
+
+          <LazySection height="350px">
+            <MovieSection title="Apple TV+ Originals" infiniteData={appleInfinite} href="/provider/350?type=watch" />
+          </LazySection>
+
+          <LazySection height="350px">
+            <MovieSection title="Action Movies" infiniteData={actionMoviesInfinite} />
+          </LazySection>
+
+          <LazySection height="350px">
+            <MovieSection title="Romance Movies" infiniteData={romanceMoviesInfinite} />
+          </LazySection>
+
+          <LazySection height="350px">
+            <MovieSection title="Horror Movies" infiniteData={horrorMoviesInfinite} />
+          </LazySection>
+
+          <LazySection height="350px">
+            <MovieSection title="Sci-Fi Movies" infiniteData={sciFiMoviesInfinite} />
+          </LazySection>
+
+          <LazySection height="350px">
+            <MovieSection title="Animation" infiniteData={animationMoviesInfinite} />
+          </LazySection>
+
+          <LazySection height="350px">
+            <MovieSection title="Documentary" infiniteData={docMoviesInfinite} />
+          </LazySection>
+
 
           <LazySection height="350px">
             <MovieSection title="Reality & Variety TV" type="danh-sach" slug="tv-shows" />
           </LazySection>
 
-          {upcomingMovies?.results && (
-            <LazySection height="350px">
-              <MovieSection title="Coming Soon to Theaters" movies={upcomingMovies.results} />
+          {!isRecLoading && recInfinite?.data?.pages[0]?.results?.length > 0 && lastWatched && (
+            <LazySection height="400px">
+              <MovieSection title={`Because you watched ${lastWatched.title}`} infiniteData={recInfinite} />
             </LazySection>
           )}
         </div>
