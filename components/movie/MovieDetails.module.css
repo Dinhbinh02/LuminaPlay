@@ -1,5 +1,5 @@
 .main {
-  min-height: 100vh;
+  min-height: 100dvh;
   background-color: #000;
   color: #fff;
   font-family: 'Inter', sans-serif;
@@ -73,7 +73,7 @@
 .hero {
   position: relative;
   width: 100%;
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   align-items: center;
   overflow: hidden;
@@ -138,7 +138,7 @@
   max-width: 1200px;
   position: relative;
   z-index: 10;
-  padding: 0 4%;
+  padding: 0 3%;
   pointer-events: auto;
   display: flex;
   flex-direction: column;
@@ -210,6 +210,18 @@
   font-weight: 500;
 }
 
+.metaBadge {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .rating {
   display: flex;
   align-items: center;
@@ -224,7 +236,7 @@
 }
 
 .imdbText {
-  font-size: 11px;
+  font-size: inherit;
   font-weight: 900;
   margin-right: 2px;
 }
@@ -423,7 +435,7 @@
 
 /* Sections */
 .sections {
-  padding: 0 4%;
+  padding: 0 3%;
   background: linear-gradient(to bottom, #000 0%, #050505 100%);
 }
 
@@ -799,7 +811,7 @@
 @media (max-width: 768px) {
   .hero {
     height: auto;
-    min-height: 100vh;
+    min-height: calc(100dvh - 64px);
   }
 
   .heroContent {
@@ -835,36 +847,42 @@
   .description {
     font-size: 14px;
     margin-bottom: 30px;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
     text-align: left;
+  }
+
+  .watchProviders {
+    display: none;
   }
 
   .mainActions {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     width: 100%;
-    gap: 12px;
+    gap: 10px;
   }
 
   .btnPlay {
-    width: 100%;
+    flex: 1;
     justify-content: center;
-    padding: 14px 20px;
-    font-size: 16px;
+    padding: 12px 12px;
+    font-size: 15px;
   }
 
   .secondaryActions {
     display: flex;
-    width: 100%;
-    gap: 12px;
+    width: auto;
+    gap: 10px;
   }
 
   .btnTrailer,
   .btnWatchParty {
-    flex: 1;
+    flex: none;
     justify-content: center !important;
-    padding: 14px 10px;
+    padding: 12px 14px;
     font-size: 14px;
     white-space: nowrap;
   }
@@ -876,7 +894,7 @@
   }
 
   .btnAdd {
-    width: 52px;
+    width: 44px;
     height: auto;
     aspect-ratio: auto;
     justify-content: center;
@@ -1219,7 +1237,7 @@
 
 .scrollIndicator {
   position: absolute;
-  bottom: 30px;
+  bottom: 5px;
   left: 0;
   right: 0;
   margin: 0 auto;

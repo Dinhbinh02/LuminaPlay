@@ -37,6 +37,8 @@ function HistorySkeleton() {
   );
 }
 
+let hasPreloadedInitial = false;
+
 export default function Home() {
   const { data: geo } = useGeoLocation();
   const { data: regionalTrending, isLoading: isRegionalLoading } = useRegionalTrending('movie');
@@ -56,7 +58,7 @@ export default function Home() {
   const { history: globalHistory } = useStore();
   const [isHistoryChecked, setIsHistoryChecked] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
-  const [isPreloading, setIsPreloading] = useState(true);
+  const [isPreloading, setIsPreloading] = useState(!hasPreloadedInitial);
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Simple static mapping for TMDB genre IDs
@@ -89,6 +91,8 @@ export default function Home() {
 
   // Preload top 3 hero images
   useEffect(() => {
+    if (hasPreloadedInitial) return;
+
     if (heroMovies.length > 0) {
       const targetCount = Math.min(3, heroMovies.length);
       const imagesToPreload = heroMovies.slice(0, targetCount);
@@ -97,6 +101,7 @@ export default function Home() {
       const handleImageLoad = () => {
         loadedCount++;
         if (loadedCount >= targetCount) {
+          hasPreloadedInitial = true;
           // Small delay for smooth transition
           setTimeout(() => setIsPreloading(false), 800);
         }
@@ -110,6 +115,7 @@ export default function Home() {
       });
     } else if (!isHeroLoading && heroMovies.length === 0) {
       // Fallback if no hero movies found
+      hasPreloadedInitial = true;
       setIsPreloading(false);
     }
   }, [heroMovies.length, isHeroLoading]);

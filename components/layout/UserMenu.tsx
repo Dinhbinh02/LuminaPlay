@@ -56,25 +56,32 @@ export default function UserMenu() {
     router.refresh();
   };
 
-  if (loading) return <div className={styles.avatarBtn} style={{ opacity: 0.5 }} />;
+  if (loading) return <div className={styles.loadingPlaceholder} />;
 
   if (!user) {
     return (
-      <button className={styles.loginBtn} onClick={handleLogin}>
-        <LogIn size={18} />
-        <span>Sign In</span>
+      <button className={styles.sidebarUserBtn} onClick={handleLogin} aria-label="Sign In">
+        <div className={styles.navItem}>
+          <LogIn size={22} className={styles.icon} />
+          <span className={styles.label}>Sign In</span>
+        </div>
       </button>
     );
   }
 
   return (
     <div className={styles.menuWrapper} ref={dropdownRef}>
-      <button className={styles.avatarBtn} onClick={() => setIsOpen(!isOpen)}>
-        {user.user_metadata?.avatar_url ? (
-          <img src={user.user_metadata.avatar_url} alt="Avatar" className={styles.avatarImage} />
-        ) : (
-          <User size={22} color="white" />
-        )}
+      <button className={styles.sidebarUserBtn} onClick={() => setIsOpen(!isOpen)} aria-label="Profile">
+        <div className={styles.navItem}>
+          {user.user_metadata?.avatar_url ? (
+            <div className={styles.avatarWrapper}>
+              <img src={user.user_metadata.avatar_url} alt="Avatar" className={styles.avatarImage} />
+            </div>
+          ) : (
+            <User size={22} className={styles.icon} />
+          )}
+          <span className={styles.label}>Profile</span>
+        </div>
       </button>
 
       {isOpen && (

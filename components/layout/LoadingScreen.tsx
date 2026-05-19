@@ -2,12 +2,21 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePathname } from 'next/navigation';
 import styles from './LoadingScreen.module.css';
 import { useLoadingStore } from '@/hooks/useLoadingStore';
 
 export default function LoadingScreen({ isForcedVisible }: { isForcedVisible?: boolean }) {
   const [isVisible, setIsVisible] = useState(true);
-  const { isPageLoading } = useLoadingStore();
+  const { isPageLoading, setPageLoading } = useLoadingStore();
+  const pathname = usePathname();
+
+  // Auto-reset page loading whenever the route actually changes.
+  // This fixes the bug where setPageLoading(true) from a card click
+  // was never reset when navigating via Sidebar buttons.
+  useEffect(() => {
+    setPageLoading(false);
+  }, [pathname, setPageLoading]);
 
   useEffect(() => {
     // Initial mount loading

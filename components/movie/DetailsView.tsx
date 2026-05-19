@@ -613,9 +613,9 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
                   </div>
                 </div>
               )}
-              {year && <span>{year}</span>}
+              {year && <span className={styles.metaBadge}>{year}</span>}
               {type === 'tv' && detail?.number_of_seasons && (
-                <span>{detail.number_of_seasons} Seasons</span>
+                <span className={styles.metaBadge}>{detail.number_of_seasons} Seasons</span>
               )}
             </div>
 
@@ -698,7 +698,30 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
                   <Loader2 size={24} className={styles.spinner} />
                   <span>Loading...</span>
                 </button>
-              ) : isTrailerOnly ? (
+              ) : (
+                <button
+                  className={styles.btnPlay}
+                  onClick={() => {
+                    if (ophimRes?.data?.item || isNumeric) {
+                      if (hasHistory) {
+                        handlePlay(
+                          latestHistory.episodeNum?.toString() || '1',
+                          latestHistory.currentTime,
+                          latestHistory.seasonNum
+                        );
+                      } else {
+                        handlePlay('1');
+                      }
+                    } else {
+                      addToast("This movie is not available yet.", "info");
+                    }
+                  }}
+                >
+                  <Play size={24} fill="currentColor" />
+                  <span>{hasHistory ? 'Continue Watching' : 'Play'}</span>
+                </button>
+              )}
+              <div className={styles.secondaryActions}>
                 <button
                   className={styles.btnTrailer}
                   onClick={() => {
@@ -709,57 +732,9 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
                     }
                   }}
                 >
-                  <Play size={24} fill="currentColor" />
-                  <span>Watch Trailer</span>
+                  <Play size={24} />
+                  <span>Trailer</span>
                 </button>
-              ) : (
-                <>
-                  <button
-                    className={styles.btnPlay}
-                    onClick={() => {
-                      if (ophimRes?.data?.item || isNumeric) {
-                        if (hasHistory) {
-                          handlePlay(
-                            latestHistory.episodeNum?.toString() || '1',
-                            latestHistory.currentTime,
-                            latestHistory.seasonNum
-                          );
-                        } else {
-                          handlePlay('1');
-                        }
-                      } else if (trailer) {
-                        handlePlayTrailer(trailer.key, title);
-                      }
-                    }}
-                    disabled={!ophimRes?.data?.item && !isNumeric && !trailer}
-                  >
-                    <Play size={24} fill="currentColor" />
-                    <span>
-                      {(ophimRes?.data?.item || isNumeric)
-                        ? (hasHistory ? 'Continue Watching' : 'Play')
-                        : trailer
-                          ? 'Play Trailer'
-                          : 'Not Available'}
-                    </span>
-                  </button>
-                </>
-              )}
-              <div className={styles.secondaryActions}>
-                {!isTrailerOnly && (
-                  <button
-                    className={styles.btnTrailer}
-                    onClick={() => {
-                      if (trailer) {
-                        handlePlayTrailer(trailer.key, title);
-                      } else {
-                        addToast("Trailer not available on YouTube.", "error");
-                      }
-                    }}
-                  >
-                    <Play size={24} />
-                    <span>Trailer</span>
-                  </button>
-                )}
                 <button
                   className={`${styles.btnAdd} ${favorites.some(f => String(f.id) === String(detail?.id)) ? styles.active : ''}`}
                   onClick={() => {
@@ -804,12 +779,12 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
             transition={{ duration: 0.3 }}
             onClick={() => {
               window.scrollTo({
-                top: window.innerHeight - 76,
+                top: window.innerHeight - 22,
                 behavior: 'smooth'
               });
             }}
           >
-            <ChevronDown size={32} className={styles.scrollArrow} />
+            <ChevronDown size={28} className={styles.scrollArrow} />
           </motion.div>
         </section>
 

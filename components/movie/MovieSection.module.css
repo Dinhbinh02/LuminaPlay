@@ -157,8 +157,15 @@
 .gridContainer {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 30px 20px;
-  padding: 20px 0;
+  gap: 20px;
+  padding: 10px 0;
+}
+
+.gridContainer .cardWrapper,
+.gridContainer .skeletonCard {
+  flex: none;
+  width: 100%;
+  min-width: 0;
 }
 
 @media (max-width: 1024px) {

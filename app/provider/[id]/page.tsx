@@ -17,15 +17,44 @@ interface ProviderPageProps {
 type FilterType = 'all' | 'movie' | 'tv';
 type SortType = 'popularity.desc' | 'primary_release_date.desc';
 
+const GENRE_MAP: Record<string, string> = {
+  '28': 'Action',
+  '12': 'Adventure',
+  '16': 'Animation',
+  '35': 'Comedy',
+  '80': 'Crime',
+  '99': 'Documentary',
+  '18': 'Drama',
+  '10751': 'Family',
+  '14': 'Fantasy',
+  '36': 'History',
+  '27': 'Horror',
+  '10402': 'Music',
+  '9648': 'Mystery',
+  '10749': 'Romance',
+  '878': 'Sci-Fi',
+  '53': 'Thriller',
+  '10752': 'War',
+  '37': 'Western',
+  '10759': 'Action & Adventure',
+  '10762': 'Kids',
+  '10763': 'News',
+  '10764': 'Reality',
+  '10765': 'Sci-Fi & Fantasy',
+  '10766': 'Soap',
+  '10767': 'Talk',
+  '10768': 'War & Politics'
+};
+
 export default function ProviderPage({ params: paramsPromise }: ProviderPageProps) {
   const params = useParams();
   const id = params?.id as string;
   const searchParams = useSearchParams();
-  const urlType = searchParams.get('type'); // 'company' or 'network'
+  const urlType = searchParams.get('type'); // 'company' or 'network' or 'genre' or 'special'
   
   const { scrollY } = useScroll();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
-  const [activeSort, setActiveSort] = useState<SortType>('popularity.desc');
+  const [activeSort, setActiveSort] = useState<SortType>('primary_release_date.desc');
   const [page, setPage] = useState(1);
 
   const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
@@ -35,6 +64,38 @@ export default function ProviderPage({ params: paramsPromise }: ProviderPageProp
   const { data: detailData, isLoading: isDetailLoading } = useQuery({
     queryKey: ['tmdb', 'provider-detail', id, urlType],
     queryFn: async () => {
+      if (urlType === 'genre') {
+        const genreName = GENRE_MAP[id] || 'Genre';
+        return {
+          name: `${genreName} Collection`,
+          logo: '',
+          color: '#E50914',
+          gradient: 'linear-gradient(to bottom, rgba(229, 9, 20, 0.25) 0%, rgba(0,0,0,0) 60%, rgba(0,0,0,1) 100%)',
+          customTagline: `Step into worlds of ${genreName.toLowerCase()}. Browse top movies and TV shows.`
+        };
+      }
+
+      if (urlType === 'special') {
+        if (id === 'trending') {
+          return {
+            name: 'Trending Collection',
+            logo: '',
+            color: '#E1118C',
+            gradient: 'linear-gradient(to bottom, rgba(225, 17, 140, 0.25) 0%, rgba(0,0,0,0) 60%, rgba(0,0,0,1) 100%)',
+            customTagline: 'Keep up with the most popular movies and shows today.'
+          };
+        }
+        if (id === 'top_rated') {
+          return {
+            name: 'Top Rated Collection',
+            logo: '',
+            color: '#8D67AB',
+            gradient: 'linear-gradient(to bottom, rgba(141, 103, 171, 0.25) 0%, rgba(0,0,0,0) 60%, rgba(0,0,0,1) 100%)',
+            customTagline: 'Explore the highest critically-acclaimed movies and TV series.'
+          };
+        }
+      }
+
       // Configuration for major providers
       const providerConfigs: Record<string, { color: string, gradient?: string, tagline?: string, className?: string }> = {
         '8': { // Netflix
@@ -157,29 +218,44 @@ export default function ProviderPage({ params: paramsPromise }: ProviderPageProp
     queryKey: ['tmdb', 'provider-results', id, activeFilter, activeSort, page, urlType],
     queryFn: async () => {
       const today = new Date().toISOString().split('T')[0];
-      
-      let movieParams: any = { page: page.toString(), sort_by: activeSort, 'primary_release_date.lte': today, 'vote_count.gte': '5' };
-      let tvParams: any = { page: page.toString(), sort_by: activeSort === 'primary_release_date.desc' ? 'first_air_date.desc' : 'popularity.desc', 'first_air_date.lte': today, 'vote_count.gte': '5' };
-
-      if (urlType === 'watch') {
-        movieParams.with_watch_providers = id;
-        movieParams.watch_region = 'US';
-        tvParams.with_watch_providers = id;
-        tvParams.watch_region = 'US';
-      } else if (urlType === 'company') {
-        movieParams.with_companies = id;
-        tvParams.with_companies = id;
-      } else if (urlType === 'network') {
-        tvParams.with_networks = id;
-      } else {
-        // Fallback: try both
-        movieParams.with_companies = id;
-        tvParams.with_networks = id;
-      }
-
       const requests: any[] = [];
-      if (activeFilter === 'all' || activeFilter === 'movie') requests.push(tmdb.discover('movie', movieParams));
-      if (activeFilter === 'all' || activeFilter === 'tv') requests.push(tmdb.discover('tv', tvParams));
+
+      if (urlType === 'genre') {
+        let movieParams: any = { page: page.toString(), sort_by: activeSort, with_genres: id, 'primary_release_date.lte': today, 'vote_count.gte': '5' };
+        let tvParams: any = { page: page.toString(), sort_by: activeSort === 'primary_release_date.desc' ? 'first_air_date.desc' : 'popularity.desc', with_genres: id, 'first_air_date.lte': today, 'vote_count.gte': '5' };
+        
+        if (activeFilter === 'all' || activeFilter === 'movie') requests.push(tmdb.discover('movie', movieParams));
+        if (activeFilter === 'all' || activeFilter === 'tv') requests.push(tmdb.discover('tv', tvParams));
+      } else if (urlType === 'special') {
+        if (id === 'trending') {
+          if (activeFilter === 'all' || activeFilter === 'movie') requests.push(tmdb.fetch('/trending/movie/week', { page: page.toString() }));
+          if (activeFilter === 'all' || activeFilter === 'tv') requests.push(tmdb.fetch('/trending/tv/week', { page: page.toString() }));
+        } else if (id === 'top_rated') {
+          if (activeFilter === 'all' || activeFilter === 'movie') requests.push(tmdb.getTopRated('movie', page));
+          if (activeFilter === 'all' || activeFilter === 'tv') requests.push(tmdb.getTopRated('tv', page));
+        }
+      } else {
+        let movieParams: any = { page: page.toString(), sort_by: activeSort, 'primary_release_date.lte': today, 'vote_count.gte': '5' };
+        let tvParams: any = { page: page.toString(), sort_by: activeSort === 'primary_release_date.desc' ? 'first_air_date.desc' : 'popularity.desc', 'first_air_date.lte': today, 'vote_count.gte': '5' };
+
+        if (urlType === 'watch') {
+          movieParams.with_watch_providers = id;
+          movieParams.watch_region = 'US';
+          tvParams.with_watch_providers = id;
+          tvParams.watch_region = 'US';
+        } else if (urlType === 'company') {
+          movieParams.with_companies = id;
+          tvParams.with_companies = id;
+        } else if (urlType === 'network') {
+          tvParams.with_networks = id;
+        } else {
+          movieParams.with_companies = id;
+          tvParams.with_networks = id;
+        }
+
+        if (activeFilter === 'all' || activeFilter === 'movie') requests.push(tmdb.discover('movie', movieParams));
+        if (activeFilter === 'all' || activeFilter === 'tv') requests.push(tmdb.discover('tv', tvParams));
+      }
 
       const responses = await Promise.all(requests);
       
@@ -209,8 +285,9 @@ export default function ProviderPage({ params: paramsPromise }: ProviderPageProp
         }
       });
 
+      // Ensure exactly 20 results per page for consistent pagination UI
       return {
-        results: combined,
+        results: combined.slice(0, 20),
         totalItems: totalResults,
       };
     },
@@ -271,8 +348,6 @@ export default function ProviderPage({ params: paramsPromise }: ProviderPageProp
                 ) : (
                   <h1 className={styles.providerTitle}>{providerName}</h1>
                 )}
-                <div className={styles.separator} style={{ backgroundColor: providerBrandColor }} />
-                <p className={styles.tagline}>{tagline}</p>
               </>
             )}
           </motion.div>
@@ -286,7 +361,7 @@ export default function ProviderPage({ params: paramsPromise }: ProviderPageProp
         <div className={styles.sectionHeader}>
           <h2 className={styles.gridTitle}>
             <span className={styles.accent} style={{ backgroundColor: providerBrandColor }} />
-            {providerName} Collection
+            {providerName.endsWith('Collection') ? providerName : `${providerName} Collection`}
           </h2>
           
           <div className={styles.filterBar}>

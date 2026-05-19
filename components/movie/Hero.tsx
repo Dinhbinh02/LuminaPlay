@@ -189,14 +189,6 @@ export default function Hero({ movies = [] }: HeroProps) {
 
       {/* Pagination & Navigation (Grouped at bottom) */}
       <div className={styles.pagination}>
-        <button
-          className={styles.navBtnCompact}
-          onClick={() => handleManualAction(prevSlide)}
-          aria-label="Previous slide"
-        >
-          <ChevronLeft size={20} />
-        </button>
-
         <div className={styles.barsWrapper}>
           {movies.map((_, idx) => (
             <div
@@ -219,14 +211,6 @@ export default function Hero({ movies = [] }: HeroProps) {
             </div>
           ))}
         </div>
-
-        <button
-          className={styles.navBtnCompact}
-          onClick={() => handleManualAction(nextSlide)}
-          aria-label="Next slide"
-        >
-          <ChevronRight size={20} />
-        </button>
       </div>
 
       <AnimatePresence>
@@ -237,9 +221,9 @@ export default function Hero({ movies = [] }: HeroProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.5 }}
-            onClick={() => window.scrollTo({ top: window.innerHeight - 76, behavior: 'smooth' })}
+            onClick={() => window.scrollTo({ top: window.innerHeight - 22, behavior: 'smooth' })}
           >
-            <ChevronDown size={24} className={styles.scrollArrow} />
+            <ChevronDown size={28} className={styles.scrollArrow} />
           </motion.div>
         )}
       </AnimatePresence>

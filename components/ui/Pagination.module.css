@@ -1,15 +1,8 @@
 .paginationWrapper {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  padding: 0 0 20px;
-}
-
-.paginationWrapper {
-  display: flex;
   justify-content: center;
-  padding: 0 0 40px;
+  align-items: center;
+  padding: 40px 0;
 }
 
 .pagination {
@@ -72,7 +65,7 @@
 
 @media (max-width: 640px) {
   .paginationWrapper {
-    padding: 40px 0 20px;
+    padding: 30px 0;
   }
 
   .pagination {

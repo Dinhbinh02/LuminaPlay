@@ -4,6 +4,7 @@ import Providers from "./providers";
 import PinOverlay from "@/components/auth/PinOverlay";
 import LoadingScreen from "@/components/layout/LoadingScreen";
 import { ToastContainer } from "@/components/ui/Toast";
+import Sidebar from "@/components/layout/Sidebar";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -29,10 +30,13 @@ export default function RootLayout({
         <LoadingScreen />
         <Providers>
           <PinOverlay />
+          <Sidebar />
           {children}
           <ToastContainer />
         </Providers>
+
       </body>
     </html>
   );
 }
+

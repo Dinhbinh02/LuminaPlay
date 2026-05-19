@@ -68,3 +68,18 @@ export const useStore = create<AppState>()(
     }
   )
 );
+
+interface ModalState {
+  isFilterOpen: boolean;
+  setIsFilterOpen: (isOpen: boolean) => void;
+  isSearchOpen: boolean;
+  setIsSearchOpen: (isOpen: boolean) => void;
+}
+
+export const useModalStore = create<ModalState>((set) => ({
+  isFilterOpen: false,
+  setIsFilterOpen: (isOpen) => set({ isFilterOpen: isOpen }),
+  isSearchOpen: false,
+  setIsSearchOpen: (isOpen) => set({ isSearchOpen: isOpen }),
+}));
+
