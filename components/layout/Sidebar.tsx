@@ -14,7 +14,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const params = useParams();
-  const { setIsSearchOpen, isSearchOpen } = useModalStore();
+  const { setIsSearchOpen, isSearchOpen, activeTab, setActiveTab } = useModalStore();
   const [isPartyModalOpen, setIsPartyModalOpen] = useState(false);
 
   const [optimisticPath, setOptimisticPath] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export default function Sidebar() {
   const contentId = params?.id as string;
   const contentType = pathname?.startsWith('/tv/') ? 'tv' : 'movie';
 
-  const currentPath = optimisticPath || pathname || '';
+  const currentPath = optimisticPath || activeTab || pathname || '';
 
   const menuItems = [
     {
@@ -118,13 +118,38 @@ export default function Sidebar() {
                 aria-label={item.label}
                 onClick={(e) => {
                   e.preventDefault();
-                  if (pathname !== item.href) {
-                    setOptimisticPath(item.href);
-                    // Save scroll position of current page before leaving
+
+                  const isCurrentMain = ['/', '/search', '/mylist'].includes(pathname);
+                  const isTargetMain = ['/', '/search', '/mylist'].includes(item.href);
+
+                  if (isCurrentMain && isTargetMain) {
+                    // Sync scroll position before leaving
                     sessionStorage.setItem(`scroll_${pathname}`, String(window.scrollY));
-                    startTransition(() => {
-                      router.push(item.href, { scroll: false });
-                    });
+                    
+                    // Switch tab synchronously in React/Zustand state (0ms delay)
+                    setActiveTab(item.href);
+                    
+                    // Update browser address bar path synchronously
+                    window.history.pushState(null, '', item.href);
+
+                    // Restore saved scroll position of the target tab
+                    const savedScroll = sessionStorage.getItem(`scroll_${item.href}`);
+                    if (savedScroll !== null) {
+                      requestAnimationFrame(() => {
+                        window.scrollTo({ top: parseInt(savedScroll, 10), behavior: 'instant' as ScrollBehavior });
+                      });
+                    } else {
+                      window.scrollTo({ top: 0, behavior: 'instant' });
+                    }
+                  } else {
+                    // Fall back to standard route change when leaving detail pages or switching contexts
+                    if (pathname !== item.href) {
+                      setOptimisticPath(item.href);
+                      sessionStorage.setItem(`scroll_${pathname}`, String(window.scrollY));
+                      startTransition(() => {
+                        router.push(item.href, { scroll: false });
+                      });
+                    }
                   }
                 }}
               >

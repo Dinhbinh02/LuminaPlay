@@ -6,6 +6,9 @@ import { usePathname } from 'next/navigation';
 import styles from './LoadingScreen.module.css';
 import { useLoadingStore } from '@/hooks/useLoadingStore';
 
+// Use an in-memory flag that resets on page refresh but persists during client-side SPA navigation
+let hasLoadedInitialInSession = false;
+
 export default function LoadingScreen({ isForcedVisible }: { isForcedVisible?: boolean }) {
   const { isPageLoading, setPageLoading } = useLoadingStore();
   const pathname = usePathname();
@@ -14,14 +17,13 @@ export default function LoadingScreen({ isForcedVisible }: { isForcedVisible?: b
   const [isInitialLoad, setIsInitialLoad] = useState(false);
 
   useEffect(() => {
-    // Check if we are landing on the homepage and haven't shown it yet
-    const hasLoaded = sessionStorage.getItem('hasLoadedInitial');
-    if (pathname === '/' && !hasLoaded) {
+    // Show loading overlay on homepage first render of the session
+    if (pathname === '/' && !hasLoadedInitialInSession) {
       setIsInitialLoad(true);
 
       const handleLoadComplete = () => {
         setIsInitialLoad(false);
-        sessionStorage.setItem('hasLoadedInitial', 'true');
+        hasLoadedInitialInSession = true;
       };
 
       if (document.readyState === 'complete') {

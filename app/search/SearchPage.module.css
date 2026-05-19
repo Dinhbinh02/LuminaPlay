@@ -81,7 +81,7 @@
 .container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 20px 4% 3%;
+  padding: 24px 4%;
   display: flex;
   gap: 40px;
   align-items: flex-start;

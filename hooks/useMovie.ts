@@ -70,7 +70,8 @@ export function useInfiniteMovies(type: 'the-loai' | 'quoc-gia' | 'danh-sach', s
     queryKey: ['infinite-movies', type, slug, params],
     queryFn: ({ pageParam = 1 }) => ophim.getMovies(type, slug, { ...params, page: pageParam }),
     getNextPageParam: (lastPage: any) => {
-      const pagination = lastPage.data.params.pagination;
+      const pagination = lastPage?.data?.params?.pagination;
+      if (!pagination) return undefined;
       const currentPage = pagination.currentPage;
       const totalPages = Math.ceil(pagination.totalItems / pagination.totalItemsPerPage);
       return currentPage < totalPages ? currentPage + 1 : undefined;
@@ -180,6 +181,7 @@ export function useInfiniteTMDBRecommendations(id: string | number, type: 'movie
     queryKey: ['tmdb', 'infinite', 'recommendations', id, type],
     queryFn: ({ pageParam = 1 }) => tmdb.getRecommendations(id, type, pageParam),
     getNextPageParam: (lastPage: any) => {
+      if (!lastPage || typeof lastPage.page !== 'number') return undefined;
       return lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined;
     },
     initialPageParam: 1,
@@ -259,6 +261,7 @@ export function useInfiniteTMDBPopular(type: 'movie' | 'tv' = 'movie') {
     queryKey: ['tmdb', 'infinite', 'popular', type],
     queryFn: ({ pageParam = 1 }) => tmdb.getPopular(type, pageParam),
     getNextPageParam: (lastPage: any) => {
+      if (!lastPage || typeof lastPage.page !== 'number') return undefined;
       return lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined;
     },
     initialPageParam: 1,
@@ -281,6 +284,7 @@ export function useInfiniteTMDBUpcoming() {
     queryKey: ['tmdb', 'infinite', 'upcoming'],
     queryFn: ({ pageParam = 1 }) => tmdb.getUpcoming(pageParam),
     getNextPageParam: (lastPage: any) => {
+      if (!lastPage || typeof lastPage.page !== 'number') return undefined;
       return lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined;
     },
     initialPageParam: 1,
@@ -303,6 +307,7 @@ export function useInfiniteTMDBByGenre(genreId: number, type: 'movie' | 'tv' = '
     queryKey: ['tmdb', 'infinite', 'genre', genreId, type],
     queryFn: ({ pageParam = 1 }) => tmdb.getMoviesByGenre(genreId, type, pageParam),
     getNextPageParam: (lastPage: any) => {
+      if (!lastPage || typeof lastPage.page !== 'number') return undefined;
       return lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined;
     },
     initialPageParam: 1,
@@ -366,6 +371,7 @@ export function useInfiniteNetflixContent() {
       };
     },
     getNextPageParam: (lastPage: any) => {
+      if (!lastPage || typeof lastPage.page !== 'number') return undefined;
       return lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined;
     },
     initialPageParam: 1,
@@ -419,6 +425,7 @@ export function useInfiniteHBOContent() {
       };
     },
     getNextPageParam: (lastPage: any) => {
+      if (!lastPage || typeof lastPage.page !== 'number') return undefined;
       return lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined;
     },
     initialPageParam: 1,
@@ -472,6 +479,7 @@ export function useInfiniteAppleContent() {
       };
     },
     getNextPageParam: (lastPage: any) => {
+      if (!lastPage || typeof lastPage.page !== 'number') return undefined;
       return lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined;
     },
     initialPageParam: 1,

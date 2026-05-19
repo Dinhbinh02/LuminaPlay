@@ -20,6 +20,7 @@ interface MovieSectionProps {
   infiniteData?: any;
   gridMode?: boolean;
   href?: string;
+  isLoading?: boolean;
 }
 
 // Memory cache for scroll positions during the session
@@ -32,8 +33,11 @@ function MovieCard({ movie, index, lastElementRef }: { movie: any, index: number
   const { setPageLoading } = useLoadingStore();
 
   const handleClick = (e: React.MouseEvent) => {
-    // Show loader immediately
-    setPageLoading(true);
+    // Only show loader if opening in a new tab/window (non-intercepted click)
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
+      return;
+    }
+    // Do not call setPageLoading(true) here since it is loaded instantly in the overlay!
   };
 
   return (
@@ -76,7 +80,7 @@ function MovieCard({ movie, index, lastElementRef }: { movie: any, index: number
   );
 }
 
-export default function MovieSection({ title, type, slug, params = {}, movies, infiniteData, gridMode, href }: MovieSectionProps) {
+export default function MovieSection({ title, type, slug, params = {}, movies, infiniteData, gridMode, href, isLoading: isLoadingProp }: MovieSectionProps) {
   const memoizedParams = useMemo(() => params, [JSON.stringify(params)]);
 
   const {
@@ -211,12 +215,18 @@ export default function MovieSection({ title, type, slug, params = {}, movies, i
     }
   }, [title, checkScroll]);
 
-  if ((isLoading || (infiniteData && infiniteData.isLoading)) && allMovies.length === 0 && !movies) {
+  if ((isLoadingProp || isLoading || (infiniteData && infiniteData.isLoading)) && allMovies.length === 0 && !movies) {
     return (
       <div className={styles.section}>
-        <h2 className={styles.title}>{title}</h2>
-        <div className={styles.skeletonContainer}>
-          {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className={styles.skeletonCard} />)}
+        {title && <h2 className={styles.title}>{title}</h2>}
+        <div className={gridMode ? styles.gridContainer : styles.skeletonContainer}>
+          {Array.from({ length: gridMode ? 20 : 6 }).map((_, i) => (
+            <div 
+              key={i} 
+              className={styles.skeletonCard} 
+              style={gridMode ? { flex: 'initial', width: 'auto' } : undefined}
+            />
+          ))}
         </div>
       </div>
     );

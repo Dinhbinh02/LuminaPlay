@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { useSearchParams, useParams } from 'next/navigation';
+import { useSearchParams, useParams, useRouter } from 'next/navigation';
 import { tmdb } from '@/lib/tmdb';
 import MovieSection from '@/components/movie/MovieSection';
 import Header from '@/components/layout/Header';
@@ -47,18 +47,24 @@ const GENRE_MAP: Record<string, string> = {
 };
 
 export default function ProviderPage({ params: paramsPromise }: ProviderPageProps) {
+  const router = useRouter();
   const params = useParams();
   const id = params?.id as string;
   const searchParams = useSearchParams();
   const urlType = searchParams.get('type'); // 'company' or 'network' or 'genre' or 'special'
   
-  const { scrollY } = useScroll();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [activeSort, setActiveSort] = useState<SortType>('primary_release_date.desc');
-  const [page, setPage] = useState(1);
+  
+  const initialPage = parseInt(searchParams.get('page') || '1', 10);
+  const [page, setPage] = useState(isNaN(initialPage) ? 1 : initialPage);
 
-  const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
-  const heroScale = useTransform(scrollY, [0, 400], [1, 1.1]);
+  useEffect(() => {
+    const pageVal = parseInt(searchParams.get('page') || '1', 10);
+    if (!isNaN(pageVal) && pageVal !== page) {
+      setPage(pageVal);
+    }
+  }, [searchParams]);
 
   const { data: detailData, isLoading: isDetailLoading } = useQuery({
     queryKey: ['tmdb', 'provider-detail', id, urlType],
@@ -295,63 +301,15 @@ export default function ProviderPage({ params: paramsPromise }: ProviderPageProp
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
-    window.scrollTo({ top: 400, behavior: 'smooth' });
+    const newParams = new URLSearchParams(searchParams.toString());
+    newParams.set('page', newPage.toString());
+    router.push(`/provider/${id}?${newParams.toString()}`);
+    window.scrollTo(0, 0);
   };
-
-  const firstMovie = data?.results[0];
 
   return (
     <div className={styles.container}>
       <Header />
-      
-      <section className={styles.hero}>
-        <motion.div 
-          className={styles.heroBackground}
-          style={{ opacity: heroOpacity, scale: heroScale }}
-        >
-          {firstMovie?.backdrop_path && (
-            <img 
-              src={tmdb.getImageUrl(firstMovie.backdrop_path, 'original')} 
-              alt="" 
-              className={styles.backdropImage}
-            />
-          )}
-          <div 
-            className={styles.heroGradient} 
-            style={{ 
-              background: detailData?.gradient ? `${detailData.gradient}, radial-gradient(circle at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.9) 100%), linear-gradient(to bottom, rgba(0,0,0,0) 50%, rgba(0,0,0,1) 100%)` : undefined
-            }} 
-          />
-        </motion.div>
-        
-        <div className={styles.heroContent}>
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className={styles.brandContainer}
-          >
-            {isDetailLoading ? (
-              <div className={styles.brandSkeleton}>
-                <div className={styles.logoSkeleton} />
-                <div className={styles.taglineSkeleton} />
-              </div>
-            ) : (
-              <>
-                {providerLogo ? (
-                  <img 
-                    src={providerLogo} 
-                    alt={providerName} 
-                    className={styles.providerLogo} 
-                  />
-                ) : (
-                  <h1 className={styles.providerTitle}>{providerName}</h1>
-                )}
-              </>
-            )}
-          </motion.div>
-        </div>
-      </section>
 
       <motion.main 
         className={styles.content}
@@ -366,19 +324,19 @@ export default function ProviderPage({ params: paramsPromise }: ProviderPageProp
             <div className={styles.filterGroup}>
               <button 
                 className={activeFilter === 'all' ? styles.filterBtnActive : styles.filterBtn}
-                onClick={() => { setActiveFilter('all'); setPage(1); }}
+                onClick={() => { setActiveFilter('all'); handlePageChange(1); }}
               >
                 All
               </button>
               <button 
                 className={activeFilter === 'movie' ? styles.filterBtnActive : styles.filterBtn}
-                onClick={() => { setActiveFilter('movie'); setPage(1); }}
+                onClick={() => { setActiveFilter('movie'); handlePageChange(1); }}
               >
                 Movies
               </button>
               <button 
                 className={activeFilter === 'tv' ? styles.filterBtnActive : styles.filterBtn}
-                onClick={() => { setActiveFilter('tv'); setPage(1); }}
+                onClick={() => { setActiveFilter('tv'); handlePageChange(1); }}
               >
                 TV Shows
               </button>
@@ -389,13 +347,13 @@ export default function ProviderPage({ params: paramsPromise }: ProviderPageProp
             <div className={styles.filterGroup}>
               <button 
                 className={activeSort === 'popularity.desc' ? styles.filterBtnActive : styles.filterBtn}
-                onClick={() => { setActiveSort('popularity.desc'); setPage(1); }}
+                onClick={() => { setActiveSort('popularity.desc'); handlePageChange(1); }}
               >
                 Trending
               </button>
               <button 
                 className={activeSort === 'primary_release_date.desc' ? styles.filterBtnActive : styles.filterBtn}
-                onClick={() => { setActiveSort('primary_release_date.desc'); setPage(1); }}
+                onClick={() => { setActiveSort('primary_release_date.desc'); handlePageChange(1); }}
               >
                 Latest
               </button>
@@ -407,6 +365,7 @@ export default function ProviderPage({ params: paramsPromise }: ProviderPageProp
           title="" 
           movies={data?.results}
           gridMode={true} 
+          isLoading={isLoading}
         />
 
         <div className={styles.paginationSection}>

@@ -42,11 +42,17 @@ export const useStore = create<AppState>()(
       setPin: (pin) => set({ pin }),
       setPinLocked: (isLocked) => set({ isPinLocked: isLocked }),
       addToHistory: (item) => set((state) => {
-        // Filter out the EXACT SAME episode (same show ID, season, and episode)
-        const filtered = state.history.filter((i) => 
-          !(String(i.id) === String(item.id) && i.seasonNum === item.seasonNum && i.episodeNum === item.episodeNum)
-        );
-        return { history: [item, ...filtered].slice(0, 50) }; // Increased limit to 50 to accommodate more episodes
+        // Filter out duplicate entries based on:
+        // 1. Same ID and episode info
+        // 2. Same Title and episode info (handles cases where ID changes between slug and Mongo ID)
+        const filtered = state.history.filter((i) => {
+          const isSameId = String(i.id) === String(item.id);
+          const isSameTitle = i.title?.trim().toLowerCase() === item.title?.trim().toLowerCase();
+          const isSameEpisode = i.seasonNum === item.seasonNum && i.episodeNum === item.episodeNum;
+          
+          return !((isSameId && isSameEpisode) || (isSameTitle && isSameEpisode));
+        });
+        return { history: [item, ...filtered].slice(0, 50) };
       }),
       removeFromHistory: (id, seasonNum, episodeNum) => set((state) => ({
         history: state.history.filter((i) => 
@@ -74,6 +80,11 @@ interface ModalState {
   setIsFilterOpen: (isOpen: boolean) => void;
   isSearchOpen: boolean;
   setIsSearchOpen: (isOpen: boolean) => void;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  activeDetailId: string | null;
+  activeDetailType: 'movie' | 'tv' | null;
+  setActiveDetail: (id: string | null, type: 'movie' | 'tv' | null) => void;
 }
 
 export const useModalStore = create<ModalState>((set) => ({
@@ -81,5 +92,10 @@ export const useModalStore = create<ModalState>((set) => ({
   setIsFilterOpen: (isOpen) => set({ isFilterOpen: isOpen }),
   isSearchOpen: false,
   setIsSearchOpen: (isOpen) => set({ isSearchOpen: isOpen }),
+  activeTab: '/',
+  setActiveTab: (tab) => set({ activeTab: tab }),
+  activeDetailId: null,
+  activeDetailType: null,
+  setActiveDetail: (id, type) => set({ activeDetailId: id, activeDetailType: type }),
 }));
 

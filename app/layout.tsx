@@ -1,10 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Providers from "./providers";
-import PinOverlay from "@/components/auth/PinOverlay";
 import LoadingScreen from "@/components/layout/LoadingScreen";
 import { ToastContainer } from "@/components/ui/Toast";
-import Sidebar from "@/components/layout/Sidebar";
+import AppContent from "@/components/layout/AppContent";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -29,12 +28,11 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <LoadingScreen />
         <Providers>
-          <PinOverlay />
-          <Sidebar />
-          {children}
+          <AppContent>
+            {children}
+          </AppContent>
           <ToastContainer />
         </Providers>
-
       </body>
     </html>
   );

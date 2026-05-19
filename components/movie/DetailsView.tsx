@@ -407,15 +407,6 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-
-  if (!isLoading && !detail) {
-    return (
-      <div className={styles.main}>
-        <div className={styles.error}>Content not found</div>
-      </div>
-    );
-  }
-
   const logoUrl = detail ? tmdb.getLogoUrl(detail.images) : null;
   const title = detail ? (detail.title || detail.name) : '';
   const rating = detail?.vote_average?.toFixed(1);
@@ -448,6 +439,78 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
       };
     }
   }, [recommendations, checkScroll]);
+
+  if (isLoading || !detail) {
+    return (
+      <>
+        <Header />
+        <main className={styles.main}>
+          <button 
+            className={styles.backButton} 
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/');
+              }
+            }}
+            aria-label="Go Back"
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <section className={styles.hero}>
+            <div className={styles.backdropWrapper}>
+              <div className={`${styles.backdrop} ${styles.skeletonShimmer}`} style={{ opacity: 0.15, height: '100%' }} />
+              <div className={styles.overlay} />
+            </div>
+
+            <div className={styles.heroContent}>
+              {/* Title / Logo Placeholder */}
+              <div className={`${styles.logoWrapper} ${styles.skeletonShimmer}`} style={{ width: 'min(380px, 70vw)', height: 'min(160px, 30vh)', marginBottom: '30px', borderRadius: '12px' }} />
+
+              {/* Meta Badges Placeholder */}
+              <div className={styles.meta}>
+                <div className={`${styles.skeletonShimmer}`} style={{ width: '80px', height: '26px', borderRadius: '4px' }} />
+                <div className={`${styles.skeletonShimmer}`} style={{ width: '60px', height: '26px', borderRadius: '4px' }} />
+                <div className={`${styles.skeletonShimmer}`} style={{ width: '90px', height: '26px', borderRadius: '4px' }} />
+              </div>
+
+              {/* Genres Placeholder */}
+              <div className={styles.genreTags}>
+                <div className={`${styles.skeletonShimmer}`} style={{ width: '90px', height: '28px', borderRadius: '4px' }} />
+                <div className={`${styles.skeletonShimmer}`} style={{ width: '80px', height: '28px', borderRadius: '4px' }} />
+              </div>
+
+              {/* Description Placeholder */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '40px', maxWidth: '650px', width: '100%' }}>
+                <div className={`${styles.skeletonShimmer}`} style={{ height: '18px', width: '90%', borderRadius: '4px' }} />
+                <div className={`${styles.skeletonShimmer}`} style={{ height: '18px', width: '85%', borderRadius: '4px' }} />
+                <div className={`${styles.skeletonShimmer}`} style={{ height: '18px', width: '60%', borderRadius: '4px' }} />
+              </div>
+
+
+              {/* Buttons Placeholder */}
+              <div className={styles.mainActions}>
+                <div className={`${styles.skeletonShimmer}`} style={{ width: '150px', height: '48px', borderRadius: '8px' }} />
+                <div className={styles.secondaryActions}>
+                  <div className={`${styles.skeletonShimmer}`} style={{ width: '130px', height: '48px', borderRadius: '8px' }} />
+                  <div className={`${styles.skeletonShimmer}`} style={{ width: '48px', height: '48px', borderRadius: '8px' }} />
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </>
+    );
+  }
+
+  if (!isLoading && !detail) {
+    return (
+      <div className={styles.main}>
+        <div className={styles.error}>Content not found</div>
+      </div>
+    );
+  }
   const trailers = detail?.videos?.results?.filter((v: any) => v.type === 'Trailer' && v.site === 'YouTube') || [];
   // Sort trailers by published_at date (newest first)
   const sortedTrailers = trailers.sort((a: any, b: any) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
@@ -574,6 +637,19 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
       </AnimatePresence>
 
       <main className={styles.main} style={{ opacity: (!isLoading && detail) ? 1 : 0 }}>
+        <button 
+          className={styles.backButton} 
+          onClick={() => {
+            if (typeof window !== 'undefined' && window.history.length > 1) {
+              router.back();
+            } else {
+              router.push('/');
+            }
+          }}
+          aria-label="Go Back"
+        >
+          <ArrowLeft size={24} />
+        </button>
         <section className={styles.hero}>
           <div className={styles.backdropWrapper}>
             {(detail?.backdrop_path || detail?.poster_path) && (
@@ -718,7 +794,7 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
                   }}
                 >
                   <Play size={24} fill="currentColor" />
-                  <span>{hasHistory ? 'Continue Watching' : 'Play'}</span>
+                  <span>{hasHistory ? 'Resume' : 'Play'}</span>
                 </button>
               )}
               <div className={styles.secondaryActions}>

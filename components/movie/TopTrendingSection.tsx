@@ -92,7 +92,9 @@ export default function TopTrendingSection({ movies, title = "TOP 10" }: TopTren
                 <Link 
                   className={styles.cardLink} 
                   href={movieUrl}
-                  onClick={() => setPageLoading(true)}
+                  onClick={(e) => {
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                  }}
                   prefetch={true}
                 >
                   <div className={styles.card}>
