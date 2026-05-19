@@ -45,9 +45,19 @@ export default function AppContent({ children }: { children: React.ReactNode }) 
   // Sync Next.js pathname changes to Zustand state (handles initial load & dynamic page routing)
   useEffect(() => {
     if (pathname) {
-      setActiveTab(pathname);
+      const match = pathname.match(/^\/(movie|tv)\/([^/?#]+)/);
+      if (match) {
+        const type = match[1] as 'movie' | 'tv';
+        const id = match[2];
+        setActiveDetail(id, type);
+      } else {
+        setActiveDetail(null, null);
+        if (['/', '/search', '/mylist', '/history'].includes(pathname)) {
+          setActiveTab(pathname);
+        }
+      }
     }
-  }, [pathname, setActiveTab]);
+  }, [pathname, setActiveTab, setActiveDetail]);
 
   // Sync browser back/forward buttons with activeTab and activeDetail states
   useEffect(() => {
@@ -156,6 +166,7 @@ export default function AppContent({ children }: { children: React.ReactNode }) 
               zIndex: 9999,
               backgroundColor: '#000',
               overflowY: 'auto',
+              overflowX: 'hidden',
             }}
           >
             <DetailsView id={activeDetailId} type={activeDetailType} />

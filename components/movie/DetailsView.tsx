@@ -11,7 +11,7 @@ import styles from './MovieDetails.module.css';
 import { useLoadingStore } from '@/hooks/useLoadingStore';
 import Header from '@/components/layout/Header';
 import { VideoPlayer } from '@/components/player/VideoPlayer';
-import { useStore } from '@/store/useStore';
+import { useStore, useModalStore } from '@/store/useStore';
 import { useSyncHistory } from '@/hooks/useSyncHistory';
 import { useToastStore } from '@/store/useToastStore';
 import PersonModal from './PersonModal';
@@ -118,6 +118,7 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
 
   const { data: detail, isLoading } = useTMDBDetails(isNumeric ? id : '', type);
   const { history, addToHistory, favorites, addToFavorites, removeFromFavorites } = useStore();
+  const { activeDetailId, activeDetailType, setActiveDetail } = useModalStore();
   const { syncItemToCloud } = useSyncHistory();
 
   // Find all history entries for this movie/show
@@ -191,7 +192,12 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
   useEffect(() => {
     if (isNumeric && detail?.media_type && detail.media_type !== type) {
       // Redirect to the correct type route if TMDB reports a different media type
-      router.replace(`/${detail.media_type}/${id}`);
+      if (activeDetailId && activeDetailType) {
+        setActiveDetail(id, detail.media_type);
+        window.history.replaceState({ isOverlay: true }, '', `/${detail.media_type}/${id}`);
+      } else {
+        router.replace(`/${detail.media_type}/${id}`);
+      }
     }
 
     if (!isNumeric && ophimRes?.status === 'success' && ophimRes.data?.item) {
@@ -200,10 +206,15 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
       if (tmdbId) {
         // Use TMDB type if provided by Ophim, otherwise fallback to guessing
         const movieType = movie.tmdb?.type || (movie.type === 'series' || movie.type === 'hoathinh' || movie.type === 'tvshows' ? 'tv' : 'movie');
-        router.replace(`/${movieType}/${tmdbId}`);
+        if (activeDetailId && activeDetailType) {
+          setActiveDetail(tmdbId.toString(), movieType);
+          window.history.replaceState({ isOverlay: true }, '', `/${movieType}/${tmdbId}`);
+        } else {
+          router.replace(`/${movieType}/${tmdbId}`);
+        }
       }
     }
-  }, [isNumeric, detail?.media_type, type, id, ophimRes, router]);
+  }, [isNumeric, detail?.media_type, type, id, ophimRes, router, activeDetailId, activeDetailType, setActiveDetail]);
 
   const [isImageLoaded, setIsImageLoaded] = useState(false);
 

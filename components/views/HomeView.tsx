@@ -6,7 +6,6 @@ import Hero from "@/components/movie/Hero";
 import MovieSection from "@/components/movie/MovieSection";
 import TopTrendingSection from "@/components/movie/TopTrendingSection";
 import ContinueWatching from "@/components/movie/ContinueWatching";
-import LoadingScreen from "@/components/layout/LoadingScreen";
 import {
   useRegionalTrending,
   useTrendingWithLogos,
@@ -149,8 +148,7 @@ export default function HomeView() {
 
   return (
     <>
-      {/* Reusing existing LoadingScreen with forced visibility for preloading */}
-      <LoadingScreen isForcedVisible={isPreloading} />
+      {/* Preloading status is synced to the global root loading screen via Zustand store */}
 
       <Header />
       <main style={{ 
