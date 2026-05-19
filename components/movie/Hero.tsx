@@ -12,6 +12,7 @@ export interface HeroMovie {
   description: string;
   backdrop: string;
   poster: string;
+  textless_poster?: string | null;
   logo?: string | null;
   media_type?: 'movie' | 'tv';
   year?: number | string;
@@ -105,10 +106,10 @@ export default function Hero({ movies = [] }: HeroProps) {
             className={styles.slide}
           >
             <div className={styles.heroBg}>
-              <picture>
+                          <picture>
                 <source
                   media="(max-width: 768px)"
-                  srcSet={movie.poster || movie.backdrop}
+                  srcSet={movie.textless_poster || movie.poster || movie.backdrop}
                 />
                 <img
                   src={movie.backdrop || movie.poster}
