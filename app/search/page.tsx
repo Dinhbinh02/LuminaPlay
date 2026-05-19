@@ -610,14 +610,6 @@ function SearchResults() {
 
   return (
     <div className={styles.container}>
-      {keyword && (
-        <SearchSidebar
-          counts={counts}
-          activeType={activeType}
-          onTypeChange={handleTypeChange}
-        />
-      )}
-
       <div className={styles.resultsArea}>
         <form
           className={styles.searchBarWrapper}

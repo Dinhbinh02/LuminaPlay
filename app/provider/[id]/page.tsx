@@ -59,7 +59,6 @@ export default function ProviderPage({ params: paramsPromise }: ProviderPageProp
 
   const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
   const heroScale = useTransform(scrollY, [0, 400], [1, 1.1]);
-  const contentY = useTransform(scrollY, [0, 400], [0, -100]);
 
   const { data: detailData, isLoading: isDetailLoading } = useQuery({
     queryKey: ['tmdb', 'provider-detail', id, urlType],
@@ -356,7 +355,6 @@ export default function ProviderPage({ params: paramsPromise }: ProviderPageProp
 
       <motion.main 
         className={styles.content}
-        style={{ y: contentY }}
       >
         <div className={styles.sectionHeader}>
           <h2 className={styles.gridTitle}>

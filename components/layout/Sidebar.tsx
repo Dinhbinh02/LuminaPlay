@@ -55,7 +55,7 @@ export default function Sidebar() {
       label: 'Home',
       icon: Home,
       href: '/',
-      active: currentPath === '/',
+      active: currentPath === '/' || currentPath.startsWith('/movie/') || currentPath.startsWith('/tv/'),
     },
     {
       label: 'Search',

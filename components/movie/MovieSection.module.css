@@ -146,7 +146,6 @@
   scrollbar-width: none;
   contain: content;
   -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
 }
 
 .sliderContainer::-webkit-scrollbar {
@@ -189,10 +188,6 @@
   transition: transform 0.3s ease;
 }
 
-.cardWrapper:hover {
-  transform: translateY(-8px);
-}
-
 .card {
   position: relative;
   aspect-ratio: 2/3;
@@ -207,12 +202,18 @@
   backface-visibility: hidden;
 }
 
-.cardWrapper:hover .card {
-  box-shadow: 0 10px 30px rgba(229, 9, 20, 0.2);
-}
+@media (hover: hover) and (pointer: fine) {
+  .cardWrapper:hover {
+    transform: translateY(-8px);
+  }
 
-.card:hover {
-  z-index: 10;
+  .cardWrapper:hover .card {
+    box-shadow: 0 10px 30px rgba(229, 9, 20, 0.2);
+  }
+
+  .card:hover {
+    z-index: 10;
+  }
 }
 
 .imageContainer {
@@ -381,5 +382,13 @@
 @media (max-width: 768px) {
   .skeletonCard {
     flex: 0 0 160px;
+  }
+  
+  .controlBtn {
+    display: none;
+  }
+
+  .section {
+    margin-bottom: 10px;
   }
 }

@@ -180,10 +180,17 @@ export const tmdb = {
 
   // Get Textless Poster URL
   getTextlessPosterUrl(images: any) {
-    if (!images?.posters) return null;
-    const textless = images.posters.find((p: any) => p.iso_639_1 === null || p.iso_639_1 === 'xx');
-    if (!textless) return null;
-    return `${IMAGE_BASE_URL}/original${textless.file_path}`;
+    if (!images?.posters || images.posters.length === 0) return null;
+    
+    // Get all textless or 'xx' (Not Specified) posters
+    const textlessPosters = images.posters.filter((p: any) => p.iso_639_1 === 'xx' || p.iso_639_1 === null);
+    
+    if (textlessPosters.length === 0) return null;
+
+    // Sort by vote average (highest first) to get the best quality/most popular textless poster
+    textlessPosters.sort((a: any, b: any) => b.vote_average - a.vote_average);
+    
+    return `${IMAGE_BASE_URL}/original${textlessPosters[0].file_path}`;
   },
 
   // Map common Watch Provider IDs to Company IDs

@@ -2,7 +2,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 40px 0;
+  padding: 20px 0 20px;
 }
 
 .pagination {
@@ -65,7 +65,7 @@
 
 @media (max-width: 640px) {
   .paginationWrapper {
-    padding: 30px 0;
+    padding: 10px 0 10px;
   }
 
   .pagination {

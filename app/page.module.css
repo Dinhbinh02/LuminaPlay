@@ -131,7 +131,8 @@ a.secondary {
 
 @media (max-width: 768px) {
   .heroWrapper {
-    height: 100vh;
+    height: auto;
+    min-height: calc(100dvh - 64px);
   }
 }
 

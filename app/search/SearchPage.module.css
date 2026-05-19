@@ -1,5 +1,4 @@
 .main {
-  min-height: 100vh;
   background: #000000;
   color: white;
 }
@@ -16,7 +15,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 50px;
   padding: 14px 24px;
-  margin-bottom: 40px;
+  margin: 0 auto 40px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(20px);
@@ -82,7 +81,7 @@
 .container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 20px 4% 60px;
+  padding: 20px 4% 3%;
   display: flex;
   gap: 40px;
   align-items: flex-start;
@@ -386,7 +385,7 @@
   .container {
     flex-direction: column;
     gap: 0;
-    padding: 12px 4% 60px;
+    padding: 12px 4% 3%;
   }
   .sidebar {
     display: none;
@@ -406,51 +405,60 @@
   }
 }
 
-/* Mobile filter tabs (shown only on mobile as replacement for sidebar) */
+/* Filter tabs (shown on all devices instead of sidebar) */
 .mobileFilterTabs {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  margin-bottom: 24px;
+  padding-bottom: 2px;
+}
+
+.mobileFilterTabs::-webkit-scrollbar {
   display: none;
 }
 
-@media (max-width: 1024px) {
-  .mobileFilterTabs {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    margin-bottom: 20px;
-    padding-bottom: 2px;
-  }
-  .mobileFilterTabs::-webkit-scrollbar {
-    display: none;
-  }
-  .mobileFilterTab {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.05);
-    color: rgba(255,255,255,0.7);
-    font-size: 13px;
-    font-weight: 600;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  .mobileFilterTabActive {
-    background: #e50914;
-    border-color: #e50914;
-    color: #fff;
-  }
-  .mobileFilterCount {
-    background: rgba(0,0,0,0.25);
-    border-radius: 10px;
-    padding: 1px 6px;
-    font-size: 11px;
-    font-weight: 700;
-  }
+.mobileFilterTab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mobileFilterTab:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.mobileFilterTabActive {
+  background: #e50914;
+  border-color: #e50914;
+  color: #fff;
+}
+
+.mobileFilterTabActive:hover {
+  background: #b20710;
+  border-color: #b20710;
+}
+
+.mobileFilterCount {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 @media (max-width: 640px) {
@@ -680,17 +688,19 @@
   min-width: 0;
 }
 
-.posterCardWrapper:hover {
-  transform: translateY(-8px);
-}
-
 .posterCard {
   display: block;
   text-decoration: none;
 }
 
-.posterCardWrapper:hover .posterImageContainer {
-  box-shadow: 0 10px 30px rgba(229, 9, 20, 0.2);
+@media (hover: hover) and (pointer: fine) {
+  .posterCardWrapper:hover {
+    transform: translateY(-8px);
+  }
+
+  .posterCardWrapper:hover .posterImageContainer {
+    box-shadow: 0 10px 30px rgba(229, 9, 20, 0.2);
+  }
 }
 
 .posterImageContainer {
