@@ -316,8 +316,34 @@ export default function ProviderPage({ params: paramsPromise }: ProviderPageProp
       >
         <div className={styles.sectionHeader}>
           <h2 className={styles.gridTitle}>
-            <span className={styles.accent} style={{ backgroundColor: providerBrandColor }} />
-            {providerName.endsWith('Collection') ? providerName : `${providerName} Collection`}
+            <button 
+              onClick={() => router.push('/search')}
+              className={styles.backButton}
+              aria-label="Back to Search"
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className={styles.backIcon}
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            {isDetailLoading || !providerName ? (
+              <span className={styles.titleSkeleton} />
+            ) : (
+              <span 
+                onClick={() => router.push('/search')}
+                className={styles.titleText}
+              >
+                {providerName.replace(/\s+Collection$/, '')}
+              </span>
+            )}
           </h2>
           
           <div className={styles.filterBar}>

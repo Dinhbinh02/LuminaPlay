@@ -1534,6 +1534,13 @@
   .episodeCard {
     padding: 10px;
     gap: 12px;
+    transition: none !important;
+  }
+
+  .episodeCard:hover {
+    transform: none !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
   }
 
   .episodeThumbWrapper {

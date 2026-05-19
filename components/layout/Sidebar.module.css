@@ -62,15 +62,20 @@
   opacity: 0.8;
 }
 
-/* Hover and active states */
-.navLink:hover .navItem,
-.navLinkButton:hover .navItem {
-  color: #ffffff;
-}
+@media (hover: hover) and (pointer: fine) {
+  .navLink:hover .navItem,
+  .navLinkButton:hover .navItem {
+    color: #ffffff;
+  }
 
-.navLink:hover .icon,
-.navLinkButton:hover .icon {
-  transform: scale(1.15) translateY(-1px);
+  .navLink:hover .icon,
+  .navLinkButton:hover .icon {
+    transform: scale(1.15) translateY(-1px);
+  }
+
+  .logoLink:hover .logoIcon {
+    transform: rotate(8deg) scale(1.1);
+  }
 }
 
 .navItemActive {
@@ -102,10 +107,6 @@
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   outline: 1px solid transparent;
-}
-
-.logoLink:hover .logoIcon {
-  transform: rotate(8deg) scale(1.1);
 }
 
 @media (min-width: 768px) {

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { PictureInPicture2, ChevronLeft, Globe, Play, Plus, Heart, Star, ChevronDown, ChevronUp, Loader2, Server, ChevronRight, Info, Share2, Film, Check, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,6 +25,11 @@ interface DetailsViewProps {
 
 export default function DetailsView({ id, type }: DetailsViewProps) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [showPlayer, setShowPlayer] = useState(false);
   const [showIframeControls, setShowIframeControls] = useState(true);
@@ -533,119 +539,122 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
     <>
       <Header />
 
-      <AnimatePresence>
-        {showPlayer && playerConfig && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className={styles.playerOverlay}
-            onClick={() => setShowPlayer(false)}
-            style={{
-              backdropFilter: "blur(10px)",
-              WebkitBackdropFilter: "blur(10px)",
-              willChange: "auto"
-            }}
-          >
-            {playerConfig.isIframe ? (
-              <div
-                className={styles.iframeContainer}
-                onClick={(e) => e.stopPropagation()}
-                onMouseEnter={handleIframeMouseMove}
-                onMouseMove={handleIframeMouseMove}
-                onMouseLeave={() => {
-                  setShowIframeControls(false);
-                  if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-                }}
-              >
-                {!playerConfig.isTrailer && (
-                  <div className={`${styles.iframeTopBar} ${!showIframeControls ? styles.hidden : ''}`}>
-                    <div className={styles.iframeTopLeft}>
-                      <button
-                        className={styles.iframeBackBtn}
-                        onClick={() => setShowPlayer(false)}
-                      >
-                        <ArrowLeft size={32} />
-                      </button>
-                      <div className={styles.iframeInfo}>
-                        <span className={styles.iframeTitle}>
-                          {playerConfig.subTitle || playerConfig.title}
-                        </span>
+      {mounted && createPortal(
+        <AnimatePresence>
+          {showPlayer && playerConfig && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className={styles.playerOverlay}
+              onClick={() => setShowPlayer(false)}
+              style={{
+                backdropFilter: "blur(10px)",
+                WebkitBackdropFilter: "blur(10px)",
+                willChange: "auto"
+              }}
+            >
+              {playerConfig.isIframe ? (
+                <div
+                  className={styles.iframeContainer}
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseEnter={handleIframeMouseMove}
+                  onMouseMove={handleIframeMouseMove}
+                  onMouseLeave={() => {
+                    setShowIframeControls(false);
+                    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+                  }}
+                >
+                  {!playerConfig.isTrailer && (
+                    <div className={`${styles.iframeTopBar} ${!showIframeControls ? styles.hidden : ''}`}>
+                      <div className={styles.iframeTopLeft}>
+                        <button
+                          className={styles.iframeBackBtn}
+                          onClick={() => setShowPlayer(false)}
+                        >
+                          <ArrowLeft size={32} />
+                        </button>
+                        <div className={styles.iframeInfo}>
+                          <span className={styles.iframeTitle}>
+                            {playerConfig.subTitle || playerConfig.title}
+                          </span>
+                        </div>
+                      </div>
+
+
+                      <div className={styles.serverContainer}>
+                        <button className={styles.serverButton} onClick={() => setShowServerMenu(!showServerMenu)}>
+                          <Globe size={20} />
+                          <span>{SERVERS.find(s => s.id === selectedServer)?.name.split(' ')[0] || 'Server'}</span>
+                        </button>
+                        <AnimatePresence>
+                          {showServerMenu && (
+                            <motion.div
+                              className={styles.serverMenuFloating}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 10 }}
+                            >
+                              <div className={styles.menuHeader}>Select Server</div>
+                              {SERVERS.map((s) => (
+                                <button
+                                  key={s.id}
+                                  className={`${styles.serverMenuItem} ${selectedServer === s.id ? styles.activeServer : ''}`}
+                                  onClick={() => {
+                                    setSelectedServer(s.id);
+                                    setShowServerMenu(false);
+                                    handlePlay(currentEpisodeNum, undefined, selectedSeason, s.id);
+                                  }}
+                                >
+                                  {s.name}
+                                </button>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
-
-
-                    <div className={styles.serverContainer}>
-                      <button className={styles.serverButton} onClick={() => setShowServerMenu(!showServerMenu)}>
-                        <Globe size={20} />
-                        <span>{SERVERS.find(s => s.id === selectedServer)?.name.split(' ')[0] || 'Server'}</span>
-                      </button>
-                      <AnimatePresence>
-                        {showServerMenu && (
-                          <motion.div
-                            className={styles.serverMenuFloating}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 10 }}
-                          >
-                            <div className={styles.menuHeader}>Select Server</div>
-                            {SERVERS.map((s) => (
-                              <button
-                                key={s.id}
-                                className={`${styles.serverMenuItem} ${selectedServer === s.id ? styles.activeServer : ''}`}
-                                onClick={() => {
-                                  setSelectedServer(s.id);
-                                  setShowServerMenu(false);
-                                  handlePlay(currentEpisodeNum, undefined, selectedSeason, s.id);
-                                }}
-                              >
-                                {s.name}
-                              </button>
-                            ))}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </div>
-                )}
-                <iframe
-                  src={playerConfig.src}
-                  className={styles.iframe}
-                  allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            ) : (
-              <div className={styles.iframeContainer} onClick={(e) => e.stopPropagation()}>
-                <VideoPlayer
-                  src={playerConfig.src}
-                  title={playerConfig.title}
-                  subTitle={playerConfig.subTitle}
-                  poster={detail?.backdrop_path ? tmdb.getImageUrl(detail.backdrop_path, 'w1280') : undefined}
-                  startTime={playerConfig.startTime}
-                  onProgress={(ct, d, f) => handleProgress(ct, d, undefined, f)}
-                  onClose={(finalTime, finalDuration) => {
-                    handleProgress(finalTime, finalDuration, undefined, true); // Force sync on exit
-                    setShowPlayer(false);
-                  }}
-                  autoPlay
-                  servers={SERVERS}
-                  currentServerId={selectedServer}
-                  onServerSelect={(sid) => {
-                    setSelectedServer(sid);
-                    handlePlay(currentEpisodeNum, undefined, selectedSeason, sid);
-                  }}
-                  onNext={
-                    seasonData?.episodes?.some((ep: any) => ep.episode_number === parseInt(currentEpisodeNum) + 1)
-                      ? () => handlePlay((parseInt(currentEpisodeNum) + 1).toString())
-                      : undefined
-                  }
-                />
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  )}
+                  <iframe
+                    src={playerConfig.src}
+                    className={styles.iframe}
+                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              ) : (
+                <div className={styles.iframeContainer} onClick={(e) => e.stopPropagation()}>
+                  <VideoPlayer
+                    src={playerConfig.src}
+                    title={playerConfig.title}
+                    subTitle={playerConfig.subTitle}
+                    poster={detail?.backdrop_path ? tmdb.getImageUrl(detail.backdrop_path, 'w1280') : undefined}
+                    startTime={playerConfig.startTime}
+                    onProgress={(ct, d, f) => handleProgress(ct, d, undefined, f)}
+                    onClose={(finalTime, finalDuration) => {
+                      handleProgress(finalTime, finalDuration, undefined, true); // Force sync on exit
+                      setShowPlayer(false);
+                    }}
+                    autoPlay
+                    servers={SERVERS}
+                    currentServerId={selectedServer}
+                    onServerSelect={(sid) => {
+                      setSelectedServer(sid);
+                      handlePlay(currentEpisodeNum, undefined, selectedSeason, sid);
+                    }}
+                    onNext={
+                      seasonData?.episodes?.some((ep: any) => ep.episode_number === parseInt(currentEpisodeNum) + 1)
+                        ? () => handlePlay((parseInt(currentEpisodeNum) + 1).toString())
+                        : undefined
+                    }
+                  />
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       <main className={styles.main} style={{ opacity: (!isLoading && detail) ? 1 : 0 }}>
         <button 

@@ -52,9 +52,7 @@ export default function AppContent({ children }: { children: React.ReactNode }) 
         setActiveDetail(id, type);
       } else {
         setActiveDetail(null, null);
-        if (['/', '/search', '/mylist', '/history'].includes(pathname)) {
-          setActiveTab(pathname);
-        }
+        setActiveTab(pathname);
       }
     }
   }, [pathname, setActiveTab, setActiveDetail]);
@@ -72,9 +70,6 @@ export default function AppContent({ children }: { children: React.ReactNode }) 
         setActiveDetail(id, type);
       } else {
         setActiveDetail(null, null);
-      }
-
-      if (['/', '/search', '/mylist'].includes(path)) {
         setActiveTab(path);
       }
     };
