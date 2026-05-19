@@ -26,6 +26,21 @@ export default function Sidebar() {
     router.prefetch('/');
   }, [router]);
 
+  // Save current scroll before path changes, restore when returning
+  useEffect(() => {
+    const key = `scroll_${pathname}`;
+    const saved = sessionStorage.getItem(key);
+    if (saved !== null) {
+      // Small delay to let the page render first
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: parseInt(saved, 10), behavior: 'instant' as ScrollBehavior });
+      });
+    }
+    return () => {
+      sessionStorage.setItem(`scroll_${pathname}`, String(window.scrollY));
+    };
+  }, [pathname]);
+
   useEffect(() => {
     setOptimisticPath(null);
   }, [pathname]);
@@ -105,8 +120,10 @@ export default function Sidebar() {
                   e.preventDefault();
                   if (pathname !== item.href) {
                     setOptimisticPath(item.href);
+                    // Save scroll position of current page before leaving
+                    sessionStorage.setItem(`scroll_${pathname}`, String(window.scrollY));
                     startTransition(() => {
-                      router.push(item.href);
+                      router.push(item.href, { scroll: false });
                     });
                   }
                 }}

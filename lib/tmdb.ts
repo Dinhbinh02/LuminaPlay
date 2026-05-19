@@ -119,7 +119,7 @@ export const tmdb = {
   },
 
   getMovieImages: async (id: number | string) => {
-    return tmdb.fetch(`/movie/${id}/images`);
+    return tmdb.fetch(`/movie/${id}/images`, { include_image_language: 'en,null,xx' });
   },
 
   getTVSeason: async (id: number | string, season: number | string) => {
@@ -135,7 +135,7 @@ export const tmdb = {
   },
 
   getTVImages: async (id: number | string) => {
-    return tmdb.fetch(`/tv/${id}/images`);
+    return tmdb.fetch(`/tv/${id}/images`, { include_image_language: 'en,null,xx' });
   },
 
   getSearchCounts: async (query: string) => {
