@@ -22,8 +22,8 @@ export const tmdb = {
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     const url = new URL(`${BASE_URL}${cleanEndpoint}`);
 
-    // Only add api_key to URL if we don't have a Bearer Token
-    if (TMDB_API_KEY && !TMDB_ACCESS_TOKEN) {
+    // Always add api_key to URL for client-side compatibility and avoiding preflight CORS issues
+    if (TMDB_API_KEY) {
       url.searchParams.append('api_key', TMDB_API_KEY);
     }
     const searchParams = { language: 'en-US', ...params };
@@ -32,7 +32,10 @@ export const tmdb = {
     });
 
     const headers: Record<string, string> = {};
-    if (TMDB_ACCESS_TOKEN) {
+    // Only send Authorization header on the server side if API Key is not used/available,
+    // to prevent CORS Preflight issues in the browser.
+    const isClient = typeof window !== 'undefined';
+    if (TMDB_ACCESS_TOKEN && !isClient && !TMDB_API_KEY) {
       headers['Authorization'] = `Bearer ${TMDB_ACCESS_TOKEN}`;
     }
 

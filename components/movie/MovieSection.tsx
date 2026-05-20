@@ -146,24 +146,24 @@ export default function MovieSection({ title, type, slug, params = {}, movies, i
 
     if (infiniteData?.data) {
       return infiniteData.data.pages.flatMap((page: any) =>
-        page.results.map((item: any) => ({
+        (page?.results || []).map((item: any) => ({
           id: item.id,
           title: item.title || item.name,
           poster: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : '',
-          slug: item.media_type === 'tv' ? `tv/${item.id}` : `movie/${item.id}`,
+          slug: item.media_type === 'tv' || (!item.title && item.name) ? `tv/${item.id}` : `movie/${item.id}`,
           year: (item.release_date || item.first_air_date || '')?.split('-')[0],
           quality: item.vote_average?.toFixed(1),
-          episodeCurrent: item.media_type === 'tv' ? 'Series' : 'Movie',
+          episodeCurrent: item.media_type === 'tv' || (!item.title && item.name) ? 'Series' : 'Movie',
           status: 'completed'
         }))
       );
     }
 
-    return data?.pages.flatMap((page: any) =>
-      page.data.items.map((item: any) => ({
+    return data?.pages?.flatMap((page: any) =>
+      (page?.data?.items || []).map((item: any) => ({
         id: item._id,
         title: item.origin_name || item.name,
-        poster: ophim.getImageUrl(item.thumb_url, page.data.APP_DOMAIN_CDN_IMAGE),
+        poster: ophim.getImageUrl(item.thumb_url, page?.data?.APP_DOMAIN_CDN_IMAGE),
         slug: `movie/${item.slug}`,
         year: item.year?.toString(),
         quality: item.quality,
