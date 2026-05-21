@@ -81,7 +81,7 @@
 .container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 24px 4%;
+  padding: 24px 3%;
   display: flex;
   gap: 40px;
   align-items: flex-start;
@@ -136,7 +136,7 @@
   color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   text-align: left;
 }
@@ -205,7 +205,7 @@
 
 .subtitle {
   color: rgba(255, 255, 255, 0.5);
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .grid {
@@ -223,8 +223,7 @@
 
 @media (max-width: 768px) {
   .container {
-    padding-top: 24px !important;
-    padding-bottom: 24px !important;
+    padding: 16px 3% 24px !important;
   }
 
   .grid {
@@ -406,7 +405,7 @@
   .container {
     flex-direction: column;
     gap: 0;
-    padding: 12px 4% 3%;
+    padding: 12px 3% 3%;
   }
   .sidebar {
     display: none;
@@ -450,7 +449,7 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   background: rgba(255, 255, 255, 0.05);
   color: rgba(255, 255, 255, 0.7);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -495,45 +494,28 @@
     padding: 10px 14px;
   }
   .movieTitle {
-    font-size: 15px;
+    font-size: 16px;
   }
   .description {
     display: none;
   }
   
   .searchBarWrapper {
-    background: #ffffff;
-    border: none;
-    border-radius: 4px;
-    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50px;
+    padding: 10px 18px;
     margin-bottom: 24px;
-    position: relative;
-    top: 0;
-    box-shadow: none;
-    backdrop-filter: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
   
   .searchBarWrapper:focus-within {
-    background: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(229, 9, 20, 0.6);
+    box-shadow: 0 0 15px rgba(229, 9, 20, 0.15);
     transform: none;
-    box-shadow: none;
-  }
-  
-  .searchIcon {
-    color: #121212;
-  }
-  
-  .searchBarWrapper:focus-within .searchIcon {
-    color: #121212;
-  }
-  
-  .searchInputField {
-    color: #121212;
-    font-weight: 600;
-  }
-  
-  .searchInputField::placeholder {
-    color: #535353;
   }
 }
 
@@ -618,32 +600,6 @@
 
 .backButton:hover {
   color: white;
-}
-
-@media (max-width: 480px) {
-  .categoryGrid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-  .categoryCard {
-    padding: 12px;
-    aspect-ratio: 1.5 / 1;
-    border-radius: 4px;
-  }
-  .categoryName {
-    font-size: 15px;
-    max-width: 100%;
-  }
-  .categoryPoster {
-    width: 65px;
-    height: 90px;
-    right: -10px;
-    bottom: -5px;
-  }
-  .browseAllTitle {
-    font-size: 16px;
-    margin-bottom: 16px;
-  }
 }
 
 .categorySkeletonCard {
@@ -748,4 +704,57 @@
   height: 100%;
   background: linear-gradient(135deg, #1a1a1a, #222);
 }
+
+/* Media query overrides for Browse Categories (placed at end of file to ensure correct cascading order) */
+@media (max-width: 1024px) {
+  .categoryGrid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+  }
+  .categoryName {
+    font-size: 18px;
+  }
+  .categoryPoster {
+    width: 75px;
+    height: 110px;
+  }
+  .browseAllTitle {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .browseAllTitle {
+    font-size: 18px;
+    margin-bottom: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .categoryGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .categoryCard {
+    padding: 12px;
+    aspect-ratio: 1.5 / 1;
+    border-radius: 8px;
+  }
+  .categoryName {
+    font-size: 16px;
+    max-width: 100%;
+  }
+  .categoryPoster {
+    width: 65px;
+    height: 90px;
+    right: -10px;
+    bottom: -5px;
+  }
+  .browseAllTitle {
+    font-size: 16px;
+    margin-bottom: 16px;
+  }
+}
+
 

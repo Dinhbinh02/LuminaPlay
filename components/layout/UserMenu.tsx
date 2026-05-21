@@ -63,7 +63,6 @@ export default function UserMenu() {
       <button className={styles.sidebarUserBtn} onClick={handleLogin} aria-label="Sign In">
         <div className={styles.navItem}>
           <LogIn size={22} className={styles.icon} />
-          <span className={styles.label}>Sign In</span>
         </div>
       </button>
     );
@@ -80,7 +79,6 @@ export default function UserMenu() {
           ) : (
             <User size={22} className={styles.icon} />
           )}
-          <span className={styles.label}>Profile</span>
         </div>
       </button>
 

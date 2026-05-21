@@ -6,40 +6,71 @@ import { usePathname } from 'next/navigation';
 import styles from './LoadingScreen.module.css';
 import { useLoadingStore } from '@/hooks/useLoadingStore';
 
-// Use an in-memory flag that resets on page refresh but persists during client-side SPA navigation
-let hasLoadedInitialInSession = false;
-
 export default function LoadingScreen({ isForcedVisible }: { isForcedVisible?: boolean }) {
-  const { isPageLoading, setPageLoading } = useLoadingStore();
+  const {
+    isPageLoading,
+    setPageLoading,
+    isInitialLoading,
+    markInitialLoaded,
+    hasLoadedInitial,
+    initialProgress,
+    setInitialProgress
+  } = useLoadingStore();
   const pathname = usePathname();
 
-  // 1. Initial Fullscreen Loading Screen (Only on first load of homepage '/')
-  const [isInitialLoad, setIsInitialLoad] = useState(false);
-
   useEffect(() => {
-    // Show loading overlay on homepage first render of the session
-    if (pathname === '/' && !hasLoadedInitialInSession) {
-      setIsInitialLoad(true);
+    if (hasLoadedInitial) return;
+
+    // Fail-safe: Always hide the loading screen after a maximum of 6 seconds to prevent lockups
+    const fallbackTimer = setTimeout(() => {
+      markInitialLoaded();
+    }, 6000);
+
+    let progressInterval: NodeJS.Timeout;
+
+    if (pathname !== '/') {
+      // If we are not on the homepage, there are no hero images to preload.
+      // Auto-hide the loading overlay when the page completes loading or after a fallback timeout.
+      setInitialProgress(10);
+
+      progressInterval = setInterval(() => {
+        setInitialProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          const diff = (90 - prev) * 0.15;
+          return prev + Math.max(diff, 1);
+        });
+      }, 200);
 
       const handleLoadComplete = () => {
-        setIsInitialLoad(false);
-        hasLoadedInitialInSession = true;
+        clearInterval(progressInterval);
+        markInitialLoaded();
       };
 
       if (document.readyState === 'complete') {
-        // Add a tiny delay so the beautiful loading animation is visible to the user
-        const timer = setTimeout(handleLoadComplete, 1500);
-        return () => clearTimeout(timer);
+        const timer = setTimeout(handleLoadComplete, 1000);
+        return () => {
+          clearTimeout(timer);
+          clearInterval(progressInterval);
+          clearTimeout(fallbackTimer);
+        };
       } else {
         window.addEventListener('load', handleLoadComplete);
-        const timer = setTimeout(handleLoadComplete, 4000); // Fail-safe
         return () => {
           window.removeEventListener('load', handleLoadComplete);
-          clearTimeout(timer);
+          clearInterval(progressInterval);
+          clearTimeout(fallbackTimer);
         };
       }
     }
-  }, [pathname]);
+
+    return () => {
+      clearTimeout(fallbackTimer);
+      if (progressInterval) clearInterval(progressInterval);
+    };
+  }, [pathname, hasLoadedInitial, markInitialLoaded, setInitialProgress]);
 
   // 2. Top Progress Bar Loading (For all internal page changes)
   const [progress, setProgress] = useState(0);
@@ -84,7 +115,7 @@ export default function LoadingScreen({ isForcedVisible }: { isForcedVisible?: b
   }, [isPageLoading, showProgressBar]);
 
   // Determine whether to show the fullscreen overlay (only on forced visibility or initial landing homepage load)
-  const showOverlay = isForcedVisible !== undefined ? isForcedVisible : isInitialLoad;
+  const showOverlay = isForcedVisible !== undefined ? isForcedVisible : (isInitialLoading && !hasLoadedInitial);
 
   return (
     <>
@@ -121,10 +152,10 @@ export default function LoadingScreen({ isForcedVisible }: { isForcedVisible?: b
                 <span className={styles.play}>Play</span>
               </div>
               <div className={styles.loader}>
-                <div className={styles.bar}></div>
+                <div className={styles.bar} style={{ width: `${initialProgress}%` }}></div>
               </div>
               <div className={styles.loadingText}>
-                Getting things ready for you...
+                Getting things ready... {initialProgress}%
               </div>
             </div>
           </motion.div>

@@ -32,8 +32,8 @@
 }
 
 .loader {
-  width: 200px;
-  height: 2px;
+  width: 260px;
+  height: 4px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
   overflow: hidden;
@@ -45,18 +45,9 @@
   top: 0;
   left: 0;
   height: 100%;
-  width: 100%;
-  background: linear-gradient(90deg, transparent, var(--primary), transparent);
-  animation: loading 1.5s infinite linear;
-}
-
-@keyframes loading {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
+  background: linear-gradient(90deg, var(--primary), #ff4d4d);
+  box-shadow: 0 0 8px rgba(229, 9, 20, 0.5);
+  transition: width 0.4s cubic-bezier(0.1, 0.85, 0.55, 1);
 }
 
 .loadingText {

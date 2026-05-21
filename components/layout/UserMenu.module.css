@@ -6,6 +6,7 @@
 }
 
 @media (min-width: 768px) {
+
   .menuWrapper,
   .sidebarUserBtn,
   .loadingPlaceholder {
@@ -38,14 +39,6 @@
 
 .icon {
   transition: transform 0.3s ease, color 0.3s ease;
-}
-
-.label {
-  font-family: 'Outfit', sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.2px;
-  opacity: 0.8;
 }
 
 .avatarWrapper {
@@ -99,6 +92,7 @@
     opacity: 0;
     transform: translateX(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -183,6 +177,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

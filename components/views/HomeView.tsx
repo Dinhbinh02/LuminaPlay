@@ -21,6 +21,7 @@ import { tmdb } from "@/lib/tmdb";
 import styles from '@/app/page.module.css';
 import { useStore } from "@/store/useStore";
 import LazySection from "@/components/layout/LazySection";
+import { useLoadingStore } from "@/hooks/useLoadingStore";
 
 function HistorySkeleton() {
   return (
@@ -35,29 +36,10 @@ function HistorySkeleton() {
   );
 }
 
-let hasPreloadedInitial = false;
-
 export default function HomeView() {
   const { data: geo } = useGeoLocation();
-  const { data: regionalTrending, isLoading: isRegionalLoading } = useRegionalTrending('movie');
   const { data: heroData, isLoading: isHeroLoading } = useTrendingWithLogos('all', 6, geo?.countryCode);
-
-  const popularTVInfinite = useInfiniteTMDBPopular('tv');
-  const actionMoviesInfinite = useInfiniteTMDBByGenre(28); // Action
-  const romanceMoviesInfinite = useInfiniteTMDBByGenre(10749); // Romance
-  const horrorMoviesInfinite = useInfiniteTMDBByGenre(27); // Horror
-  const sciFiMoviesInfinite = useInfiniteTMDBByGenre(878); // Sci-Fi
-  const animationMoviesInfinite = useInfiniteTMDBByGenre(16); // Animation
-  const docMoviesInfinite = useInfiniteTMDBByGenre(99); // Documentary
-  const netflixInfinite = useInfiniteNetflixContent();
-  const hboInfinite = useInfiniteHBOContent();
-  const appleInfinite = useInfiniteAppleContent();
-
-  const { history: globalHistory } = useStore();
-  const [isHistoryChecked, setIsHistoryChecked] = useState(false);
-  const [history, setHistory] = useState<any[]>([]);
-  const [isPreloading, setIsPreloading] = useState(!hasPreloadedInitial);
-  const [isHydrated, setIsHydrated] = useState(false);
+  const { hasLoadedInitial, markInitialLoaded, setInitialProgress } = useLoadingStore();
 
   // Simple static mapping for TMDB genre IDs
   const tmdbGenres: Record<number, string> = {
@@ -88,9 +70,28 @@ export default function HomeView() {
     };
   }) || [];
 
+  // Simulate progress from 10% to 35% while fetching API
+  useEffect(() => {
+    if (hasLoadedInitial) return;
+
+    setInitialProgress(10);
+
+    const interval = setInterval(() => {
+      setInitialProgress((prev) => {
+        if (prev >= 35) {
+          clearInterval(interval);
+          return 35;
+        }
+        return prev + 2;
+      });
+    }, 150);
+
+    return () => clearInterval(interval);
+  }, [hasLoadedInitial, setInitialProgress]);
+
   // Preload top 3 hero images
   useEffect(() => {
-    if (hasPreloadedInitial) return;
+    if (hasLoadedInitial) return;
 
     if (heroMovies.length > 0) {
       const targetCount = Math.min(3, heroMovies.length);
@@ -99,12 +100,20 @@ export default function HomeView() {
       let loadedCount = 0;
       const handleImageLoad = () => {
         loadedCount++;
+        // Calculate progress starting from 40% and ending at 100%
+        const currentProgress = 40 + Math.round((loadedCount / targetCount) * 60);
+        setInitialProgress(currentProgress);
+
         if (loadedCount >= targetCount) {
-          hasPreloadedInitial = true;
           // Small delay for smooth transition
-          setTimeout(() => setIsPreloading(false), 800);
+          setTimeout(() => {
+            markInitialLoaded();
+          }, 800);
         }
       };
+
+      // Set progress to 40% when API finishes and image preloading starts
+      setInitialProgress(40);
 
       imagesToPreload.forEach(movie => {
         const img = new window.Image();
@@ -114,10 +123,55 @@ export default function HomeView() {
       });
     } else if (!isHeroLoading && heroMovies.length === 0) {
       // Fallback if no hero movies found
-      hasPreloadedInitial = true;
-      setIsPreloading(false);
+      setInitialProgress(100);
+      markInitialLoaded();
     }
-  }, [heroMovies.length, isHeroLoading]);
+  }, [heroMovies.length, isHeroLoading, hasLoadedInitial, markInitialLoaded, setInitialProgress]);
+
+  return (
+    <>
+      <Header />
+      <main style={{ 
+        minHeight: '100vh', 
+        backgroundColor: '#000000', 
+        opacity: hasLoadedInitial ? 1 : 0, 
+        transition: 'opacity 0.8s ease' 
+      }}>
+
+        <div className={styles.heroWrapper}>
+          {heroMovies.length > 0 ? (
+            <Hero movies={heroMovies} />
+          ) : (
+            <div className={styles.heroLoading} />
+          )}
+        </div>
+
+        {/* Delay mounting all other sections to prioritize network for hero images */}
+        {hasLoadedInitial && <HomeViewContent />}
+      </main>
+    </>
+  );
+}
+
+function HomeViewContent() {
+  const { data: geo } = useGeoLocation();
+  const { data: regionalTrending, isLoading: isRegionalLoading } = useRegionalTrending('movie');
+
+  const popularTVInfinite = useInfiniteTMDBPopular('tv');
+  const actionMoviesInfinite = useInfiniteTMDBByGenre(28); // Action
+  const romanceMoviesInfinite = useInfiniteTMDBByGenre(10749); // Romance
+  const horrorMoviesInfinite = useInfiniteTMDBByGenre(27); // Horror
+  const sciFiMoviesInfinite = useInfiniteTMDBByGenre(878); // Sci-Fi
+  const animationMoviesInfinite = useInfiniteTMDBByGenre(16); // Animation
+  const docMoviesInfinite = useInfiniteTMDBByGenre(99); // Documentary
+  const netflixInfinite = useInfiniteNetflixContent();
+  const hboInfinite = useInfiniteHBOContent();
+  const appleInfinite = useInfiniteAppleContent();
+
+  const { history: globalHistory } = useStore();
+  const [isHistoryChecked, setIsHistoryChecked] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   // Handle Zustand hydration
   useEffect(() => {
@@ -147,101 +201,80 @@ export default function HomeView() {
   const { isLoading: isRecLoading } = recInfinite;
 
   return (
-    <>
-      {/* Preloading status is synced to the global root loading screen via Zustand store */}
+    <div className={styles.contentWrapper}>
+      {isHistoryChecked && history.length > 0 && (
+        <ContinueWatching movies={history} />
+      )}
+      {!isHistoryChecked && (
+        <HistorySkeleton />
+      )}
 
-      <Header />
-      <main style={{ 
-        minHeight: '100vh', 
-        backgroundColor: '#000000', 
-        opacity: isPreloading ? 0 : 1, 
-        transition: 'opacity 0.8s ease' 
-      }}>
+      {!isRegionalLoading && regionalTrending?.results && (
+        <LazySection height="450px">
+          <TopTrendingSection
+            movies={regionalTrending.results}
+            title={`Top 10 in ${regionalTrending.countryName} Today`}
+          />
+        </LazySection>
+      )}
 
-        <div className={styles.heroWrapper}>
-          {heroMovies.length > 0 ? (
-            <Hero movies={heroMovies} />
-          ) : (
-            <div className={styles.heroLoading} />
-          )}
-        </div>
+      <LazySection height="350px">
+        <MovieSection title="Anime" type="danh-sach" slug="hoat-hinh" params={{ country: 'nhat-ban' }} />
+      </LazySection>
 
-        <div className={styles.contentWrapper}>
-          {isHistoryChecked && history.length > 0 && (
-            <ContinueWatching movies={history} />
-          )}
-          {!isHistoryChecked && (
-            <HistorySkeleton />
-          )}
+      <LazySection height="350px">
+        <MovieSection title="K-Drama" type="quoc-gia" slug="han-quoc" />
+      </LazySection>
 
-          {!isRegionalLoading && regionalTrending?.results && (
-            <LazySection height="450px">
-              <TopTrendingSection
-                movies={regionalTrending.results}
-                title={`Top 10 in ${regionalTrending.countryName} Today`}
-              />
-            </LazySection>
-          )}
+      <LazySection height="350px">
+        <MovieSection title="Global Popular Series" infiniteData={popularTVInfinite} />
+      </LazySection>
 
-          <LazySection height="350px">
-            <MovieSection title="Anime" type="danh-sach" slug="hoat-hinh" params={{ country: 'nhat-ban' }} />
-          </LazySection>
+      <LazySection height="350px">
+        <MovieSection title="Netflix Originals" infiniteData={netflixInfinite} href="/provider/8?type=watch" />
+      </LazySection>
 
-          <LazySection height="350px">
-            <MovieSection title="K-Drama" type="quoc-gia" slug="han-quoc" />
-          </LazySection>
+      <LazySection height="350px">
+        <MovieSection title="HBO Max Originals" infiniteData={hboInfinite} href="/provider/1899?type=watch" />
+      </LazySection>
 
-          <LazySection height="350px">
-            <MovieSection title="Global Popular Series" infiniteData={popularTVInfinite} />
-          </LazySection>
+      <LazySection height="350px">
+        <MovieSection title="Apple TV+ Originals" infiniteData={appleInfinite} href="/provider/350?type=watch" />
+      </LazySection>
 
-          <LazySection height="350px">
-            <MovieSection title="Netflix Originals" infiniteData={netflixInfinite} href="/provider/8?type=watch" />
-          </LazySection>
+      <LazySection height="350px">
+        <MovieSection title="Action Movies" infiniteData={actionMoviesInfinite} />
+      </LazySection>
 
-          <LazySection height="350px">
-            <MovieSection title="HBO Max Originals" infiniteData={hboInfinite} href="/provider/1899?type=watch" />
-          </LazySection>
+      <LazySection height="350px">
+        <MovieSection title="Romance Movies" infiniteData={romanceMoviesInfinite} />
+      </LazySection>
 
-          <LazySection height="350px">
-            <MovieSection title="Apple TV+ Originals" infiniteData={appleInfinite} href="/provider/350?type=watch" />
-          </LazySection>
+      <LazySection height="350px">
+        <MovieSection title="Horror Movies" infiniteData={horrorMoviesInfinite} />
+      </LazySection>
 
-          <LazySection height="350px">
-            <MovieSection title="Action Movies" infiniteData={actionMoviesInfinite} />
-          </LazySection>
+      <LazySection height="350px">
+        <MovieSection title="Sci-Fi Movies" infiniteData={sciFiMoviesInfinite} />
+      </LazySection>
 
-          <LazySection height="350px">
-            <MovieSection title="Romance Movies" infiniteData={romanceMoviesInfinite} />
-          </LazySection>
+      <LazySection height="350px">
+        <MovieSection title="Animation" infiniteData={animationMoviesInfinite} />
+      </LazySection>
 
-          <LazySection height="350px">
-            <MovieSection title="Horror Movies" infiniteData={horrorMoviesInfinite} />
-          </LazySection>
+      <LazySection height="350px">
+        <MovieSection title="Documentary" infiniteData={docMoviesInfinite} />
+      </LazySection>
 
-          <LazySection height="350px">
-            <MovieSection title="Sci-Fi Movies" infiniteData={sciFiMoviesInfinite} />
-          </LazySection>
+      <LazySection height="350px">
+        <MovieSection title="Reality & Variety TV" type="danh-sach" slug="tv-shows" />
+      </LazySection>
 
-          <LazySection height="350px">
-            <MovieSection title="Animation" infiniteData={animationMoviesInfinite} />
-          </LazySection>
-
-          <LazySection height="350px">
-            <MovieSection title="Documentary" infiniteData={docMoviesInfinite} />
-          </LazySection>
-
-          <LazySection height="350px">
-            <MovieSection title="Reality & Variety TV" type="danh-sach" slug="tv-shows" />
-          </LazySection>
-
-          {!isRecLoading && recInfinite?.data?.pages[0]?.results?.length > 0 && lastWatched && (
-            <LazySection height="400px">
-              <MovieSection title={`Because you watched ${lastWatched.title}`} infiniteData={recInfinite} />
-            </LazySection>
-          )}
-        </div>
-      </main>
-    </>
+      {!isRecLoading && recInfinite?.data?.pages[0]?.results?.length > 0 && lastWatched && (
+        <LazySection height="400px">
+          <MovieSection title={`Because you watched ${lastWatched.title}`} infiniteData={recInfinite} />
+        </LazySection>
+      )}
+    </div>
   );
 }

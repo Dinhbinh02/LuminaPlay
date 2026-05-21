@@ -192,97 +192,48 @@ export default function MyListView() {
             className={`${styles.tabButton} ${activeSubTab === 'watchlist' ? styles.tabButtonActive : ''}`}
             onClick={() => { setActiveSubTab('watchlist'); setSearchQuery(''); }}
           >
-            Watchlist ({favorites.length})
+            {activeSubTab === 'watchlist' && (
+              <motion.div 
+                layoutId="activeTabHighlight" 
+                className={styles.activeTabHighlight}
+                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+              />
+            )}
+            <span className={styles.tabText}>Watchlist ({favorites.length})</span>
           </button>
           <button 
             className={`${styles.tabButton} ${activeSubTab === 'history' ? styles.tabButtonActive : ''}`}
             onClick={() => { setActiveSubTab('history'); setSearchQuery(''); }}
           >
-            <span className={styles.hideMobile}>Watch </span>History ({history.length})
+            {activeSubTab === 'history' && (
+              <motion.div 
+                layoutId="activeTabHighlight" 
+                className={styles.activeTabHighlight}
+                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+              />
+            )}
+            <span className={styles.tabText}>
+              <span className={styles.hideMobile}>Watch </span>History ({history.length})
+            </span>
           </button>
           <button 
             className={`${styles.tabButton} ${activeSubTab === 'stats' ? styles.tabButtonActive : ''}`}
             onClick={() => { setActiveSubTab('stats'); setSearchQuery(''); }}
           >
-            Insights<span className={styles.hideMobile}> & Stats</span>
+            {activeSubTab === 'stats' && (
+              <motion.div 
+                layoutId="activeTabHighlight" 
+                className={styles.activeTabHighlight}
+                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+              />
+            )}
+            <span className={styles.tabText}>
+              Insights<span className={styles.hideMobile}> & Stats</span>
+            </span>
           </button>
         </div>
 
-        {/* Controls row for filters (only for watchlist and history tabs) */}
-        {activeSubTab !== 'stats' && (
-          <div className={styles.controlsRow}>
-            <div className={styles.controlsLeft}>
-              {/* Search Box */}
-              <div className={styles.searchInputWrapper}>
-                <Search size={18} className={styles.searchIcon} />
-                <input 
-                  type="text" 
-                  placeholder={`Search ${activeSubTab}...`}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className={styles.searchInput}
-                />
-              </div>
 
-              {/* Media type filter (Watchlist only) */}
-              {activeSubTab === 'watchlist' && (
-                <div className={styles.filterPills}>
-                  <button 
-                    onClick={() => setMediaTypeFilter('all')} 
-                    className={`${styles.pill} ${mediaTypeFilter === 'all' ? styles.pillActive : ''}`}
-                  >
-                    All
-                  </button>
-                  <button 
-                    onClick={() => setMediaTypeFilter('movie')} 
-                    className={`${styles.pill} ${mediaTypeFilter === 'movie' ? styles.pillActive : ''}`}
-                  >
-                    Movies
-                  </button>
-                  <button 
-                    onClick={() => setMediaTypeFilter('tv')} 
-                    className={`${styles.pill} ${mediaTypeFilter === 'tv' ? styles.pillActive : ''}`}
-                  >
-                    TV Shows
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className={styles.controlsRight}>
-              {/* Sort Order (Watchlist only) */}
-              {activeSubTab === 'watchlist' && (
-                <select 
-                  value={sortOption} 
-                  onChange={(e) => setSortOption(e.target.value as SortOption)}
-                  className={styles.sortSelect}
-                >
-                  <option value="recently_added">Recently Added</option>
-                  <option value="az">Alphabetical (A-Z)</option>
-                  <option value="za">Alphabetical (Z-A)</option>
-                </select>
-              )}
-
-              {/* View Layout Toggle */}
-              <div className={styles.viewToggles}>
-                <button 
-                  onClick={() => setViewMode('grid')}
-                  className={`${styles.toggleBtn} ${viewMode === 'grid' ? styles.toggleBtnActive : ''}`}
-                  title="Grid View"
-                >
-                  <Grid size={18} />
-                </button>
-                <button 
-                  onClick={() => setViewMode('list')}
-                  className={`${styles.toggleBtn} ${viewMode === 'list' ? styles.toggleBtnActive : ''}`}
-                  title="List View"
-                >
-                  <List size={18} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Dynamic Sub-tab content Rendering */}
         <AnimatePresence mode="wait">
@@ -406,7 +357,7 @@ export default function MyListView() {
                   <div className={styles.historyActionsRow}>
                     <span style={{ color: '#888', fontSize: '14px' }}>Showing {processedHistory.length} recently watched items</span>
                     <button onClick={handleClearAllHistory} className={styles.clearAllBtn}>
-                      Clear All History
+                      Clear All
                     </button>
                   </div>
 

@@ -153,7 +153,7 @@
   padding: 8px 20px;
   border-radius: 8px;
   font-family: 'Outfit', sans-serif;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -273,7 +273,7 @@
   .filterBtn, .filterBtnActive {
     padding: 6px 12px;
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 16px;
   }
   
   .sectionHeader {

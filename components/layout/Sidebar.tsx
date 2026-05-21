@@ -93,7 +93,6 @@ export default function Sidebar() {
             const content = (
               <div className={`${styles.navItem} ${item.active ? styles.navItemActive : ''}`}>
                 <Icon size={22} className={styles.icon} />
-                <span className={styles.label}>{item.label}</span>
               </div>
             );
 
