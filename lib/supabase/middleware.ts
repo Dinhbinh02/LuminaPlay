@@ -24,11 +24,25 @@ export async function updateSession(request: NextRequest) {
           )
         },
       },
+      global: {
+        fetch: (url, options) => {
+          const controller = new AbortController()
+          const id = setTimeout(() => controller.abort(), 800)
+          return fetch(url, {
+            ...options,
+            signal: controller.signal,
+          }).finally(() => clearTimeout(id))
+        },
+      },
     }
   )
 
-  // refreshing the auth token
-  await supabase.auth.getUser()
+  // refreshing the auth token safely
+  try {
+    await supabase.auth.getUser()
+  } catch (error) {
+    console.error('Supabase auth check timed out or failed:', error)
+  }
 
   return supabaseResponse
 }
