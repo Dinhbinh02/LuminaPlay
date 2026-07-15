@@ -58,7 +58,7 @@ export default function DetailsView({ id, type }: DetailsViewProps) {
 
   const handlePlayTrailer = (trailerKey: string, trailerTitle: string) => {
     setPlayerConfig({
-      src: `https://www.youtube.com/embed/${trailerKey}?autoplay=1&vq=hd1080`,
+      src: `https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&vq=hd1080`,
       title: trailerTitle,
       subTitle: 'Official Trailer',
       isIframe: true,
