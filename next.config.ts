@@ -37,6 +37,10 @@ const nextConfig: NextConfig = {
     ],
     qualities: [60, 70, 75, 80, 85, 90],
   },
+  experimental: {
+    workerThreads: false,
+    cpus: 2,
+  },
 };
 
 export default nextConfig;

@@ -27,7 +27,7 @@ export async function updateSession(request: NextRequest) {
       global: {
         fetch: (url, options) => {
           const controller = new AbortController()
-          const id = setTimeout(() => controller.abort(), 800)
+          const id = setTimeout(() => controller.abort(), 2000)
           return fetch(url, {
             ...options,
             signal: controller.signal,

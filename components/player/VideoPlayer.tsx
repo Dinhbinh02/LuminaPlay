@@ -70,8 +70,10 @@ const VideoPlayer = ({
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [isHoveringProgress, setIsHoveringProgress] = useState(false);
   const [hoverProgress, setHoverProgress] = useState(0);
+  const [bufferedProgress, setBufferedProgress] = useState(0);
   const [tooltipTime, setTooltipTime] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [dragTime, setDragTime] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const lastSyncTime = useRef(0);
   const dragStartX = useRef(0);
@@ -318,8 +320,27 @@ const VideoPlayer = ({
       video.addEventListener('loadedmetadata', handleNativeSeek, { once: true });
     }
 
+    const handleProgress = () => {
+      if (!video.duration) return;
+      const buffered = video.buffered;
+      if (buffered.length > 0) {
+        let maxBuffered = 0;
+        for (let i = 0; i < buffered.length; i++) {
+          if (buffered.start(i) <= video.currentTime && buffered.end(i) >= video.currentTime) {
+            maxBuffered = buffered.end(i);
+            break;
+          }
+        }
+        if (maxBuffered === 0 && buffered.length > 0) {
+          maxBuffered = buffered.end(buffered.length - 1);
+        }
+        setBufferedProgress((maxBuffered / video.duration) * 100);
+      }
+    };
+
     const handleTimeUpdate = () => {
       setCurrentTime(video.currentTime);
+      handleProgress();
       // Report progress every 5 seconds via ref (avoids dependency array churn)
       const now = Math.floor(video.currentTime);
       if (now !== lastSyncTime.current && now % 5 === 0 && now > 0) {
@@ -327,12 +348,16 @@ const VideoPlayer = ({
         onProgressRef.current?.(video.currentTime, video.duration);
       }
     };
-    const handleDurationChange = () => setDuration(video.duration);
+    const handleDurationChange = () => {
+      setDuration(video.duration);
+      handleProgress();
+    };
 
     // Only show loading for the very first load of the source
     setIsLoading(true);
     const handleCanPlay = () => setIsLoading(false);
 
+    video.addEventListener('progress', handleProgress);
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('durationchange', handleDurationChange);
     video.addEventListener('canplay', handleCanPlay);
@@ -342,6 +367,7 @@ const VideoPlayer = ({
       if (video.currentTime > 0) {
         onProgressRef.current?.(video.currentTime, video.duration, true);
       }
+      video.removeEventListener('progress', handleProgress);
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('durationchange', handleDurationChange);
       video.removeEventListener('canplay', handleCanPlay);
@@ -613,21 +639,32 @@ const VideoPlayer = ({
                 className={styles.playerProgressBar}
                 onPointerMove={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
-                  const pos = (e.clientX - rect.left) / rect.width;
+                  const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
                   const time = pos * duration;
                   setHoverProgress(pos * 100);
                   setTooltipTime(time);
+                  
+                  if (isDragging && duration) {
+                    // Snap back to starting position if dragged close to it (within 0.5% of duration)
+                    const snapThreshold = duration * 0.005;
+                    const isNearStart = Math.abs(time - dragStartTime.current) < snapThreshold;
+                    const finalDragTime = isNearStart ? dragStartTime.current : time;
+                    setDragTime(finalDragTime);
+                  }
                 }}
                 onPointerDown={(e) => {
                   e.stopPropagation();
+                  e.preventDefault();
                   if (!videoRef.current || !duration) return;
+                  setIsDragging(true);
+                  dragStartTime.current = videoRef.current.currentTime;
+                  e.currentTarget.setPointerCapture(e.pointerId);
+
                   const rect = e.currentTarget.getBoundingClientRect();
-                  const pos = (e.clientX - rect.left) / rect.width;
-                  const newTime = Math.max(0, Math.min(duration, pos * duration));
-                  videoRef.current.currentTime = newTime;
-                  setCurrentTime(newTime);
+                  const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                  const newTime = pos * duration;
+                  setDragTime(newTime);
                   setTooltipTime(newTime);
-                  if (!isExternalUpdate.current) broadcastSync(newTime, 'SEEK');
                   resetControlsTimeout();
                 }}
                 onPointerEnter={() => setIsHoveringProgress(true)}
@@ -635,39 +672,63 @@ const VideoPlayer = ({
                   setIsHoveringProgress(false);
                   if (!isDragging) setTooltipTime(null);
                 }}
-                onPointerUp={() => {
+                onPointerUp={(e) => {
+                  if (isDragging) {
+                    setIsDragging(false);
+                    e.currentTarget.releasePointerCapture(e.pointerId);
+                    
+                    const finalTime = dragTime !== null ? dragTime : currentTime;
+                    if (videoRef.current) {
+                      videoRef.current.currentTime = finalTime;
+                      setCurrentTime(finalTime);
+                      if (!isExternalUpdate.current) broadcastSync(finalTime, 'SEEK');
+                    }
+                    setDragTime(null);
+                  }
                   setIsHoveringProgress(false);
                   setTooltipTime(null);
                 }}
-                onPointerCancel={() => {
+                onPointerCancel={(e) => {
+                  if (isDragging) {
+                    setIsDragging(false);
+                    e.currentTarget.releasePointerCapture(e.pointerId);
+                    setDragTime(null);
+                  }
                   setIsHoveringProgress(false);
                   setTooltipTime(null);
                 }}
               >
-                {tooltipTime !== null && (
-                  <div
-                    className={styles.progressTooltip}
-                    style={{ left: isDragging ? `${(currentTime / duration) * 100}%` : `${(tooltipTime / duration) * 100}%` }}
-                  >
-                    {formatTime(tooltipTime)}
-                  </div>
-                )}
-                <div
-                  className={styles.playerProgressHover}
-                  style={{ width: `${hoverProgress}%` }}
-                />
-                <div
-                  className={styles.playerProgressFill}
-                  style={{ width: `${(currentTime / duration) * 100}%` }}
-                />
-                <div
-                  className={styles.playerProgressHandle}
-                  style={{
-                    left: `${(currentTime / duration) * 100}%`,
-                    opacity: isDragging ? 1 : undefined,
-                    transform: isDragging ? 'translate(-50%, -50%) scale(1.5)' : undefined
-                  }}
-                />
+                {(() => {
+                  const displayTime = isDragging && dragTime !== null ? dragTime : currentTime;
+                  return (
+                    <>
+                      {tooltipTime !== null && (
+                        <div
+                          className={styles.progressTooltip}
+                          style={{ left: isDragging ? `${(displayTime / duration) * 100}%` : `${(tooltipTime / duration) * 100}%` }}
+                        >
+                          {formatTime(isDragging ? displayTime : tooltipTime)}
+                        </div>
+                      )}
+                      <div
+                        className={styles.playerProgressBuffer}
+                        style={{ width: `${bufferedProgress}%` }}
+                      />
+                      <div
+                        className={styles.playerProgressFill}
+                        style={{ width: `${(displayTime / duration) * 100}%` }}
+                      />
+                      <div
+                        className={styles.playerProgressHandle}
+                        style={{
+                          left: `${(displayTime / duration) * 100}%`,
+                          opacity: isDragging ? 1 : undefined,
+                          transform: isDragging ? 'translate(-50%, -50%) scale(1.5)' : undefined
+                        }}
+                      />
+                    </>
+                  );
+                })()}
               </div>
 
               <div className={styles.controlsRow}>
